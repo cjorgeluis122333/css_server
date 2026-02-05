@@ -18,6 +18,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'acc',
+        'correo',
+        'cedula',
         'password',
     ];
 
@@ -44,9 +46,9 @@ class User extends Authenticatable
         ];
     }
 
-
-    public function partner()
+// Relación para obtener TODOS los socios que pertenecen a esta acción
+    public function familyMembers()
     {
-        return $this->hasOne(Partner::class, 'acc', 'acc');
+        return $this->hasMany(Partner::class, 'acc', 'acc');
     }
 }

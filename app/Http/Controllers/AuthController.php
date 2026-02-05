@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Exception;
+
 class AuthController extends Controller
 {
     public function register(Request $request)
@@ -17,6 +18,8 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'acc' => 'required|integer|unique:users,acc',
             'password' => 'required|string|min:6|confirmed',
+            'cedula' => 'required|int',
+            'correo' => 'required|email|unique:users,correo'
         ]);
 
         if ($validator->fails()) {
@@ -27,16 +30,39 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // 2. Verificar si la ACCIÓN ya fue registrada por otro familiar
+        if (User::where('acc', $request->acc)->exists()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Esta acción ya tiene un usuario registrado. Los demás familiares deben usar esas credenciales.'
+            ], 409);
+        }
+
+        // 3. VALIDACIÓN DE IDENTIDAD contra la tabla de socios
+        // Buscamos un socio que coincida con la ACCIÓN y (Cédula o Correo)
+        $partnerMatch = Partner::where('acc', $request->acc)
+            ->where(function($query) use ($request) {
+                $query->where('cedula', $request->cedula)
+                    ->where('correo', $request->correo);
+            })->first();
+
+        if (!$partnerMatch) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se encontró ningún socio en la base de datos que coincida con estos datos para la acción ' . $request->acc
+            ], 404);
+        }
+
+
         // 2. Transacción de base de datos para asegurar integridad
         DB::beginTransaction();
         try {
             $user = User::create([
                 'acc' => $request->acc,
+                'cedula' => $request->cedula,
+                'correo' => $request->correo,
                 'password' => Hash::make($request->password),
             ]);
-
-            // Intentamos cargar el socio de una vez si existe
-            $partner = Partner::where('acc', $request->acc)->first();
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -44,12 +70,11 @@ class AuthController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Usuario registrado exitosamente',
+                'message' => 'Usuario registrado exitosamente como titular de la acción',
                 'access_token' => $token,
-                'token_type' => 'Bearer',
                 'user' => $user,
-                'socio_info' => $partner
-            ], 201);
+                'member_details' => $partnerMatch // Datos del familiar específico que registró
+              ], 201);
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -82,11 +107,12 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            // Usamos la relación definida en el modelo si existe, si no, el query manual
-            $partner = Partner::where('acc', $user->acc)->first();
-
+            // Buscamos en partners donde la acción coincida Y la cédula coincida con la del usuario
+            $partner = Partner::where('acc', $user->acc)
+                ->where('cedula', $user->cedula) // Esto asegura que sea el socio correcto de la familia
+                ->first();
             // Opcional: Eliminar tokens viejos para sesión única
-            $user->tokens()->delete();
+//            $user->tokens()->delete();
 
             $token = $user->createToken('login_token')->plainTextToken;
 
