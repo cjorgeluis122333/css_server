@@ -23,8 +23,8 @@ return [
     | Database Connections
     |--------------------------------------------------------------------------
     |
-    | Below are all of the database connections defined for your application.
-    | An example configuration is provided for each database system which
+    | Below are all the database connections defined for your application.
+    | An example configuration is provided for each database system that
     | is supported by Laravel. You're free to add / remove connections.
     |
     */
@@ -62,6 +62,19 @@ return [
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
 //                (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+        ],
+
+        'db_externa' => [ // Nombre que tú le quieras dar
+            'driver' => 'mysql',
+            'host' => env('DB_EXTERNA_HOST', 'clubcubano.com.ve'),
+            'port' => env('DB_EXTERNA_PORT', '3306'),
+            'database' => env('DB_EXTERNA_DATABASE', '1090024db2'),
+            'username' => env('DB_EXTERNA_USERNAME', '1090024'),
+            'password' => env('DB_EXTERNA_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'engine' => null,
         ],
 
         'mariadb' => [

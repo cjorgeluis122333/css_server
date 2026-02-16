@@ -12,8 +12,8 @@ return new class extends Migration {
             $table->id('ind');
 
             $table->integer('sincro')->default(0);
-            $table->integer('acc');
-            $table->integer('cedula')->nullable();
+            $table->integer('acc')->index();
+            $table->integer('cedula')->unique()->nullable();
             $table->string('carnet')->nullable();
             $table->string('nombre')->nullable();
             $table->string('celular')->nullable();
@@ -21,15 +21,14 @@ return new class extends Migration {
             $table->string('correo')->nullable();
             $table->text('direccion')->nullable();
 
-            // He dejado estos como string por la flexibilidad que muestra tu SQL,
-            // aunque podrías usar date() si prefieres validarlos estrictamente.
-            $table->string('nacimiento')->nullable();
+            $table->date('nacimiento')->nullable()->index();
             $table->string('ingreso')->nullable();
 
             $table->string('ocupacion')->nullable();
-            $table->string('categoria')->nullable();
-            $table->integer('cobrador')->default(0);
+            $table->string('categoria', 30)->default('titular')->index();
+            $table->integer('cobrador')->default(0)->index();
 
+            $table->timestamps();
         });
     }
 

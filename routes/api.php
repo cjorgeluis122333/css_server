@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PartnerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -21,5 +22,12 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/partners', [PartnerController::class, 'index']);
+
+    // Rutas automáticas para Socios (Titulares)
+    Route::apiResource('partners', PartnerController::class);
+
+// Rutas automáticas para Familiares
+    Route::apiResource('family', \App\Http\Controllers\FamilyController::class);
 });
+
+
