@@ -89,7 +89,7 @@ class PartnerController extends Controller
             'nacimiento' => 'nullable|date',
             'ingreso'    => 'nullable|date',
             'cobrador'   => 'integer',
-            // ... resto de validaciones
+            // ... resto de validaciones TODO
         ]);
 
         try {
