@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PartnerRequest;
 use App\Models\Partner;
 use App\Enum\PartnerCategory;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PartnerController extends Controller
 {
+    use ApiResponse;
+
+    // Importamos el trait de respuestas
     /**
      * Campos ligeros para el listado masivo (Index).
      * Evitamos traer campos pesados como 'direccion' o 'notas' si las hubiera.
@@ -64,32 +68,31 @@ class PartnerController extends Controller
         // Buscamos por ID ('ind') pero aseguramos que sea TITULAR.
         // Si el ID existe pero es un FAMILIAR, devolverá 404 (seguridad).
         $partner = Partner::holders()
-            ->where('ind', $id)
+            ->where('acc', $id)
             ->first();
 
         if (!$partner) {
-            return response()->json(['message' => 'Socio titular no encontrado'], 404);
+            return $this->errorResponse('Socio titular no encontrado', 404);
         }
 
-        return response()->json($partner);
+        return $this->successResponse($partner);
     }
 
     /**
      * POST /api/partners
      * Crea un nuevo Socio Titular.
      */
-    public function store(Request $request)
+    public function store(PartnerRequest $request)
     {
         // 1. Validación estricta
         $validated = $request->validate([
-            'acc'        => 'required|integer|unique:0cc_socios,acc', // La acción debe ser única globalmente
-            'nombre'     => 'required|string|max:150',
-            'cedula'     => 'nullable|string|max:30|unique:0cc_socios,cedula',
-            'correo'     => 'nullable|email|max:150',
+            'acc' => 'required|integer|unique:0cc_socios,acc', // La acción debe ser única globalmente
+            'nombre' => 'required|string|max:150',
+            'cedula' => 'nullable|string|max:30|unique:0cc_socios,cedula',
+            'correo' => 'nullable|email|max:150',
             'nacimiento' => 'nullable|date',
-            'ingreso'    => 'nullable|date',
-            'cobrador'   => 'integer',
-            // ... resto de validaciones TODO
+            'ingreso' => 'nullable|date',
+            'cobrador' => 'integer',
         ]);
 
         try {
@@ -101,13 +104,10 @@ class PartnerController extends Controller
 
                 $partner = Partner::create($data);
 
-                return response()->json([
-                    'message' => 'Socio titular creado exitosamente',
-                    'data'    => $partner
-                ], 201);
+                return $this->successResponse($partner, 'Socio titular creado exitosamente', 201);
             });
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al crear socio: ' . $e->getMessage()], 500);
+            return $this->errorResponse('Error al crear socio: ' . $e->getMessage(), 500);
         }
     }
 
@@ -125,7 +125,7 @@ class PartnerController extends Controller
 
         // Validación (ignorando el ID actual para unique)
         $request->validate([
-            'acc'    => ['integer', Rule::unique('0cc_socios', 'acc')->ignore($partner->ind, 'ind')],
+            'acc' => ['integer', Rule::unique('0cc_socios', 'acc')->ignore($partner->ind, 'ind')],
             'cedula' => ['nullable', 'string', Rule::unique('0cc_socios', 'cedula')->ignore($partner->ind, 'ind')],
             'nombre' => 'string|max:150',
             'correo' => 'nullable|email|max:150',
@@ -141,9 +141,9 @@ class PartnerController extends Controller
                 $partner->save();
             });
 
-            return response()->json(['message' => 'Socio actualizado correctamente', 'data' => $partner]);
+            return $this->successResponse($partner, 'Socio actualizado correctamente');
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al actualizar: ' . $e->getMessage()], 500);
+            return $this->errorResponse('Error al actualizar: ' . $e->getMessage(), 500);
         }
     }
 
@@ -156,23 +156,21 @@ class PartnerController extends Controller
         $partner = Partner::holders()->find($id);
 
         if (!$partner) {
-            return response()->json(['message' => 'Socio no encontrado'], 404);
+            return $this->errorResponse('Socio no encontrado', 404);
         }
 
         try {
             // VERIFICACIÓN DE INTEGRIDAD (Opcional pero recomendada)
             // Verificar si tiene familiares antes de borrar
             if ($partner->dependents()->exists()) {
-                return response()->json([
-                    'message' => 'No se puede eliminar: El socio tiene familiares asociados. Elimine los familiares primero.'
-                ], 409); // Conflict 409
+                return $this->errorResponse('No se puede eliminar: El socio tiene familiares asociados.', 409); // Conflict 409
             }
 
             $partner->delete(); // DELETE FROM ... (Irreversible)
 
-            return response()->json(['message' => 'Socio eliminado permanentemente']);
+            return $this->successResponse(null, 'Socio eliminado permanentemente');
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al eliminar: ' . $e->getMessage()], 500);
+            return $this->errorResponse('Error al eliminar: ' . $e->getMessage(), 500);
         }
     }
 }
