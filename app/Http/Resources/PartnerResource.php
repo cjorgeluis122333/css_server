@@ -12,9 +12,13 @@ class PartnerResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'id' => $this->ind, // Estandarizamos a 'id' para el frontend
+            'accion' => $this->acc,
+            'nombre' => $this->nombre,
+            'cedula' => $this->cedula,
+            'telefono' => $this->telefono,
+            'correo' => $this->correo,
+            'nacimiento' => $this->nacimiento?->format('Y-m-d'),
         ];
     }
 }

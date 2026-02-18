@@ -2,20 +2,20 @@
 
 namespace App\Models;
 
+use App\Enum\PartnerCategory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+//use Illuminate\Database\Eloquent\SoftDeletes;
+
 class Partner extends Model
 {
 
     protected $table = '0cc_socios';
-
-    // Definimos la clave primaria personalizada
     protected $primaryKey = 'ind';
 
-    // Si tu SQL original no tiene timestamps (created_at/updated_at),
-    // cambia esto a false o asegúrate de añadirlos en la migración.
-    public $timestamps = true;
+    public $timestamps = false;
 
     protected $fillable = [
         'sincro', 'acc', 'cedula', 'carnet', 'nombre', 'celular',
@@ -25,40 +25,81 @@ class Partner extends Model
 
     // Casting automático a objetos Carbon (Fecha)
     protected $casts = [
-        'nacimiento' => 'date:Y-m-d',
-        'ingreso' => 'date:Y-m-d',
+        'nacimiento' => 'date',
+        'ingreso' => 'date',
         'sincro' => 'integer',
         'acc' => 'integer',
         'cobrador' => 'integer',
+        'categoria'  => PartnerCategory::class,
     ];
 
 
+    // --- SCOPES ---
+
     /**
-     * Scope Global: Por defecto, este modelo SOLO traerá Titulares.
+     * Filter query to include only main account holders.
+     * Usage: Partner::holders()->get();
      */
-    protected static function booted()
+    public function scopeHolders(Builder $query): void
     {
-        static::addGlobalScope('solo_titulares', function (Builder $builder) {
-            $builder->where('categoria', 'titular');
-        });
+        $query->where('categoria', PartnerCategory::TITULAR);
     }
 
     /**
-     * Accessor para la Edad: $partner->edad
+     * Filter query to include only family dependents.
+     * Usage: Partner::dependents()->get();
      */
-    public function getEdadAttribute()
+    public function scopeDependents(Builder $query): void
     {
-        return $this->nacimiento ? Carbon::parse($this->nacimiento)->age : null;
+        $query->where('categoria', PartnerCategory::FAMILIAR);
     }
 
+    // --- RELATIONS ---
+
     /**
-     * Relación: Si un titular tiene familiares en la misma tabla
+     * Get all family members associated with the same account (acc).
      */
-    public function familiares()
+    public function dependents(): HasMany
     {
-        // Relación: misma tabla, mismo 'acc', pero categoría 'familiar'
         return $this->hasMany(Partner::class, 'acc', 'acc')
-            ->withoutGlobalScope('solo_titulares') // Importante: ignorar el filtro global
-            ->where('categoria', 'familiar');
+            ->where('categoria', PartnerCategory::FAMILIAR);
+    }
+
+    /**
+     * Get the main holder of the account.
+     */
+    public function holder(): HasOne
+    {
+        return $this->hasOne(Partner::class, 'acc', 'acc')
+            ->where('categoria', PartnerCategory::TITULAR);
+    }
+
+    // --- ACCESSORS ---
+
+    /**
+     * Calculate age based on birthdate.
+     * Usage: $partner->age
+     */
+    public function getAgeAttribute(): ?int
+    {
+        return $this->nacimiento?->age;
+    }
+
+    // --- BUSINESS LOGIC ---
+
+    /**
+     * Check if the instance is a main account holder.
+     */
+    public function isHolder(): bool
+    {
+        return $this->categoria === PartnerCategory::TITULAR;
+    }
+
+    /**
+     * Check if the instance is a dependent.
+     */
+    public function isDependent(): bool
+    {
+        return $this->categoria === PartnerCategory::FAMILIAR;
     }
 }
