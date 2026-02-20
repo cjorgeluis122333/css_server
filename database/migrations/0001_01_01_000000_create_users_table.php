@@ -17,6 +17,8 @@ return new class extends Migration
             $table->integer('cedula')->nullable();
             $table->string('correo')->unique();
             $table->string('password');
+            //Rol
+            $table->string('role')->default('Usuarios Socios');
             $table->rememberToken();
             $table->timestamps();
         });
