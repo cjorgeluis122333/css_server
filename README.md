@@ -39,3 +39,11 @@ User
  2. . (En listar socios no vera los datos para contactarlo)
 
 ```
+
+
+# More Info
+## Export data
+For export data in format ***.csv*** 
+```
+Chnge:  UTF-8  por  iso-8859-1     o      windows-1252         
+``` 
