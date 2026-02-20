@@ -1,5 +1,6 @@
 <?php
 
+use App\Enum\UserRole;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -18,7 +19,8 @@ return new class extends Migration
             $table->string('correo')->unique();
             $table->string('password');
             //Rol
-            $table->string('role')->default('Usuarios Socios');
+            $table->enum('role', array_column(UserRole::cases(), 'value'))
+                ->default(UserRole::PARTNER->value);;
             $table->rememberToken();
             $table->timestamps();
         });
