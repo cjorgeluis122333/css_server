@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enum\UserRole;
 use App\Models\Partner;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        // 1. Validación manual para capturar errores y devolverlos en JSON siempre
+        // 1. Validation
         $validator = Validator::make($request->all(), [
             'acc' => 'required|integer|unique:users,acc',
             'password' => 'required|string|min:6|confirmed',
@@ -30,7 +31,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // 2. Verificar si la ACCIÓN ya fue registrada por otro familiar
+        // 2. Check if the ACC (Action) is already registered
         if (User::where('acc', $request->acc)->exists()) {
             return response()->json([
                 'status' => 'error',
@@ -38,10 +39,10 @@ class AuthController extends Controller
             ], 409);
         }
 
-        // 3. VALIDACIÓN DE IDENTIDAD contra la tabla de socios
+        // 3. Identity validation
         // Buscamos un socio que coincida con la ACCIÓN y (Cédula o Correo)
         $partnerMatch = Partner::where('acc', $request->acc)
-            ->where(function($query) use ($request) {
+            ->where(function ($query) use ($request) {
                 $query->where('cedula', $request->cedula)
                     ->where('correo', $request->correo);
             })->first();
@@ -53,8 +54,12 @@ class AuthController extends Controller
             ], 404);
         }
 
+        // 4. Role Assignment using the Scalable Enum Method
+        // Logic is encapsulated inside the Enum based on the 'acc' number
+        $assignedRole = UserRole::fromAcc($request->acc);
 
-        // 2. Transacción de base de datos para asegurar integridad
+        // 5. Database Transaction
+        // Transacción de base de datos para asegurar integridad
         DB::beginTransaction();
         try {
             $user = User::create([
@@ -62,7 +67,8 @@ class AuthController extends Controller
                 'cedula' => $request->cedula,
                 'correo' => $request->correo,
                 'password' => Hash::make($request->password),
-            ]);
+                'role'     => $assignedRole, // Stored as the string value of the Enum
+                 ]);
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -74,7 +80,7 @@ class AuthController extends Controller
                 'access_token' => $token,
                 'user' => $user,
                 'member_details' => $partnerMatch // Datos del familiar específico que registró
-              ], 201);
+            ], 201);
 
         } catch (Exception $e) {
             DB::rollBack();
