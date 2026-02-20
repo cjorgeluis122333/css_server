@@ -14,17 +14,17 @@ return new class extends Migration {
             $table->integer('acc')->index();
             $table->unsignedTinyInteger('sincro')->default(0);
             // Personal Date
-            $table->integer('cedula')->unique()->nullable();
+            $table->integer('cedula')->nullable();
             $table->string('carnet')->nullable();
             $table->string('nombre')->nullable();
             // Contact
-            $table->string('celular', 20)->nullable();
-            $table->string('telefono', 20)->nullable();
-            $table->string('correo',100)->nullable();
+            $table->string('celular', 100)->nullable();
+            $table->string('telefono', 100)->nullable();
+            $table->string('correo',150)->nullable();
             $table->text('direccion')->nullable();
 
-            $table->date('nacimiento')->nullable()->index();
-            $table->date('ingreso')->nullable();
+            $table->string('nacimiento',50)->nullable()->index();
+            $table->string('ingreso',50)->nullable();
 
             $table->string('ocupacion')->nullable();
             // 2. Default garantizado desde el Enum

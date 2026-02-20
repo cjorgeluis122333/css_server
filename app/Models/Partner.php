@@ -25,8 +25,8 @@ class Partner extends Model
 
     // Casting automático a objetos Carbon (Fecha)
     protected $casts = [
-        'nacimiento' => 'date',
-        'ingreso' => 'date',
+//        'nacimiento' => 'date',
+//        'ingreso' => 'date',
         'sincro' => 'integer',
         'acc' => 'integer',
         'cobrador' => 'integer',
@@ -42,16 +42,16 @@ class Partner extends Model
      */
     public function scopeHolders(Builder $query): void
     {
-        $query->where('categoria', PartnerCategory::TITULAR);
+        $query->where('categoria', PartnerCategory::TITULAR->value);
     }
 
     /**
      * Filter query to include only family dependents.
-     * Usage: Partner::dependents()->get();
+     * Usage: Partner::onlyDependents()->get();
      */
-    public function scopeDependents(Builder $query): void
+    public function scopeOnlyDependents(Builder $query): void
     {
-        $query->where('categoria', PartnerCategory::FAMILIAR);
+        $query->where('categoria', PartnerCategory::FAMILIAR->value);
     }
 
     // --- RELATIONS ---

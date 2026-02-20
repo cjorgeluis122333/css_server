@@ -4,57 +4,55 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PartnerRequest;
 use App\Models\Partner;
-use App\Enum\PartnerCategory;
+use App\Service\PartnerService;
 use App\Traits\ApiResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 
 class PartnerController extends Controller
 {
     use ApiResponse;
 
+    protected PartnerService $partnerService;
+
+    public function __construct(PartnerService $partnerService)
+    {
+        $this->partnerService = $partnerService;
+    }
     // Importamos el trait de respuestas
+
     /**
      * Campos ligeros para el listado masivo (Index).
      * Evitamos traer campos pesados como 'direccion' o 'notas' si las hubiera.
      */
-    protected $selectIndex = [
+    protected array $selectIndex = [
         'ind', 'acc', 'nombre', 'cedula', 'celular', 'correo', 'nacimiento', 'categoria'
     ];
 
-    /**
-     * Campos permitidos para asignación masiva.
-     */
-    protected $fillableFields = [
-        'acc', 'nombre', 'cedula', 'carnet', 'celular',
-        'telefono', 'correo', 'direccion', 'nacimiento',
-        'ingreso', 'ocupacion', 'cobrador'
-    ];
 
     /**
      * GET /api/partners
+     * Parameters:  (page, per_page, search)
      * Listado optimizado y paginado de Titulares.
      */
     public function index(Request $request)
     {
-        // 1. Iniciamos la consulta usando el Scope 'titulares' (definido en el Modelo)
-        $query = Partner::holders()->select($this->selectIndex);
+        // Seleccionamos solo lo necesario directamente en la consulta
+        $query = Partner::holders()
+            ->select(['ind', 'acc', 'nombre', 'cedula', 'celular', 'correo', 'nacimiento', 'categoria']);
 
-        // 2. Búsqueda optimizada
-        if ($search = $request->input('buscar')) {
+        if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
-                    ->orWhere('acc', 'like', "{$search}%") // Búsqueda por prefijo es más rápida
+                    ->orWhere('acc', 'like', "{$search}%")
                     ->orWhere('cedula', 'like', "{$search}%");
             });
         }
 
-        // 3. Ordenamiento por índice (acc es indexado)
-        $query->orderBy('acc', 'asc');
-
-        // 4. Paginación (Vital para escalabilidad)
-        $partners = $query->paginate($request->input('per_page', 50));
+        // Ordenamos por ACC para consistencia visual
+        $partners = $query->orderBy('acc', 'asc')
+            ->paginate($request->input('per_page', 50));
 
         return response()->json($partners);
     }
@@ -84,93 +82,66 @@ class PartnerController extends Controller
      */
     public function store(PartnerRequest $request)
     {
-        // 1. Validación estricta
-        $validated = $request->validate([
-            'acc' => 'required|integer|unique:0cc_socios,acc', // La acción debe ser única globalmente
-            'nombre' => 'required|string|max:150',
-            'cedula' => 'nullable|string|max:30|unique:0cc_socios,cedula',
-            'correo' => 'nullable|email|max:150',
-            'nacimiento' => 'nullable|date',
-            'ingreso' => 'nullable|date',
-            'cobrador' => 'integer',
-        ]);
-
         try {
-            return DB::transaction(function () use ($request) {
-                // Forzamos la categoría TITULAR y fusionamos con los datos validados
-                $data = $request->only($this->fillableFields);
-                $data['categoria'] = PartnerCategory::TITULAR;
-                $data['sincro'] = 0; // Marcar para sincronizar
+            // Solo enviamos los datos ya validados por el PartnerRequest
+            $partner = $this->partnerService->createTitular($request->validated());
 
-                $partner = Partner::create($data);
-
-                return $this->successResponse($partner, 'Socio titular creado exitosamente', 201);
-            });
+            return $this->successResponse(
+                $partner,
+                'Socio titular creado exitosamente',
+                201
+            );
         } catch (\Exception $e) {
             return $this->errorResponse('Error al crear socio: ' . $e->getMessage(), 500);
         }
     }
 
     /**
-     * PUT /api/partners/{id}
-     * Actualiza un Socio Titular existente.
+     * PUT /api/partners/{acc}
+     * Actualiza usando la ACC como identificador en la URL.
      */
-    public function update(Request $request, $id)
+    public function update(PartnerRequest $request, $acc)
     {
-        $partner = Partner::holders()->find($id);
-
-        if (!$partner) {
-            return response()->json(['message' => 'Socio titular no encontrado'], 404);
-        }
-
-        // Validación (ignorando el ID actual para unique)
-        $request->validate([
-            'acc' => ['integer', Rule::unique('0cc_socios', 'acc')->ignore($partner->ind, 'ind')],
-            'cedula' => ['nullable', 'string', Rule::unique('0cc_socios', 'cedula')->ignore($partner->ind, 'ind')],
-            'nombre' => 'string|max:150',
-            'correo' => 'nullable|email|max:150',
-        ]);
-
+        // 1. Buscamos al socio por su ACC y aseguramos que sea TITULAR.
+        // Si no existe, firstOrFail lanza 404 automáticamente (o puedes usar if tradicional).
         try {
-            DB::transaction(function () use ($partner, $request) {
-                // Actualizamos solo los campos permitidos
-                $partner->update($request->only($this->fillableFields));
+            $partner = Partner::holders()->where('acc', $acc)->firstOrFail();
 
-                // Actualizamos estado de sincronización si hubo cambios
-                $partner->sincro = 0;
-                $partner->save();
-            });
+            // 2. Delegamos la actualización al servicio
+            $updatedPartner = $this->partnerService->updateTitular(
+                $partner,
+                $request->validated()
+            );
 
-            return $this->successResponse($partner, 'Socio actualizado correctamente');
+            return $this->successResponse($updatedPartner, 'Socio titular actualizado con éxito');
+
+        } catch (ModelNotFoundException $e) {
+            return $this->errorResponse('Socio titular no encontrado con esa Acción', 404);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error al actualizar: ' . $e->getMessage(), 500);
+            Log::error("Error update partner {$acc}: " . $e->getMessage());
+            return $this->errorResponse('No se pudo actualizar el socio', 500);
         }
     }
-
     /**
      * DELETE /api/partners/{id}
      * Elimina un socio (Hard Delete).
      */
-    public function destroy($id)
+    public function destroy($acc)
     {
-        $partner = Partner::holders()->find($id);
-
-        if (!$partner) {
-            return $this->errorResponse('Socio no encontrado', 404);
-        }
-
         try {
-            // VERIFICACIÓN DE INTEGRIDAD (Opcional pero recomendada)
-            // Verificar si tiene familiares antes de borrar
-            if ($partner->dependents()->exists()) {
-                return $this->errorResponse('No se puede eliminar: El socio tiene familiares asociados.', 409); // Conflict 409
-            }
+            // Buscamos por ACC antes de intentar borrar
+            $partner = Partner::holders()->where('acc', $acc)->firstOrFail();
 
-            $partner->delete(); // DELETE FROM ... (Irreversible)
+            $this->partnerService->deleteTitular($partner);
 
             return $this->successResponse(null, 'Socio eliminado permanentemente');
+
+        } catch (ModelNotFoundException $e) {
+            return $this->errorResponse('Socio no encontrado', 404);
         } catch (\Exception $e) {
-            return $this->errorResponse('Error al eliminar: ' . $e->getMessage(), 500);
+            // Capturamos la excepción de negocio (ej: tiene familiares)
+            // Asumimos que el código 409 es para conflicto de lógica
+            return $this->errorResponse($e->getMessage(), 409);
         }
     }
 }
