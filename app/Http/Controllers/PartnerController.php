@@ -33,26 +33,16 @@ class PartnerController extends Controller
 
     /**
      * GET /api/partners
-     * Parameters:  (page, per_page, search)
-     * Listado optimizado y paginado de Titulares.
+     * Parameters:  (page, per_page)
      */
     public function index(Request $request)
     {
         // Seleccionamos solo lo necesario directamente en la consulta
-        $query = Partner::holders()
-            ->select(['ind', 'acc', 'nombre', 'cedula', 'celular', 'correo', 'nacimiento', 'categoria']);
-
-        if ($search = $request->input('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('nombre', 'like', "%{$search}%")
-                    ->orWhere('acc', 'like', "{$search}%")
-                    ->orWhere('cedula', 'like', "{$search}%");
-            });
-        }
-
-        // Ordenamos por ACC para consistencia visual
-        $partners = $query->orderBy('acc', 'asc')
+        $partners = Partner::holders()
+            ->select(['ind', 'acc', 'nombre', 'cedula', 'celular', 'correo', 'nacimiento', 'categoria'])
+            ->orderBy('acc', 'asc')
             ->paginate($request->input('per_page', 50));
+
 
         return response()->json($partners);
     }
