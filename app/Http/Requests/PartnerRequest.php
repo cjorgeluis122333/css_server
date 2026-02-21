@@ -9,36 +9,39 @@ use App\Models\Partner;
 
 class PartnerRequest extends FormRequest
 {
+
     public function rules(): array
     {
-        // IMPORTANTE: Asegúrate de que el nombre del parámetro aquí ('partner' o 'acc')
-        // coincida con lo que pusiste en tu archivo routes/api.php.
-        // Si tu ruta es Route::put('/partners/{acc}', ...), usa 'acc' abajo.
-        $routeAcc = $this->route('partner') ?? $this->route('acc');
+        // 1. Obtenemos el parámetro de la ruta (acc o partner)
+        $accFromRoute = $this->route('partner') ?? $this->route('acc');
 
-        // Buscamos el ID interno (ind) basado en la ACC de la URL
+        // 2. Si el parámetro es un objeto (por Route Model Binding), extraemos el valor
+        // Si es un string/int, lo usamos directamente.
+        $accValue = is_object($accFromRoute) ? $accFromRoute->acc : $accFromRoute;
+
         $partnerId = null;
 
-        if ($routeAcc) {
-            $partnerId = Partner::where('acc', $routeAcc)
-                ->where('categoria', PartnerCategory::TITULAR)
-                ->value('ind'); // Obtenemos el ID primario (ej: 913)
+        if ($accValue) {
+            $partnerId = Partner::where('acc', $accValue)
+                ->where('categoria', PartnerCategory::TITULAR->value)
+                ->value('ind'); // Obtenemos el ID primario 'ind'
         }
+
+
 
         return [
             'acc' => [
                 'required',
                 'integer',
-                // Regla: Único en la tabla, ignorando el ID real (ind) que encontramos arriba
                 Rule::unique('0cc_socios', 'acc')
                     ->where('categoria', PartnerCategory::TITULAR->value)
-                    ->ignore($partnerId, 'ind')
+                    ->ignore($partnerId, 'ind') // Si $partnerId es null, no ignora nada (POST)
             ],
             'nombre' => ['required', 'string', 'max:255'],
             'cedula' => [
                 'nullable',
-                'string',
                 'max:30',
+                // Importante: Solo aplicamos ignore si realmente encontramos un ID
                 Rule::unique('0cc_socios', 'cedula')->ignore($partnerId, 'ind')
             ],
             'carnet' => [
@@ -46,15 +49,14 @@ class PartnerRequest extends FormRequest
                 'string',
                 Rule::unique('0cc_socios', 'carnet')->ignore($partnerId, 'ind')
             ],
-            // ... resto de campos
-            'celular'   => ['nullable', 'string', 'max:20'],
+            'celular'   => ['nullable', 'string', 'max:30'],
             'telefono'  => ['nullable', 'string', 'max:20'],
             'correo'    => ['nullable', 'email', 'max:150'],
             'direccion' => ['nullable', 'string'],
-            'nacimiento'=> ['nullable', 'date', 'before:today'],
-            'ingreso'   => ['required', 'date', 'before:today'],
-            'ocupacion' => ['required', 'string'],
-            'cobrador'  => ['required', 'int'],
+            'nacimiento'=> ['required', 'date', 'before:today'],
+            'ingreso'   => ['nullable', 'date', 'before_or_equal:today'],
+            'ocupacion' => ['nullable', 'string'],
+            'cobrador'  => ['nullable', 'int'],
         ];
     }
     public function authorize(): bool
