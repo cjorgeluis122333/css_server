@@ -19,7 +19,7 @@ class FamilyController extends Controller
     private array $familyColumns = [
         'ind', 'acc', 'nombre', 'cedula',
         'carnet', 'celular', 'nacimiento',
-        'direccion', 'categoria'
+        'direccion', 'categoria','telefono'
     ];
     public function __construct(PartnerService $partnerService)
     {
