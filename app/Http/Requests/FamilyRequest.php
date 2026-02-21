@@ -23,10 +23,9 @@ class FamilyRequest extends FormRequest
                     $query->where('categoria', PartnerCategory::TITULAR->value);
                 })
             ],
-            'nombre' => ['required', 'string', 'max:255'],
+            'nombre' => ['required', 'string', 'max:100'],
             'cedula' => [
                 'nullable',
-                'string',
                 'max:30',
                 // Debe ser única, pero ignoramos la del familiar que estamos editando
                 Rule::unique('0cc_socios', 'cedula')->ignore($familyId, 'ind')
@@ -36,7 +35,7 @@ class FamilyRequest extends FormRequest
                 'string',
                 Rule::unique('0cc_socios', 'carnet')->ignore($familyId, 'ind')
             ],
-            'celular'    => ['nullable', 'string', 'max:20'],
+            'celular'    => ['nullable', 'string', 'max:30'],
             'nacimiento' => ['nullable', 'date', 'before:today'],
             'direccion'  => ['nullable', 'string'],
         ];
