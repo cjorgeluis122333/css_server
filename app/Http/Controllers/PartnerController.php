@@ -27,7 +27,7 @@ class PartnerController extends Controller
      * Evitamos traer campos pesados como 'direccion' o 'notas' si las hubiera.
      */
     protected array $selectIndex = [
-        'ind', 'acc', 'nombre', 'cedula', 'celular', 'correo', 'nacimiento', 'categoria'
+        'ind', 'acc', 'nombre', 'cedula','carnet', 'celular', 'correo', 'nacimiento', 'categoria', 'telefono',  'ingreso','direccion', 'ocupacion',  'cobrador'
     ];
 
 
@@ -39,7 +39,7 @@ class PartnerController extends Controller
     {
         // Seleccionamos solo lo necesario directamente en la consulta
         $partners = Partner::holders()
-            ->select(['ind', 'acc', 'nombre', 'cedula', 'celular', 'correo', 'nacimiento', 'categoria'])
+            ->select($this->selectIndex)
             ->orderBy('acc', 'asc')
             ->paginate($request->input('per_page', 50));
 
