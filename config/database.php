@@ -64,19 +64,6 @@ return [
             ]) : [],
         ],
 
-        'db_externa' => [ // Nombre que tú le quieras dar
-            'driver' => 'mysql',
-            'host' => env('DB_EXTERNA_HOST', 'clubcubano.com.ve'),
-            'port' => env('DB_EXTERNA_PORT', '3306'),
-            'database' => env('DB_EXTERNA_DATABASE', '1090024db2'),
-            'username' => env('DB_EXTERNA_USERNAME', '1090024'),
-            'password' => env('DB_EXTERNA_PASSWORD', ''),
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'engine' => null,
-        ],
-
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

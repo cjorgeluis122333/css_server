@@ -38,8 +38,15 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
+# Copiamos el script de entrada al contenedor(Para migrar)
+COPY docker-entrypoint.sh /usr/local/bin/
+
+# Nos aseguramos de que tenga permisos de ejecución dentro de Docker
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Exponer el puerto 80
 EXPOSE 80
 
+# Usamos el script como punto de entrada
+ENTRYPOINT ["docker-entrypoint.sh"]
 # Comando de inicio
-CMD ["apache2-foreground"]
+#CMD ["apache2-foreground"]
