@@ -11,8 +11,8 @@ return new class extends Migration {
         Schema::create('0cc_socios', function (Blueprint $table) {
             // Usamos 'ind' como clave primaria autoincremental
             $table->id('ind');
-            $table->integer('acc')->index();
             $table->unsignedTinyInteger('sincro')->default(0);
+            $table->integer('acc')->index();
             // Personal Date
             $table->integer('cedula')->nullable();
             $table->string('carnet')->nullable();
