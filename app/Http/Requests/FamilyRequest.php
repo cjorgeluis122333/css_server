@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Enum\PartnerCategory;
 use Illuminate\Validation\Rule;
+
 class FamilyRequest extends FormRequest
 {
     public function rules(): array
@@ -35,9 +36,10 @@ class FamilyRequest extends FormRequest
                 'string',
                 Rule::unique('0cc_socios', 'carnet')->ignore($familyId, 'ind')
             ],
-            'celular'    => ['nullable', 'string', 'max:30'],
+            'celular' => ['nullable', 'string', 'max:30'],
+            'telefono' => ['nullable', 'in:SI,NO'],
             'nacimiento' => ['nullable', 'date', 'before:today'],
-            'direccion'  => ['nullable', 'string'],
+            'direccion' => ['nullable', 'string'],
         ];
     }
 
