@@ -64,4 +64,12 @@ class PartnerRequest extends FormRequest
         return true;
     }
 
+    public function messages(): array
+    {
+        return [
+            'cedula.unique' => 'Esta cédula ya se encuentra registrada.',
+            'nombre.required' => 'El nombre del directivo es obligatorio.',
+            'acc.unique' => 'El número de cuenta/acción (acc) ya está en uso.',
+        ];
+    }
 }
