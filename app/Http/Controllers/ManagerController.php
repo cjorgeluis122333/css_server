@@ -18,7 +18,7 @@ class ManagerController extends Controller
     // Inject the service
     public function __construct(ManagerService $managerService)
     {
-        $this->$managerService = $managerService;
+        $this->managerService = $managerService;
     }
 
     /**

@@ -12,7 +12,6 @@ return new class extends Migration {
             $table->integer('cedula')->unique()->nullable();
             $table->string('nombre')->nullable();
             $table->integer('acc')->unique();
-            $table->timestamps();
         });
     }
 

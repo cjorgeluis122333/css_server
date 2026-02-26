@@ -23,7 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Family Partners
     Route::apiResource('/family', FamilyController::class);
     // Manager
-    Route::apiResource('/manger', ManagerController::class);
+    Route::apiResource('/manager', ManagerController::class);
 });
 
 
