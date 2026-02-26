@@ -2,13 +2,12 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FamilyController;
+use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\PartnerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::get('/user', function (Request $request) {return $request->user();})->middleware('auth:sanctum');
 
 
 // --- Public route ---
@@ -17,11 +16,14 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 
 Route::middleware('auth:sanctum')->group(function () {
+    // Authentication
     Route::post('/logout', [AuthController::class, 'logout']);
-    // Rutas automáticas para Socios (Titulares)
+    // Partners
     Route::apiResource('/partners', PartnerController::class);
-    // Rutas automáticas para Familiares
+    // Family Partners
     Route::apiResource('/family', FamilyController::class);
+    // Manager
+    Route::apiResource('/manger', ManagerController::class);
 });
 
 

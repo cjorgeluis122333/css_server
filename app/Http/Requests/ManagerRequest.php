@@ -14,19 +14,19 @@ class ManagerRequest extends FormRequest
          * @example : Route::put('/directivos/{directivo}', [DirectivoController::class, 'update']);
          * @returns:  Si entras a /directivos/5, el parámetro directivo vale 5.
          */
-        $mangerId = $this->route('directivo');
+        $mangerId = $this->route('manger');
 
         return [
             'cedula' => [
                 'nullable',
                 'numeric',
-                Rule::unique('directivos_datos', 'cedula')->ignore($mangerId, 'ind'),
+                Rule::unique('directivos_datos', 'cedula')->ignore($mangerId, 'acc'),
             ],
             'nombre' => 'required|string|max:255',
             'acc' => [
                 'required',
                 'numeric',
-                Rule::unique('directivos_datos', 'acc')->ignore($mangerId, 'ind'),
+                Rule::unique('directivos_datos', 'acc')->ignore($mangerId, 'acc'),
             ],
         ];
     }
