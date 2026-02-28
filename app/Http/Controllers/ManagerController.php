@@ -6,6 +6,7 @@ use App\Http\Requests\ManagerRequest;
 use App\Models\Manager;
 use App\Service\ManagerService;
 use App\Traits\ApiResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Exception;
 
@@ -58,12 +59,16 @@ class ManagerController extends Controller
     /**
      * Actualizar un directivo existente.
      */
-    public function update(ManagerRequest $request, Manager $manager): JsonResponse
+    public function update(ManagerRequest $request, $acc): JsonResponse
     {
         try {
+            $manager = Manager::findOrFail($acc);
             $updatedManager = $this->managerService->updateManager($manager, $request->validated());
             return $this->successResponse($updatedManager, 'Directivo actualizado con éxito.');
-        } catch (Exception $e) {
+        }catch (ModelNotFoundException $e){
+            return $this->errorResponse('El directivo no se pudo actualizar', 404);
+        }
+        catch (Exception $e) {
             return $this->errorResponse('Error al intentar actualizar el directivo.', 500);
         }
     }
@@ -75,7 +80,7 @@ class ManagerController extends Controller
     {
         try {
             $this->managerService->deleteManager($manager);
-            return $this->successResponse(null, 'Directivo eliminado correctamente.');
+            return $this->successResponse(null, 'Directivo eliminado correctamente.',410 );
         } catch (Exception $e) {
             return $this->errorResponse('No se pudo eliminar el directivo.', 500);
         }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enum\UserRole;
+use App\Http\Requests\UserRequest;
 use App\Models\Partner;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -13,26 +14,12 @@ use Exception;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function register(UserRequest $request)
     {
-        // 1. Validation
-        $validator = Validator::make($request->all(), [
-            'acc' => 'required|integer|unique:users,acc',
-            'password' => 'required|string|min:6|confirmed',
-            'cedula' => 'required|int',
-            'correo' => 'required|email|unique:users,correo'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Errores de validación',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        $data = $request->validated();
 
         // 2. Check if the ACC (Action) is already registered
-        if (User::where('acc', $request->acc)->exists()) {
+        if (User::where('acc', $data->acc)->exists()) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Esta acción ya tiene un usuario registrado. Los demás familiares deben usar esas credenciales.'

@@ -47,3 +47,4 @@ For export data in format ***.csv***
 ```
 Chnge:  UTF-8  por  iso-8859-1     o      windows-1252         
 ``` 
+
