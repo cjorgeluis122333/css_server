@@ -74,6 +74,12 @@ class Partner extends Model
             ->where('categoria', PartnerCategory::TITULAR);
     }
 
+    public function paymentHistories(): HasMany
+    {
+        // Relacionamos por la columna 'acc' que comparten ambas tablas
+        return $this->hasMany(HistoryPay::class, 'acc', 'acc');
+    }
+
     // --- ACCESSORS ---
 
     /**
