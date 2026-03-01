@@ -25,7 +25,13 @@ class ManagerBoardsRequest extends FormRequest
 
         return $rules;
     }
-
+    public function messages(): array
+    {
+        return [
+            'exists' => 'La cédula del :attribute no corresponde a un directivo registrado.',
+            'year.required' => 'El año es obligatorio.'
+        ];
+    }
 
     public function authorize(): bool
     {

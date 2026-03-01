@@ -37,20 +37,19 @@ class ManagerBoardsController extends Controller
     public function store(ManagerBoardsRequest $request)
     {
         $data = $request->validated();
-        $year = $data['year'];
-        if (ManagerBoards::where("year", $year)->exists()) {
-            return $this->errorResponse("Ya existe una reunión registrada en el año {$year}", 409);
+
+        if ($this->boardService->findByYear($data['year'])) {
+            return $this->errorResponse("Ya existe una junta registrada para el año {$data['year']}", 409);
         }
 
         $board = $this->boardService->saveBoard($data);
 
         return $this->successResponse(
-            $board,
-            "Junta del año {$year} guardada exitosamente",
+            new ManagerBoardsResource($board),
+            "Junta del año {$data['year']} guardada exitosamente",
             201
         );
     }
-
     public function show(int $year)
     {
         try {
@@ -68,17 +67,24 @@ class ManagerBoardsController extends Controller
     public function update(ManagerBoardsRequest $request, $year)
     {
         try {
-            ManagerBoards::findOrFail($year);
-            $managerBoards = $request->validated();
-            $managerBoards->update($managerBoards);
-            return $this->successResponse($managerBoards, "Reunion de directivos actualizada exitosamente");
-        } catch (ModelNotFoundException) {
-            return $this->errorResponse("Reunion de directivos no encontrada", 404);
+            $board = $this->boardService->findByYear($year);
+
+            if (!$board) {
+                return $this->errorResponse("Reunión de directivos no encontrada", 404);
+            }
+
+            // Actualizamos usando el servicio
+            $updatedBoard = $this->boardService->updateBoard($board, $request->validated());
+
+            return $this->successResponse(
+                new ManagerBoardsResource($updatedBoard),
+                "Reunión de directivos actualizada exitosamente"
+            );
+
         } catch (Exception $e) {
-            return $this->errorResponse("Error al procesar la junta: " . $e->getMessage(), 500);
+            return $this->errorResponse("Error al procesar la actualización: " . $e->getMessage(), 500);
         }
     }
-
 
     function destroy(int $year)
     {
