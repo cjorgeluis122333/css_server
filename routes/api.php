@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FamilyController;
+use App\Http\Controllers\HistoryPayController;
+use App\Http\Controllers\ManagerBoardsController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\PartnerController;
 use Illuminate\Http\Request;
@@ -24,6 +26,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/family', FamilyController::class);
     // Manager
     Route::apiResource('/manager', ManagerController::class);
+    // Manager Boards
+    Route::apiResource('/board', ManagerBoardsController::class);
+    // History
+    Route::apiResource('/history', HistoryPayController::class);
 });
 
 
