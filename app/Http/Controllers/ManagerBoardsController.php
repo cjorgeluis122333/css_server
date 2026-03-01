@@ -23,7 +23,15 @@ class ManagerBoardsController extends Controller
 
     public function index()
     {
-        return ManagerBoards::all();
+        $boards = ManagerBoards::with([
+            'rel_presidente', 'rel_vicepresidente', 'rel_secretario',
+            'rel_vicesecretario', 'rel_tesorero', 'rel_vicetesorero',
+            'rel_bibliotecario', 'rel_actas', 'rel_viceactas',
+            'rel_actos', 'rel_deportes', 'rel_vocal1', 'rel_vocal2'
+        ])->get();
+
+
+         return $this->successResponse(ManagerBoardsResource::collection($boards), 'Juntas obtenidas con éxito');
     }
 
     public function store(ManagerBoardsRequest $request)
