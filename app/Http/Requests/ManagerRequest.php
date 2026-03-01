@@ -14,7 +14,7 @@ class ManagerRequest extends FormRequest
          * @example : Route::put('/directivos/{directivo}', [DirectivoController::class, 'update']);
          * @returns:  Si entras a /directivos/5, el parámetro directivo vale 5.
          */
-        $mangerId = $this->route('manger');
+        $mangerId = $this->route('manager');
 
         return [
             'cedula' => [
