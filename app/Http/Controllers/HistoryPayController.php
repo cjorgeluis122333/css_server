@@ -6,6 +6,7 @@ use App\Http\Requests\HistoryPayRequest;
 use App\Models\HistoryPay;
 use App\Service\HistoryPayService;
 use App\Traits\ApiResponse;
+use Exception;
 use Illuminate\Http\JsonResponse;
 
 class HistoryPayController extends Controller
@@ -38,7 +39,7 @@ class HistoryPayController extends Controller
                 'Historial de pago registrado correctamente',
                 201
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->errorResponse(
                 'No se pudo registrar el pago: ' . $e->getMessage(),
                 500
