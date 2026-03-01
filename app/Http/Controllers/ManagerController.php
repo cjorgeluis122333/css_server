@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ManagerRequest;
 use App\Models\Manager;
+use App\Http\Requests\ManagerRequest;
 use App\Service\ManagerService;
 use App\Traits\ApiResponse;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -30,7 +30,7 @@ class ManagerController extends Controller
         try {
             $managers = $this->managerService->getAllManagers();
             return $this->successResponse($managers, 'Lista de directivos obtenida con éxito.');
-        } catch (Exception $e) {
+        } catch (Exception) {
             return $this->errorResponse('Error al obtener la lista de directivos.', 500);
         }
     }
@@ -51,9 +51,16 @@ class ManagerController extends Controller
     /**
      * Mostrar un directivo específico.
      */
-    public function show(Manager $manager): JsonResponse
+    public function show($acc): JsonResponse
     {
-        return $this->successResponse($manager, 'Detalles del directivo obtenidos.');
+        try {
+            $manager = Manager::where("acc" ,$acc)->firstOrFail();
+            return $this->successResponse($manager, 'Detalles del directivo obtenidos.');
+        } catch (ModelNotFoundException $e) {
+            return $this->errorResponse('Directivo no encontrado.', 404);
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al obtener el directivo.', 500);
+        }
     }
 
     /**
@@ -62,13 +69,12 @@ class ManagerController extends Controller
     public function update(ManagerRequest $request, $acc): JsonResponse
     {
         try {
-            $manager = Manager::findOrFail($acc);
+            $manager = Manager::where("acc",$acc)->firstOrFail();
             $updatedManager = $this->managerService->updateManager($manager, $request->validated());
             return $this->successResponse($updatedManager, 'Directivo actualizado con éxito.');
-        }catch (ModelNotFoundException $e){
-            return $this->errorResponse('El directivo no se pudo actualizar', 404);
-        }
-        catch (Exception $e) {
+        } catch (ModelNotFoundException $e) {
+            return $this->errorResponse('El directivo no se encontro en la vase de datos', 404);
+        } catch (Exception $e) {
             return $this->errorResponse('Error al intentar actualizar el directivo.', 500);
         }
     }
@@ -76,11 +82,14 @@ class ManagerController extends Controller
     /**
      * Eliminar un directivo.
      */
-    public function destroy(Manager $manager): JsonResponse
+    public function destroy($acc): JsonResponse
     {
         try {
+            $manager = Manager::where('acc',$acc)->firstOrFail();
             $this->managerService->deleteManager($manager);
-            return $this->successResponse(null, 'Directivo eliminado correctamente.',410 );
+            return $this->successResponse(null, 'Directivo eliminado correctamente.');
+        } catch (ModelNotFoundException $e) {
+            return $this->errorResponse('El directivo no se pudo eliminar', 404);
         } catch (Exception $e) {
             return $this->errorResponse('No se pudo eliminar el directivo.', 500);
         }
