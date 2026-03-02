@@ -43,7 +43,6 @@ class PartnerController extends Controller
             ->orderBy('acc', 'asc')
             ->paginate($request->input('per_page', 50));
 
-
         return response()->json($partners);
     }
 
