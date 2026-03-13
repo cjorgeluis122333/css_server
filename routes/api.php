@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FamilyController;
+use App\Http\Controllers\HallControlController;
+use App\Http\Controllers\HallController;
 use App\Http\Controllers\HistoryPayController;
 use App\Http\Controllers\ManagerBoardsController;
 use App\Http\Controllers\ManagerController;
@@ -30,6 +32,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/board', ManagerBoardsController::class);
     // History
     Route::apiResource('/history', HistoryPayController::class);
+    // Hall
+    Route::apiResource('/halls-pay', HallController::class);
+    Route::apiResource('/halls-control', HallControlController::class);
 });
 
 
