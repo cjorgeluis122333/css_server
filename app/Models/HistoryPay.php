@@ -6,13 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class HistoryPay extends Model
 {
-    protected $table = 'historial_pagos_unificado';
+    protected $table = 'historial_pagos_separado';
     protected $primaryKey = 'ind';
     public $timestamps = false; // Tu SQL no tiene created_at/updated_at
 
     protected $fillable = [
-        'acc', 'time', 'fecha', 'mes', 'oper',
-        'monto', 'descript', 'seniat', 'operador'
+        'acc', 'time', 'fecha', 'mes',
+        'oper', 'resibo','control','factura',  //new
+        'monto', 'descript',
+        'observaciones',   //new
+        'seniat', 'operador'
     ];
 
     /**
