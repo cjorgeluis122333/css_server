@@ -90,10 +90,10 @@ CREATE TABLE `historial_pagos_separado` (
   `time` VARCHAR(50) DEFAULT NULL,
   `fecha` VARCHAR(20) DEFAULT NULL,
   `mes` VARCHAR(20) DEFAULT NULL,
-  `oper` TEXT DEFAULT NULL,
-  `factura` VARCHAR(50) DEFAULT NULL,
-  `control` VARCHAR(50) DEFAULT NULL,
+  `oper` VARCHAR(50) DEFAULT NULL,
   `resibo` VARCHAR(50) DEFAULT NULL,
+  `control` VARCHAR(50) DEFAULT NULL,
+  `factura` VARCHAR(50) DEFAULT NULL,
   `monto` DECIMAL(15,2) DEFAULT 0.00,
   `descript` VARCHAR(100) DEFAULT NULL,
   `observaciones` VARCHAR(100) DEFAULT NULL,
@@ -126,7 +126,7 @@ SELECT
         WHEN LOCATE('|', `oper`) > 0 
         THEN SUBSTRING_INDEX(SUBSTRING_INDEX(`oper`, '|', 2), '|', -1) 
         ELSE NULL 
-    END AS `factura`,
+    END AS `resibo`,
     
     -- 3. Control: Cuenta cuántos '|' hay. Si hay 2 o más, toma todo después del último '|'. Si no, es NULL.
     CASE 
@@ -134,9 +134,10 @@ SELECT
         THEN SUBSTRING_INDEX(`oper`, '|', -1) 
         ELSE NULL 
     END AS `control`,
-    
+    null,
     `monto`, 
     `descript`, 
+    null,
     `seniat`, 
     `operador`
 FROM `historial_pagos_unificado`;
@@ -156,7 +157,7 @@ TRUNCATE TABLE `historial_pagos_separado`;
 
 -- 3. Ejecuta la inserción aplicando TRIM() a cada segmento extraído
 INSERT INTO `historial_pagos_separado` (
-    `ind`, `acc`, `time`, `fecha`, `mes`, `oper`, `factura`, `control`, `monto`, `descript`, `seniat`, `operador`
+    `ind`, `acc`, `time`, `fecha`, `mes`, `oper`, `resibo`, `control`, `factura`,`monto`, `descript`, `observaciones`,`seniat`, `operador`
 )
 SELECT 
     `ind`, 
@@ -173,7 +174,7 @@ SELECT
         WHEN LOCATE('|', `oper`) > 0 
         THEN TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(`oper`, '|', 2), '|', -1)) 
         ELSE NULL 
-    END AS `factura`,
+    END AS `resibo`,
     
     -- Limpiamos el control: extraemos y quitamos espacios
     CASE 
@@ -181,10 +182,11 @@ SELECT
         THEN TRIM(SUBSTRING_INDEX(`oper`, '|', -1)) 
         ELSE NULL 
     END AS `control`,
-    
-    `monto`, 
-    `descript`, 
-    `seniat`, 
+    null,
+    `monto`,
+    `descript`,
+    null,
+    `seniat`,
     `operador`
 FROM `historial_pagos_unificado`;
 ```

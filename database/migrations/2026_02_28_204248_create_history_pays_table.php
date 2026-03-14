@@ -8,7 +8,7 @@ return new class extends Migration {
 
     public function up(): void
     {
-        Schema::create('historial_pagos_unificado', function (Blueprint $table) {
+        Schema::create('historial_pagos_separado', function (Blueprint $table) {
             // Usamos 'ind' como clave primaria autoincremental
             $table->id('ind');
 
@@ -21,9 +21,14 @@ return new class extends Migration {
             $table->string('mes', 20)->nullable();
 
             // Detalles de la operación
-            $table->text('oper')->nullable();
+            $table->string('oper',50)->nullable();
+            $table->string('resibo',50)->nullable();
+            $table->string('control',50)->nullable();
+            $table->string('factura',50)->nullable();
+
             $table->decimal('monto', 15, 2)->default(0.00);
-            $table->text('descript')->nullable();
+            $table->string('descript',100)->nullable();
+            $table->string('observaciones',100)->nullable();
 
             // Metadatos adicionales
             $table->string('seniat', 100)->default('no');
@@ -45,7 +50,7 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('historial_pagos_unificado');
+        Schema::dropIfExists('historial_pagos_separado');
     }
 };
 
