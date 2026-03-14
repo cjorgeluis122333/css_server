@@ -81,7 +81,7 @@ CREATE TABLE `historial_pagos_unificado` (
 ## Paso1: Crear una nueva tabla 
 La tabla anterior tine un problema y es que pose una columna llamada oper que contine los datos de tres columnas en una sola
 - Ejemplo: oper -> pago|213113|32312 
-Como puedes apreciar en esa columna esta: {operaction}|{factura}|{control_de_pago}
+Como puedes apreciar en esa columna esta: {operaction}|{recibo}|{control_de_pago}
 
 ```mysql
 CREATE TABLE `historial_pagos_separado` (
@@ -93,8 +93,10 @@ CREATE TABLE `historial_pagos_separado` (
   `oper` TEXT DEFAULT NULL,
   `factura` VARCHAR(50) DEFAULT NULL,
   `control` VARCHAR(50) DEFAULT NULL,
+  `resibo` VARCHAR(50) DEFAULT NULL,
   `monto` DECIMAL(15,2) DEFAULT 0.00,
-  `descript` TEXT DEFAULT NULL,
+  `descript` VARCHAR(100) DEFAULT NULL,
+  `observaciones` VARCHAR(100) DEFAULT NULL,
   `seniat` VARCHAR(100) DEFAULT 'no',
   `operador` TEXT DEFAULT NULL,
   PRIMARY KEY (`ind`),
