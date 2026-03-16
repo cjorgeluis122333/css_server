@@ -36,7 +36,7 @@ class HistoryPayController extends Controller
             // 3. Retornamos la respuesta estructurada
             return response()->json($history, 200);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Logueamos el error para debugging
             Log::error("Error al obtener historial de pagos: " . $e->getMessage());
 

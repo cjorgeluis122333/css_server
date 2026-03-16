@@ -9,7 +9,6 @@ return new class extends Migration {
     {
         Schema::create('0cc_directivos_juntas', function (Blueprint $table) {
             $table->unsignedInteger('year')->primary(); // El año es el identificador único
-
             // Definimos las columnas para cada cargo
             // Usamos 'cedula' como referencia según tu lógica
             $table->integer('presidente')->nullable();
