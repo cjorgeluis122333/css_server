@@ -8,8 +8,20 @@ class FeeRequest extends FormRequest
 {
     public function rules(): array
     {
-        return [
+        // Validamos que el mes tenga formato YYYY-MM (ej: 2018-01)
+        $mesRegex = '/^\d{4}-(0[1-9]|1[0-2])$/';
 
+        return [
+            'mes' => ['required', 'string', 'regex:' . $mesRegex],
+            'cuota' => 'required|numeric|min:0',
+            'impuesto' => 'required|numeric|min:0',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'mes.regex' => 'El formato del mes debe ser YYYY-MM (ejemplo: 2018-01).',
         ];
     }
 

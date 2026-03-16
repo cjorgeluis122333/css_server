@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FamilyController;
+use App\Http\Controllers\FeeController;
 use App\Http\Controllers\HallControlController;
 use App\Http\Controllers\HallController;
 use App\Http\Controllers\HistoryPayController;
@@ -11,7 +12,9 @@ use App\Http\Controllers\PartnerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {return $request->user();})->middleware('auth:sanctum');
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
 
 
 // --- Public route ---
@@ -35,6 +38,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Hall
     Route::apiResource('/halls-pay', HallController::class);
     Route::apiResource('/halls-control', HallControlController::class);
+    // Fee
+    Route::apiResource("/fee", FeeController::class);
+    Route::get("/fee/{mont}", [FeeController::class, "showByMonth"])->name("showByMonth");
 });
 
 

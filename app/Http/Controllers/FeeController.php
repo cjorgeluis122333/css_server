@@ -4,35 +4,53 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\FeeRequest;
 use App\Models\Fee;
+use App\Service\FeeService;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
 
 class FeeController extends Controller
 {
-    public function index()
+    use ApiResponse;
+
+    protected FeeService $feeService;
+
+    public function __construct(FeeService $feeService)
     {
-        return Fee::all();
+        $this->feeService = $feeService;
     }
 
-    public function store(FeeRequest $request)
+    public function index(): JsonResponse
     {
-        return Fee::create($request->validated());
+        $fees = $this->feeService->getAll();
+        return $this->successResponse($fees, 'Lista de cuotas recuperada.');
     }
 
-    public function show(Fee $fee)
+    public function showByMonth(string $mes): JsonResponse
     {
-        return $fee;
+        $fee = $this->feeService->getByMonth($mes);
+
+        if (!$fee) {
+            return $this->errorResponse("No se encontró la cuota para el mes {$mes}.", 404);
+        }
+
+        return $this->successResponse($fee, "Información de la cuota {$mes}.");
     }
 
-    public function update(FeeRequest $request, Fee $fee)
+    public function store(FeeRequest $request): JsonResponse
     {
-        $fee->update($request->validated());
-
-        return $fee;
+        $fee = $this->feeService->store($request->validated());
+        return $this->successResponse($fee, 'Cuota creada correctamente.', 201);
     }
 
-    public function destroy(Fee $fee)
+    public function update(FeeRequest $request, int $id): JsonResponse
     {
-        $fee->delete();
+        $this->feeService->update($id, $request->validated());
+        return $this->successResponse(null, 'Cuota actualizada correctamente.');
+    }
 
-        return response()->json();
+    public function destroy(int $id): JsonResponse
+    {
+        $this->feeService->delete($id);
+        return $this->successResponse(null, 'Cuota eliminada correctamente.');
     }
 }
