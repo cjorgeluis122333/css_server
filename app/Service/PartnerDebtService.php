@@ -6,6 +6,7 @@ use App\Models\Fee;
 use App\Models\Partner;
 use App\Models\HistoryPay;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Collection;
 
 class PartnerDebtService
@@ -14,7 +15,7 @@ class PartnerDebtService
      * limitando desde su fecha de ingreso hasta el mes actual.
      * * @param Partner $partner
      * @return Collection
-     * @throws \Exception
+     * @throws Exception
      */
     public function getAccountStatement(Partner $partner): Collection
     {
@@ -41,7 +42,7 @@ class PartnerDebtService
         // Opcional: Manejo en caso de que la colección esté vacía
         if (!$currentFee) {
             // Aquí podrías lanzar una excepción o asignar un valor por defecto
-            throw new \Exception("No se encontró una cuota configurada para el periodo: $currentMonthKey");
+            throw new Exception("No se encontró una cuota configurada para el periodo: $currentMonthKey");
         }
         $baseCurrentTotal = $currentFee->total * $surchargeMultiplier;
 
@@ -52,17 +53,18 @@ class PartnerDebtService
             ->get()
             ->keyBy('mes');
 
-        // 4. Definir los límites temporales de cobro
-        // Transformamos la fecha de ingreso al formato 'Y-m'
-        $ingresoPartner = Carbon::parse($partner->ingreso);
-        $startMonth = $ingresoPartner->format('Y-m');
+        // 4. Obtener la fecha validada desde el modelo
+        $startMonth = $partner->fecha_ingreso_validada;
 
         $debts = collect();
 
-        // 5. Filtrar e iterar SOLAMENTE los meses desde el ingreso hasta hoy
-        // Usamos filter para desechar meses anteriores al ingreso del socio o futuros
+        // 5. Filtrar cuotas
         $feesToEvaluate = $allFeesLookup->filter(function ($fee, $mes) use ($startMonth, $currentMonthKey) {
-            return $mes >= $startMonth && $mes <= $currentMonthKey;
+            // Si $startMonth es null, la primera condición siempre es true (lista todo el historial)
+            $isAfterOrEqualIngreso = !$startMonth || $mes >= $startMonth;
+
+            // Mantenemos el límite superior para no cobrar cuotas futuras
+            return $isAfterOrEqualIngreso && $mes <= $currentMonthKey;
         });
 
         foreach ($feesToEvaluate as $month => $fee) {
