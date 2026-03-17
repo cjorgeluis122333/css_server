@@ -21,12 +21,12 @@ class PartnerDebtService
 
         // 3. Agrupar historial de pagos por mes para esta cuenta
         // Retorna un array asociativo: ['01-2023' => 20.50, '02-2023' => 45.00]
+       // Agrupamos los pagos por el mes al que van dirigidos
         $paymentsByMonth = HistoryPay::where('acc', $partner->acc)
-            ->selectRaw('mes, SUM(monto) as total_pagado, MAX(cuota_base_aplicada) as cuota_fijada')
+            ->selectRaw('mes, SUM(monto) as total_pagado, MIN(fecha) as fecha_primer_pago')
             ->groupBy('mes')
             ->get()
             ->keyBy('mes');
-
         // 4. Obtener todas las cuotas (Asumiendo que quieres evaluar todas o desde su ingreso)
         $allFees = Fee::orderBy('ind', 'asc')->get();
 
