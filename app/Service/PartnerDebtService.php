@@ -10,52 +10,72 @@ use Illuminate\Support\Collection;
 
 class PartnerDebtService
 {
+    /**
+     * Extrae todas las deudas pendientes de un socio con sus montos exactos.
+     *
+     * @param Partner $partner
+     * @return Collection
+     */
     public function getAccountStatement(Partner $partner): Collection
     {
-        // 1. Calcular recargo familiar (16%)
+        // 1. Calcular recargo familiar (16% si hay un Hijo > 30 años)
         $surcharge = $this->calculateFamilySurcharge($partner);
 
-        // 2. Obtener cuota actual
+        // 2. Obtener la cuota actual vigente (la última registrada)
+        // Asumiendo que el 'ind' más alto o el último registro es el actual
         $currentFee = Fee::orderBy('ind', 'desc')->first();
+
+        // Si por alguna razón no hay cuotas en el sistema, evitamos errores
+        if (!$currentFee) {
+            return collect();
+        }
+
         $baseCurrentTotal = $currentFee->total * (1 + $surcharge);
 
-        // 3. Agrupar historial de pagos por mes para esta cuenta
-        // Retorna un array asociativo: ['01-2023' => 20.50, '02-2023' => 45.00]
-       // Agrupamos los pagos por el mes al que van dirigidos
+        // 3. Agrupar historial de pagos por mes (con la fecha del primer abono)
         $paymentsByMonth = HistoryPay::where('acc', $partner->acc)
             ->selectRaw('mes, SUM(monto) as total_pagado, MIN(fecha) as fecha_primer_pago')
             ->groupBy('mes')
             ->get()
             ->keyBy('mes');
-        // 4. Obtener todas las cuotas (Asumiendo que quieres evaluar todas o desde su ingreso)
+
+        // 4. Obtener todas las cuotas a evaluar
         $allFees = Fee::orderBy('ind', 'asc')->get();
 
         $debts = collect();
 
         foreach ($allFees as $fee) {
-            $month = $fee->mes;
+            $month = $fee->mes; // Ej: '2026-01'
             $paymentData = $paymentsByMonth->get($month);
-            $totalPaid = $paymentData ? (float)$paymentData->total_pagado : 0;
 
-            // Determinar cuánto debería costar este mes
+            $totalPaid = $paymentData ? (float) $paymentData->total_pagado : 0;
+
+            // 5. Determinar la meta de pago para este mes según las reglas de negocio
             if ($totalPaid == 0) {
-                // Si no hay pagos, aplica la regla de "cobrar la cuota actual"
+                // Escenario 1: No hay pagos. Aplica la cuota ACTUAL vigente.
                 $targetAmount = $baseCurrentTotal;
             } else {
-                // Si hay pagos (parciales o totales)
-                // Usamos la cuota fijada (Opción B) o caemos a la cuota histórica
-                $historicTotal = $fee->total * (1 + $surcharge);
-                $targetAmount = $paymentData->cuota_fijada ? (float)$paymentData->cuota_fijada : $historicTotal;
+                // Escenario 2: Hay pagos. Buscamos la cuota en la fecha del primer abono.
+                // Convertimos la fecha (ej. '2026-02-19') al formato de la columna 'mes' (ej. '2026-02')
+                $mesDeLaFechaDePago = Carbon::parse($paymentData->fecha_primer_pago)->format('Y-m');
+
+                $cuotaEnEseMomento = Fee::where('mes', $mesDeLaFechaDePago)->first();
+
+                // Si encontramos la cuota de ese momento, la usamos. Si no, usamos la cuota base de ese ciclo.
+                $baseHistoricalTotal = $cuotaEnEseMomento ? $cuotaEnEseMomento->total : $fee->total;
+
+                // Le aplicamos el recargo del 16% si corresponde
+                $targetAmount = $baseHistoricalTotal * (1 + $surcharge);
             }
 
             $pendingAmount = $targetAmount - $totalPaid;
 
-            // Si debe algo, lo agregamos a la lista de deudas
+            // Si debe algo (la diferencia es mayor a 0), lo agregamos a la colección de deudas
             if ($pendingAmount > 0) {
                 $debts->push([
                     'mes' => $month,
-                    'cuota_aplicada' => $targetAmount,
-                    'total_pagado' => $totalPaid,
+                    'cuota_aplicada' => round($targetAmount, 2),
+                    'total_pagado' => round($totalPaid, 2),
                     'deuda_pendiente' => round($pendingAmount, 2),
                     'estado' => $totalPaid > 0 ? 'Pago Parcial' : 'Sin Pagar'
                 ]);
@@ -65,13 +85,20 @@ class PartnerDebtService
         return $debts;
     }
 
+    /**
+     * Verifica si el socio titular tiene un familiar "Hijo" mayor de 30 años.
+     *
+     * @param Partner $partner
+     * @return float
+     */
     private function calculateFamilySurcharge(Partner $partner): float
     {
-        $hasAdultChild = Partner::where('acc', $partner->acc)
-            ->onlyDependents()
-            ->where('direccion', 'Hijo') // O el string exacto que uses
+        // Usamos la relación dependents() que ya está en tu modelo Partner
+        $hasAdultChild = $partner->dependents()
+            ->where('direccion', 'Hijo')
             ->get()
             ->contains(function ($dependent) {
+                // Usamos el accessor getAgeAttribute() de tu modelo
                 return $dependent->age > 30;
             });
 
