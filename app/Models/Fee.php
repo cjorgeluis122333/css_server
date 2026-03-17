@@ -34,7 +34,7 @@ class Fee extends Model
     protected function total(): Attribute
     {
         return Attribute::make(
-            get: fn() => (float)($this->cuota + $this->impuesto),
+            get: fn() => (float)($this->cuota/* + $this->impuesto*/),
         );
     }
 }
