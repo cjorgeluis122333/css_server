@@ -111,6 +111,25 @@ class Partner extends Model
         }
     }
 
+
+    public function getFechaIngresoValidadaAttribute()
+    {
+        $value = trim($this->ingreso);
+
+        // Lista de valores que consideramos "vacíos" o "basura"
+        $invalidValues = [null, '', '-'];
+
+        if (in_array($value, $invalidValues, true)) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m');
+        } catch (\Exception $e) {
+            return null; // Si el formato es extraño y falla el parseo
+        }
+    }
+
     // --- BUSINESS LOGIC ---
 
     /**
