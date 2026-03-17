@@ -4,31 +4,76 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PartnerRequest;
 use App\Models\Partner;
+use App\Service\PartnerDebtService;
 use App\Service\PartnerService;
 use App\Traits\ApiResponse;
+use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
 
 class PartnerController extends Controller
 {
     use ApiResponse;
 
     protected PartnerService $partnerService;
-
-    public function __construct(PartnerService $partnerService)
-    {
-        $this->partnerService = $partnerService;
-    }
-    // Importamos el trait de respuestas
-
+    protected PartnerDebtService $debtService;
     /**
      * Campos ligeros para el listado masivo (Index).
-     * Evitamos traer campos pesados como 'direccion' o 'notas' si las hubiera.
      */
     protected array $selectIndex = [
         'ind', 'acc', 'nombre', 'cedula','carnet', 'celular', 'correo', 'nacimiento', 'categoria', 'telefono',  'ingreso','direccion', 'ocupacion',  'cobrador'
     ];
+
+
+    // Inyectamos el servicio en el constructor
+    public function __construct(PartnerService $partnerService,PartnerDebtService $debtService)
+    {
+        $this->partnerService = $partnerService;
+        $this->debtService = $debtService;
+    }
+
+
+
+
+    /**
+     * Muestra el estado de cuenta (deudas) de un socio.
+     * * @param int $id ID del socio (llave primaria 'ind')
+     * @return JsonResponse
+     */
+    public function showDebts(int $id): JsonResponse
+    {
+        // 1. Buscamos al socio (o lanzamos 404 si no existe)
+        $partner = Partner::findOrFail($id);
+
+        try {
+            // 2. Ejecutamos la lógica del servicio
+            $statement = $this->debtService->getAccountStatement($partner);
+
+            // 3. Retornamos la respuesta estructurada
+            return response()->json([
+                'message' => 'success',
+                'data' => [
+                    'socio' => [
+                        'nombre' => $partner->nombre,
+                        'acc' => $partner->acc,
+                        'categoria' => $partner->categoria,
+                    ],
+                    'resumen_deudas' => $statement,
+                    'total_a_pagar' => round($statement->sum('deuda_pendiente'), 2)
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            // Manejo de errores por si algo falla en el cálculo
+            return response()->json([
+                'code' => 'error',
+                'message' => 'No se pudo calcular la deuda: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
 
     /**
@@ -80,7 +125,7 @@ class PartnerController extends Controller
                 'Socio titular creado exitosamente',
                 201
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->errorResponse('Error al crear socio: ' . $e->getMessage(), 500);
         }
     }
@@ -106,7 +151,7 @@ class PartnerController extends Controller
 
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse('Socio titular no encontrado con esa Acción', 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error update partner {$acc}: " . $e->getMessage());
             return $this->errorResponse('No se pudo actualizar el socio', 500);
         }
@@ -127,7 +172,7 @@ class PartnerController extends Controller
 
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse('Socio no encontrado', 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Capturamos la excepción de negocio (ej: tiene familiares)
             // Asumimos que el código 409 es para conflicto de lógica
             return $this->errorResponse($e->getMessage(), 409);

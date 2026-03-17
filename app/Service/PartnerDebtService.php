@@ -98,8 +98,8 @@ class PartnerDebtService
             ->where('direccion', 'Hijo')
             ->get()
             ->contains(function ($dependent) {
-                // Usamos el accessor getAgeAttribute() de tu modelo
-                return $dependent->age > 30;
+                // Si age es null por datos basura, esto devuelve false correctamente
+                return $dependent->age !== null && $dependent->age > 30;
             });
 
         return $hasAdultChild ? 0.16 : 0.00;

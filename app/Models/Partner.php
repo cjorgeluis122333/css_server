@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use App\Enum\PartnerCategory;
+use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 //use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Partner extends Model
@@ -88,7 +90,25 @@ class Partner extends Model
      */
     public function getAgeAttribute(): ?int
     {
-        return $this->nacimiento?->age;
+        // 1. Filtramos valores vacíos o strings de ceros (0, 00, 000, etc)
+        if (empty($this->nacimiento) || preg_match('/^0+$/', str_replace(['-', '/'], '', $this->nacimiento))) {
+            return null;
+        }
+
+        try {
+            $date = Carbon::parse($this->nacimiento);
+
+            // 2. Filtramos fechas absurdas como 0001-01-01
+            // Si la fecha es menor al año 1900, la consideramos inválida para el cálculo
+            if ($date->year < 1900) {
+                return null;
+            }
+
+            return $date->age;
+        } catch (Exception $e) {
+            // Si Carbon no puede parsear el string (ej: "datos_corruptos"), devolvemos null
+            return null;
+        }
     }
 
     // --- BUSINESS LOGIC ---
