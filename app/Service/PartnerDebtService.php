@@ -19,7 +19,7 @@ class PartnerDebtService
      */
     public function getAccountStatement(Partner $partner): Collection
     {
-        // 1. Calcular recargo familiar (Multiplicador directo: 1.16 o 1.00)
+        // 1. Calcular recargo familiar (Multiplicador directo: 1.25 o 1.00)
         $surchargeMultiplier = 1 + $this->calculateFamilySurcharge($partner);
 
         // 2. Cargar TODAS las cuotas en memoria como una tabla hash (Lookup Table)
@@ -119,6 +119,6 @@ class PartnerDebtService
                 && $dependent->age > 30;
         });
 
-        return $hasAdultChild ? 0.16 : 0.00;
+        return $hasAdultChild ? 0.25 : 0.00;
     }
 }
