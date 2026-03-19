@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\HistoryPayRequest;
 use App\Models\HistoryPay;
+use App\Models\Partner;
 use App\Service\HistoryPayService;
+use App\Service\PartnerDebtService;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -17,10 +19,12 @@ class HistoryPayController extends Controller
     use ApiResponse;
 
     protected HistoryPayService $historyService;
+    protected PartnerDebtService $debtService;
 
-    public function __construct(HistoryPayService $historyService)
+    public function __construct(HistoryPayService $historyService, PartnerDebtService $debtService)
     {
         $this->historyService = $historyService;
+        $this->debtService = $debtService;
     }
     public function index(Request $request)
     {
@@ -47,27 +51,45 @@ class HistoryPayController extends Controller
         }
     }
 
+
+
     /**
-     * Almacenar un nuevo historial.
+     * Procesa los pagos enviados desde el frontend.
+     * Al usar un apiResource (POST /history), el "acc" viene en el body,
+     * por lo que buscamos el modelo Partner manualmente.
      */
     public function store(HistoryPayRequest $request): JsonResponse
     {
-        try {
-            $data = $request->validated();
-            $history = $this->historyService->createHistory($data);
+        // 1. Validamos los datos (asegurándonos de que el 'acc' existe)
+        $data = $request->validated();
 
-            return $this->successResponse(
-                $history,
-                'Historial de pago registrado correctamente',
-                201
+        // 2. Buscamos el socio usando el 'acc' que viene en el JSON
+        // Usamos firstOrFail() para que, si por alguna razón no existe, lance un 404
+        $partner = Partner::where('acc', $data['acc'])->firstOrFail();
+
+        try {
+            // 3. Ejecutamos la lógica de pago
+            // $request->except('pagos') incluirá el 'acc' y todos los demás metadatos
+            $this->debtService->processPayments(
+                $partner,
+                $data['pagos'],
+                $request->except('pagos')
             );
-        } catch (Exception $e) {
-            return $this->errorResponse(
-                'No se pudo registrar el pago: ' . $e->getMessage(),
-                500
-            );
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Los pagos se han procesado y escalado al valor nominal correctamente.'
+            ], 201);
+
+        } catch (\Exception $e) {
+            // Si el monto supera la deuda o algo falla, retornamos el error
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage()
+            ], 422);
         }
     }
+
     /**
      * Listar historial por socio.
      */
