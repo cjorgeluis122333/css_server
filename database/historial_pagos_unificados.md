@@ -1,4 +1,5 @@
 ## Paso1: Tabla historial_pagos_unificado
+Esta tabla se tiene que crear en db2 y db3
 ```mysql
 CREATE TABLE `historial_pagos_unificado` (
   `ind` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -17,11 +18,14 @@ CREATE TABLE `historial_pagos_unificado` (
 ```
 
 
+## Paso2:  Generar consultas de insercion para rellenar la tabla de historial_pagos_unificado de la base de datos 2 ***no***)
 
-## Paso2:  Crear una tabla que va a ser la union de mil tablas(En caso de no tener la columna seniat ponerle un ***no***)
+Esta consulta se utilizara generar todas las consultas de insercion en la tabla.
+Estas consultas impactaran la  tabla historial_pagos_unificado de la base de datos 2
+
 ```mysql
 SELECT CONCAT(
-    'INSERT INTO historial_pagos_unificado (acc, `time`, fecha, mes, oper, monto, descript, seniat, operador) ',
+    'INSERT IGNORE INTO historial_pagos_unificado (acc, `time`, fecha, mes, oper, monto, descript, seniat, operador) ',
     'SELECT ', REPLACE(t.table_name, '0history_', ''), ', `time`, fecha, mes, oper, monto, descript, ',
     IF(c.column_name IS NULL, '''no''', 'seniat'), ', operador ',
     'FROM `', t.table_name, '`;'
@@ -35,7 +39,12 @@ WHERE t.table_schema = '1090024db2'
 AND t.table_name LIKE '0history_%';
 ```
 
+## Paso3 Insertar de historial_pagos_unificado de la base de datos 2 al la base de datos 3
 
+```mysql
+INSERT INTO `1090024db3`.historial_pagos_unificado 
+SELECT * FROM `1090024db2`.historial_pagos_unificado;
+```
 
 # Despues extraer todo los historiales y almancenarlos en una sola tabla pasamos :
 

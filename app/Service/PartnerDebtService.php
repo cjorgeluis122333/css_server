@@ -6,6 +6,7 @@ use App\Models\Fee;
 use App\Models\Partner;
 use App\Models\HistoryPay;
 use Carbon\Carbon;
+use DB;
 use Exception;
 use Illuminate\Support\Collection;
 
@@ -13,19 +14,16 @@ class PartnerDebtService
 {
     /**
      * @param Partner $partner
-     * @param array $paymentsList Ejemplo: [['mes' => '2026-03', 'monto' => 36.656], ['mes' => '2026-04', 'monto' => 20.00]]
+     * @param array $paymentsList Ejemplo: [['mes' => '2026-03', 'monto' => 36.656]]
      * @param array $paymentMetadata Datos extra (oper, operador, etc.)
      * @throws Exception
      */
     public function processPayments(Partner $partner, array $paymentsList, array $paymentMetadata = [])
     {
-        // Extraemos los meses que el usuario intenta pagar (útil si está pagando adelantado)
-        $mesesSolicitados = array_column($paymentsList, 'mes');
+        // Ya no enviamos los meses solicitados porque no procesaremos adelantados aquí
+        $statement = $this->getAccountStatement($partner)->keyBy('mes');
 
-        // Obtenemos el estado de cuenta incluyendo los meses adelantados
-        $statement = $this->getAccountStatement($partner, $mesesSolicitados)->keyBy('mes');
-
-        \DB::beginTransaction();
+        DB::beginTransaction();
         try {
             foreach ($paymentsList as $pago) {
                 $mes = $pago['mes'];
@@ -34,13 +32,12 @@ class PartnerDebtService
                 if ($montoEfectivoEnviado <= 0) continue;
 
                 if (!$statement->has($mes)) {
-                    throw new Exception("El mes {$mes} no presenta deudas o no es válido para este socio.");
+                    throw new Exception("El mes {$mes} no presenta deudas, es un mes futuro o no es válido para este socio.");
                 }
 
                 $deudaData = $statement->get($mes);
 
                 // REGLA: El pago no puede superar la deuda del mes
-                // Usamos round a 2 decimales para evitar problemas de coma flotante en la validación
                 if (round($montoEfectivoEnviado, 2) > round($deudaData['efectivo_restante'], 2)) {
                     throw new Exception("El monto enviado ({$montoEfectivoEnviado}) para el mes {$mes} supera la deuda real que es de {$deudaData['efectivo_restante']}.");
                 }
@@ -51,8 +48,9 @@ class PartnerDebtService
                 HistoryPay::create([
                     'acc' => $partner->acc,
                     'mes' => $mes,
-                    'fecha' => now()->format('Y-m-d'), // Fecha real en que se hizo el pago
-                    'monto' => round($montoAInsertar, 2), // El monto INFLADO para el motor de búsqueda
+                    'fecha' => now()->format('Y-m-d'),
+                    'time' => now()->format('H:i:s'),
+                    'monto' => round($montoAInsertar, 2),
                     'oper' => $paymentMetadata['oper'] ?? null,
                     'resibo' => $paymentMetadata['resibo'] ?? null,
                     'control' => $paymentMetadata['control'] ?? null,
@@ -64,27 +62,25 @@ class PartnerDebtService
                 ]);
             }
 
-            \DB::commit();
+            DB::commit();
             return true;
 
         } catch (Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             throw $e;
         }
     }
 
 
     /**
-     * Extrae todas las deudas pendientes de un socio con sus montos exactos,
-     * limitando desde su fecha de ingreso hasta el mes actual (o adelantados).
-     * Aplica reglas de inflación, tarifas congeladas por pagos parciales y descuentos.
+     * Extrae todas las deudas pendientes de un socio con sus montos exactos y el impuesto,
+     * limitando desde su fecha de ingreso (o 2019-01) hasta el mes actual.
      *
      * @param Partner $partner
-     * @param array $mesesAdelantadosSolicitados Meses futuros que el socio desea pagar
      * @return Collection
      * @throws Exception
      */
-    public function getAccountStatement(Partner $partner, array $mesesAdelantadosSolicitados = []): Collection
+    public function getAccountStatement(Partner $partner): Collection
     {
         // 1. Calcular recargo familiar (Retorna 0.00 o 0.25)
         $surchargeMultiplier = $this->calculateFamilySurcharge($partner);
@@ -94,32 +90,44 @@ class PartnerDebtService
 
         $currentMonthKey = now()->format('Y-m');
 
-        // Buscar la cuota vigente actual (la del mes actual o la más reciente hacia atrás)
+        // Buscar la cuota vigente actual
         $currentFee = $allFeesLookup->filter(fn($fee, $key) => $key <= $currentMonthKey)->last();
 
         if (!$currentFee) {
             throw new Exception("No se encontró una cuota base configurada en el sistema.");
         }
 
-        // 3. Agrupar historial de pagos del socio (Optimizando a una sola consulta)
+        // 3. Agrupar historial de pagos del socio
         $paymentsByMonth = HistoryPay::where('acc', $partner->acc)
             ->selectRaw('mes, SUM(monto) as total_pagado, MIN(fecha) as fecha_primer_pago')
             ->groupBy('mes')
             ->get()
             ->keyBy('mes');
 
-        // 4. Determinar el rango de meses a evaluar
-        $startMonth = $partner->fecha_ingreso_validada ?: $allFeesLookup->keys()->first();
+        // 4. Determinar el rango de meses a evaluar (Regla del 2019-01)
+        // Usamos la fecha de ingreso cruda o la validada, dependiendo de cómo la llames en tu modelo
+        $fechaIngreso = $partner->fecha_ingreso ?? $partner->fecha_ingreso_validada;
+        $fechaLimite = Carbon::create(2019, 1, 1);
 
-        // Generamos la lista de meses desde el ingreso hasta hoy, más los adelantados
+        if (!$fechaIngreso) {
+            $startMonth = '2019-01';
+        } else {
+            $ingresoCarbon = Carbon::parse($fechaIngreso);
+            if ($ingresoCarbon->lt($fechaLimite)) {
+                $startMonth = '2019-01'; // Si es menor a 2019, forzamos 2019-01
+            } else {
+                $startMonth = $ingresoCarbon->format('Y-m');
+            }
+        }
+
+        // Generamos la lista de meses desde el inicio calculado hasta el mes ACTUAL solamente
         $mesesAEvaluar = collect($this->generateMonthRange($startMonth, $currentMonthKey))
-            ->merge($mesesAdelantadosSolicitados)
             ->unique()
             ->sort()
             ->values();
 
         $debts = collect();
-        $thresholdOldDebt = now()->subMonth()->format('Y-m'); // Mes anterior para evaluar morosidad
+        $thresholdOldDebt = now()->subMonth()->format('Y-m');
         $hasDisqualifyingOldDebt = false;
 
         // 5. Evaluar cada mes
@@ -127,19 +135,18 @@ class PartnerDebtService
             $paymentData = $paymentsByMonth->get($month);
             $totalPaid = $paymentData ? (float) $paymentData->total_pagado : 0.0;
 
-            // --- REGLA DE NEGOCIO: TARIFA ACTUAL VS TARIFA CONGELADA ---
+            // --- REGLA DE NEGOCIO: OBTENER LA TARIFA COMPLETA (Para sacar total e impuesto) ---
             if ($totalPaid == 0) {
-                // Escenario 1: No hay pagos. Se cobra a la tarifa actual (o a la futura si es un mes adelantado).
-                $applicableFeeTotal = ($month > $currentMonthKey)
-                    ? ($allFeesLookup->filter(fn($f, $k) => $k <= $month)->last()->total ?? $currentFee->total)
-                    : $currentFee->total;
+                // Escenario 1: No hay pagos. Se cobra a la tarifa del mes evaluado.
+                $applicableFee = $allFeesLookup->filter(fn($f, $k) => $k <= $month)->last() ?? $currentFee;
             } else {
                 // Escenario 2: Pago parcial. Buscamos la tarifa que existía en la fecha del primer pago.
                 $mesDeLaFechaDePago = Carbon::parse($paymentData->fecha_primer_pago)->format('Y-m');
-                $historicalFee = $allFeesLookup->filter(fn($f, $k) => $k <= $mesDeLaFechaDePago)->last();
-
-                $applicableFeeTotal = $historicalFee ? $historicalFee->total : $currentFee->total;
+                $applicableFee = $allFeesLookup->filter(fn($f, $k) => $k <= $mesDeLaFechaDePago)->last() ?? $currentFee;
             }
+
+            $applicableFeeTotal = $applicableFee->total;
+            $applicableFeeImpuesto = $applicableFee->impuesto ?? 0.00; // Extraemos el impuesto del modelo Fee
 
             // Aplicamos el recargo familiar al total de la cuota elegida
             $nominalTotal = $applicableFeeTotal * (1 + $surchargeMultiplier);
@@ -151,35 +158,31 @@ class PartnerDebtService
             }
 
             // --- REGLAS DE DESCUENTO (20%) ---
-            // Si el socio debe un mes anterior al mes pasado, pierde el derecho a descuento
             if ($month < $thresholdOldDebt) {
                 $hasDisqualifyingOldDebt = true;
             }
 
             $discountMultiplier = 0.0;
             $isCurrentMonth = ($month === $currentMonthKey);
-            $isFutureMonth = ($month > $currentMonthKey);
 
-            if (($isFutureMonth || ($isCurrentMonth && now()->day <= 5)) && !$hasDisqualifyingOldDebt) {
+            if (($isCurrentMonth && now()->day <= 5) && !$hasDisqualifyingOldDebt) {
                 $discountMultiplier = 0.20;
             }
 
-            // --- CÁLCULO DEL FACTOR Y EFECTIVO (Vital para el método de pago) ---
+            // --- CÁLCULO DEL FACTOR Y EFECTIVO ---
             $factorConversion = (1 + $surchargeMultiplier) / (1 + $surchargeMultiplier - $discountMultiplier);
             $efectivoRestante = $deudaNominalPendiente / $factorConversion;
 
             // 6. Registrar la deuda estructurada
             $debts->push([
                 'mes' => $month,
-                'cuota_aplicada' => round($nominalTotal, 2),        // Lo que cuesta para el sistema
-                'total_pagado' => round($totalPaid, 2),             // Lo que ya ha dado
-                'deuda_pendiente' => round($deudaNominalPendiente, 2), // Lo que falta completar (Nominal)
-
-                // Nuevas llaves requeridas para evitar el Error 500
-                'efectivo_restante' => round($efectivoRestante, 3), // Lo que realmente saca del bolsillo hoy
-                'factor_conversion' => $factorConversion,           // Para que el pago infle el número
+                'cuota_aplicada' => round($nominalTotal, 2),
+                'impuesto' => round($applicableFeeImpuesto, 2),     // <-- Nuevo campo añadido
+                'total_pagado' => round($totalPaid, 2),
+                'deuda_pendiente' => round($deudaNominalPendiente, 2),
+                'efectivo_restante' => round($efectivoRestante, 3),
+                'factor_conversion' => $factorConversion,
                 'tiene_descuento' => $discountMultiplier > 0,
-
                 'estado' => $totalPaid > 0 ? 'Pago Parcial' : 'Sin Pagar'
             ]);
         }
@@ -207,7 +210,6 @@ class PartnerDebtService
 
     /**
      * Helper para generar el rango de meses entre dos fechas.
-     * Evita bucles infinitos y genera un array limpio ['2024-01', '2024-02', ...]
      *
      * @param string $start (Formato Y-m)
      * @param string $end (Formato Y-m)
@@ -225,5 +227,33 @@ class PartnerDebtService
         }
 
         return $dates;
+    }
+
+
+
+
+    /** (Cambiar este metodo)
+     * Obtiene el historial de pagos realizados por el socio en un rango de meses.
+     * Busca desde el mes actual hasta el mes objetivo seleccionado (o viceversa).
+     *
+     * @param Partner $partner
+     * @param string $targetMonth Formato 'Y-m' (ej. '2023-05')
+     * @return Collection
+     */
+    public function getPaymentsBetweenCurrentAndTargetMonth(Partner $partner, string $targetMonth): Collection
+    {
+        $currentMonth = now()->format('Y-m');
+
+        // Determinamos cuál es el mes de inicio y cuál el de fin
+        // para que el 'whereBetween' siempre reciba los valores en el orden correcto.
+        $startMonth = min($currentMonth, $targetMonth);
+        $endMonth = max($currentMonth, $targetMonth);
+
+        return HistoryPay::where('acc', $partner->acc)
+            ->whereBetween('mes', [$startMonth, $endMonth])
+            // Ordenamos para que los pagos más recientes salgan primero
+            ->orderBy('mes', 'desc')
+            ->orderBy('fecha', 'desc')
+            ->get();
     }
 }
