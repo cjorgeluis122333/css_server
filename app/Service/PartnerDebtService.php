@@ -105,7 +105,6 @@ class PartnerDebtService
             ->keyBy('mes');
 
         // 4. Determinar el rango de meses a evaluar (Regla del 2019-01)
-        // Usamos la fecha de ingreso cruda o la validada, dependiendo de cómo la llames en tu modelo
         $fechaIngreso = $partner->fecha_ingreso ?? $partner->fecha_ingreso_validada;
         $fechaLimite = Carbon::create(2019, 1, 1);
 
@@ -137,8 +136,8 @@ class PartnerDebtService
 
             // --- REGLA DE NEGOCIO: OBTENER LA TARIFA COMPLETA (Para sacar total e impuesto) ---
             if ($totalPaid == 0) {
-                // Escenario 1: No hay pagos. Se cobra a la tarifa del mes evaluado.
-                $applicableFee = $allFeesLookup->filter(fn($f, $k) => $k <= $month)->last() ?? $currentFee;
+                // CORRECCIÓN: Escenario 1: No hay pagos. Se cobra directamente la tarifa vigente actual.
+                $applicableFee = $currentFee;
             } else {
                 // Escenario 2: Pago parcial. Buscamos la tarifa que existía en la fecha del primer pago.
                 $mesDeLaFechaDePago = Carbon::parse($paymentData->fecha_primer_pago)->format('Y-m');
@@ -146,7 +145,7 @@ class PartnerDebtService
             }
 
             $applicableFeeTotal = $applicableFee->total;
-            $applicableFeeImpuesto = $applicableFee->impuesto ?? 0.00; // Extraemos el impuesto del modelo Fee
+            $applicableFeeImpuesto = $applicableFee->impuesto ?? 0.00;
 
             // Aplicamos el recargo familiar al total de la cuota elegida
             $nominalTotal = $applicableFeeTotal * (1 + $surchargeMultiplier);
@@ -177,7 +176,7 @@ class PartnerDebtService
             $debts->push([
                 'mes' => $month,
                 'cuota_aplicada' => round($nominalTotal, 2),
-                'impuesto' => round($applicableFeeImpuesto, 2),     // <-- Nuevo campo añadido
+                'impuesto' => round($applicableFeeImpuesto, 2),
                 'total_pagado' => round($totalPaid, 2),
                 'deuda_pendiente' => round($deudaNominalPendiente, 2),
                 'efectivo_restante' => round($efectivoRestante, 3),
@@ -229,9 +228,6 @@ class PartnerDebtService
         return $dates;
     }
 
-
-
-
     /** (Cambiar este metodo)
      * Obtiene el historial de pagos realizados por el socio en un rango de meses.
      * Busca desde el mes actual hasta el mes objetivo seleccionado (o viceversa).
@@ -244,14 +240,11 @@ class PartnerDebtService
     {
         $currentMonth = now()->format('Y-m');
 
-        // Determinamos cuál es el mes de inicio y cuál el de fin
-        // para que el 'whereBetween' siempre reciba los valores en el orden correcto.
         $startMonth = min($currentMonth, $targetMonth);
         $endMonth = max($currentMonth, $targetMonth);
 
         return HistoryPay::where('acc', $partner->acc)
             ->whereBetween('mes', [$startMonth, $endMonth])
-            // Ordenamos para que los pagos más recientes salgan primero
             ->orderBy('mes', 'desc')
             ->orderBy('fecha', 'desc')
             ->get();
