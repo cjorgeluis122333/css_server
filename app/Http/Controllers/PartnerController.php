@@ -50,15 +50,13 @@ class PartnerController extends Controller
         $mesesAdelanto = (int) request()->query('adelanto', 0);
 
         try {
-            // 3. Calculamos la fecha límite solo si hay meses de adelanto
             $limitDate = $mesesAdelanto > 0
                 ? now()->addMonths($mesesAdelanto)->format('Y-m')
                 : null;
 
-            // 4. Llamamos al servicio (que ya sabe manejar el null como "hasta hoy")
-            $statement = $this->debtService->getAccountStatement($partner, $limitDate);
+            // Aquí $result ahora es un array
+            $result = $this->debtService->getAccountStatement($partner, $limitDate);
 
-            // 5. Retornamos la respuesta manteniendo la estructura original
             return response()->json([
                 'message' => 'success',
                 'data' => [
@@ -67,8 +65,10 @@ class PartnerController extends Controller
                         'acc' => $partner->acc,
                         'categoria' => $partner->categoria,
                     ],
-                    'resumen_deudas' => $statement,
-                    'total_a_pagar' => round($statement->sum('deuda_pendiente'), 2),
+                    // Accedemos a las llaves del array
+                    'hijos_mayores_30' => $result['hijos_mayores'],
+                    'resumen_deudas' => $result['debts'],
+                    'total_a_pagar' => round($result['debts']->sum('deuda_pendiente'), 2),
                 ]
             ]);
 

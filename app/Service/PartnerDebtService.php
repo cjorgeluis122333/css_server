@@ -107,16 +107,20 @@ class PartnerDebtService
     }
 
     /**
-     * Extrae todas las deudas pendientes de un socio.
+     * Extrae todas las deudas pendientes de un socio y los hijos mayores de 30 años.
      *
      * @param Partner $partner
      * @param string|null $endMonthLimit Permite evaluar meses hacia el futuro (Formato Y-m)
-     * @return Collection
+     * @return array Retorna un array con las deudas ('debts') y los nombres de los hijos ('hijos_mayores')
      * @throws Exception
      */
-    public function getAccountStatement(Partner $partner, ?string $endMonthLimit = null): Collection
+    public function getAccountStatement(Partner $partner, ?string $endMonthLimit = null): array
     {
-        $surchargeMultiplier = $this->calculateFamilySurcharge($partner);
+        // 1. Obtenemos la información de los hijos (Multiplicador y Nombres)
+        $childrenData = $this->getAdultChildrenData($partner);
+        $surchargeMultiplier = $childrenData['multiplier'];
+        $nombresHijosMayores = $childrenData['names'];
+
         $allFeesLookup = Fee::all()->keyBy('mes')->sortKeys();
         $currentMonthKey = now()->format('Y-m');
 
@@ -175,6 +179,7 @@ class PartnerDebtService
             $applicableFeeTotal = $applicableFee->total;
             $applicableFeeImpuesto = $applicableFee->impuesto ?? 0.00;
 
+            // El recargo ahora puede ser 0.25, 0.50, 0.75, etc., dependiendo de la cantidad de hijos
             $nominalTotal = $applicableFeeTotal * (1 + $surchargeMultiplier);
             $deudaNominalPendiente = $nominalTotal - $totalPaid;
 
@@ -217,18 +222,36 @@ class PartnerDebtService
             ]);
         }
 
-        return $debts;
+        // 2. Retornamos ambas cosas en un array
+        return [
+            'debts' => $debts,
+            'hijos_mayores' => $nombresHijosMayores
+        ];
     }
 
-    private function calculateFamilySurcharge(Partner $partner): float
+    /**
+     * Verifica cuántos hijos mayores de 30 años tiene el socio y extrae sus nombres.
+     *
+     * @param Partner $partner
+     * @return array
+     */
+    private function getAdultChildrenData(Partner $partner): array
     {
-        $hasAdultChild = $partner->dependents->contains(function ($dependent) {
-            return strtolower($dependent->direccion) === 'hijo'
+        // Filtramos para obtener la colección completa de hijos que cumplen la condición
+        $adultChildren = $partner->dependents->filter(function ($dependent) {
+            return strtolower(trim($dependent->direccion)) === 'hijo'
                 && $dependent->age !== null
                 && $dependent->age > 30;
         });
 
-        return $hasAdultChild ? 0.25 : 0.00;
+        return [
+            // Multiplicamos 0.25 por la cantidad exacta de hijos encontrados
+            'multiplier' => $adultChildren->count() * 0.25,
+
+            // Extraemos solo los nombres (asumiendo que el campo en BD se llama 'nombre')
+            // Si tu campo se llama 'name' u otra cosa, cámbialo aquí dentro del pluck()
+            'names' => $adultChildren->pluck('nombre')->toArray()
+        ];
     }
 
     private function generateMonthRange(string $start, string $end): array
