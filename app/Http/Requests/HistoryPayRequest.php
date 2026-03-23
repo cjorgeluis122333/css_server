@@ -37,7 +37,6 @@ class HistoryPayRequest extends FormRequest
         return true;
     }
 
-
     /**
      * Validación personalizada para reglas de negocio (Deuda y límites).
      */
@@ -50,31 +49,34 @@ class HistoryPayRequest extends FormRequest
             $partner = Partner::where('acc', $this->acc)->first();
             if (!$partner) return;
 
-            // 2. Obtenemos el servicio de deudas (Inyección manual para el request)
+            // 2. Obtenemos el servicio de deudas
             $debtService = app(PartnerDebtService::class);
 
-            // Extraemos los meses que vienen en el request para que el servicio los analice
-            $mesesSolicitados = collect($this->pagos)->pluck('mes')->toArray();
-            $estadoCuenta = $debtService->getAccountStatement($partner, $mesesSolicitados)->keyBy('mes');
+            // CORRECCIÓN AQUÍ: Obtenemos el mes más lejano del array (Ej: "2027-01") como String
+            $ultimoMesAPagar = collect($this->pagos)->pluck('mes')->max();
+
+            // Ahora enviamos un STRING al servicio, evitando el error 500
+            $estadoCuenta = $debtService->getAccountStatement($partner, $ultimoMesAPagar)->keyBy('mes');
 
             // 3. Validamos cada pago individualmente
             foreach ($this->pagos as $index => $pago) {
                 $mes = $pago['mes'];
                 $montoEnviado = (float) $pago['monto'];
 
-                // Regla A: El mes debe existir en el estado de cuenta (debe tener deuda)
+                // Regla A: El mes debe existir en el estado de cuenta
                 if (!$estadoCuenta->has($mes)) {
                     $validator->errors()->add(
                         "pagos.{$index}.mes",
-                        "El mes {$mes} ya se encuentra pagado al completo o no tiene deuda pendiente."
+                        "El mes {$mes} no está disponible para cobro o no tiene deuda."
                     );
                     continue;
                 }
 
                 $infoDeuda = $estadoCuenta->get($mes);
-                $limiteEfectivo = (float) $infoDeuda['efectivo_restante'];
+                // Usamos el campo 'efectivo_restante' según tu lógica
+                $limiteEfectivo = (float) ($infoDeuda['efectivo_restante'] ?? 0);
 
-                // Regla B: El monto no puede superar lo requerido (Margen de 0.01 por decimales)
+                // Regla B: El monto no puede superar lo requerido
                 if (round($montoEnviado, 2) > round($limiteEfectivo, 2)) {
                     $validator->errors()->add(
                         "pagos.{$index}.monto",
@@ -84,7 +86,6 @@ class HistoryPayRequest extends FormRequest
             }
         });
     }
-
     /**
      * Mensajes de error personalizados (opcional).
      */
