@@ -6,7 +6,7 @@ use App\Models\Fee;
 use App\Models\Partner;
 use App\Models\HistoryPay;
 use Carbon\Carbon;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Support\Collection;
 
@@ -14,14 +14,21 @@ class PartnerDebtService
 {
     /**
      * @param Partner $partner
-     * @param array $paymentsList Ejemplo: [['mes' => '2026-03', 'monto' => 36.656]]
+     * @param array $paymentsList Ejemplo: [['mes' => '2026-03', 'monto' => 36.656], ['mes' => '2026-04', 'monto' => 20.00]]
      * @param array $paymentMetadata Datos extra (oper, operador, etc.)
      * @throws Exception
      */
     public function processPayments(Partner $partner, array $paymentsList, array $paymentMetadata = [])
     {
-        // Ya no enviamos los meses solicitados porque no procesaremos adelantados aquí
-        $statement = $this->getAccountStatement($partner)->keyBy('mes');
+        if (empty($paymentsList)) {
+            return true;
+        }
+
+        // 1. Detectamos el mes más lejano que se intenta pagar (puede ser un mes futuro)
+        $maxMonthToPay = collect($paymentsList)->max('mes');
+
+        // 2. Generamos el estado de cuenta "estirándolo" hasta ese mes máximo
+        $statement = $this->getAccountStatement($partner, $maxMonthToPay)->keyBy('mes');
 
         DB::beginTransaction();
         try {
@@ -32,7 +39,7 @@ class PartnerDebtService
                 if ($montoEfectivoEnviado <= 0) continue;
 
                 if (!$statement->has($mes)) {
-                    throw new Exception("El mes {$mes} no presenta deudas, es un mes futuro o no es válido para este socio.");
+                    throw new Exception("El mes {$mes} no presenta deudas o no es válido para este socio.");
                 }
 
                 $deudaData = $statement->get($mes);
@@ -42,7 +49,7 @@ class PartnerDebtService
                     throw new Exception("El monto enviado ({$montoEfectivoEnviado}) para el mes {$mes} supera la deuda real que es de {$deudaData['efectivo_restante']}.");
                 }
 
-                // MAGIA: Escalamos el dinero en efectivo al valor nominal de la base de datos
+                // MAGIA: Escalamos el dinero en efectivo al valor nominal
                 $montoAInsertar = $montoEfectivoEnviado * $deudaData['factor_conversion'];
 
                 HistoryPay::create([
@@ -71,40 +78,60 @@ class PartnerDebtService
         }
     }
 
-
     /**
-     * Extrae todas las deudas pendientes de un socio con sus montos exactos y el impuesto,
-     * limitando desde su fecha de ingreso (o 2019-01) hasta el mes actual.
+     * NUEVO MÉTODO: Cotiza exactamente cuánto cuesta pagar N meses por adelantado
+     * tomando como base la cuota actual.
      *
      * @param Partner $partner
+     * @param int $monthsToAdvance Cantidad de meses a pagar a futuro
      * @return Collection
-     * @throws Exception
      */
-    public function getAccountStatement(Partner $partner): Collection
+    public function getAdvancePaymentsQuotes(Partner $partner, int $monthsToAdvance): Collection
     {
-        // 1. Calcular recargo familiar (Retorna 0.00 o 0.25)
-        $surchargeMultiplier = $this->calculateFamilySurcharge($partner);
-
-        // 2. Cargar TODAS las cuotas en memoria y ordenarlas por mes
-        $allFeesLookup = Fee::all()->keyBy('mes')->sortKeys();
+        if ($monthsToAdvance <= 0) {
+            return collect();
+        }
 
         $currentMonthKey = now()->format('Y-m');
 
-        // Buscar la cuota vigente actual
+        // Calculamos hasta qué mes futuro vamos a proyectar
+        $endFutureMonth = now()->addMonths($monthsToAdvance)->format('Y-m');
+
+        // Reutilizamos toda la lógica de getAccountStatement para obtener deudas futuras
+        $fullStatement = $this->getAccountStatement($partner, $endFutureMonth);
+
+        // Filtramos y retornamos SOLO los meses que son estrictamente futuros y tienen deuda
+        return $fullStatement->filter(function ($debt) use ($currentMonthKey) {
+            return $debt['mes'] > $currentMonthKey && $debt['deuda_pendiente'] > 0;
+        })->values();
+    }
+
+    /**
+     * Extrae todas las deudas pendientes de un socio.
+     *
+     * @param Partner $partner
+     * @param string|null $endMonthLimit Permite evaluar meses hacia el futuro (Formato Y-m)
+     * @return Collection
+     * @throws Exception
+     */
+    public function getAccountStatement(Partner $partner, ?string $endMonthLimit = null): Collection
+    {
+        $surchargeMultiplier = $this->calculateFamilySurcharge($partner);
+        $allFeesLookup = Fee::all()->keyBy('mes')->sortKeys();
+        $currentMonthKey = now()->format('Y-m');
+
         $currentFee = $allFeesLookup->filter(fn($fee, $key) => $key <= $currentMonthKey)->last();
 
         if (!$currentFee) {
             throw new Exception("No se encontró una cuota base configurada en el sistema.");
         }
 
-        // 3. Agrupar historial de pagos del socio
         $paymentsByMonth = HistoryPay::where('acc', $partner->acc)
             ->selectRaw('mes, SUM(monto) as total_pagado, MIN(fecha) as fecha_primer_pago')
             ->groupBy('mes')
             ->get()
             ->keyBy('mes');
 
-        // 4. Determinar el rango de meses a evaluar (Regla del 2019-01)
         $fechaIngreso = $partner->fecha_ingreso ?? $partner->fecha_ingreso_validada;
         $fechaLimite = Carbon::create(2019, 1, 1);
 
@@ -113,14 +140,18 @@ class PartnerDebtService
         } else {
             $ingresoCarbon = Carbon::parse($fechaIngreso);
             if ($ingresoCarbon->lt($fechaLimite)) {
-                $startMonth = '2019-01'; // Si es menor a 2019, forzamos 2019-01
+                $startMonth = '2019-01';
             } else {
                 $startMonth = $ingresoCarbon->format('Y-m');
             }
         }
 
-        // Generamos la lista de meses desde el inicio calculado hasta el mes ACTUAL solamente
-        $mesesAEvaluar = collect($this->generateMonthRange($startMonth, $currentMonthKey))
+        // LÓGICA MODIFICADA: Si recibimos un mes límite futuro, extendemos el rango hasta allá
+        $evalEndMonth = ($endMonthLimit && $endMonthLimit > $currentMonthKey)
+            ? $endMonthLimit
+            : $currentMonthKey;
+
+        $mesesAEvaluar = collect($this->generateMonthRange($startMonth, $evalEndMonth))
             ->unique()
             ->sort()
             ->values();
@@ -129,17 +160,14 @@ class PartnerDebtService
         $thresholdOldDebt = now()->subMonth()->format('Y-m');
         $hasDisqualifyingOldDebt = false;
 
-        // 5. Evaluar cada mes
         foreach ($mesesAEvaluar as $month) {
             $paymentData = $paymentsByMonth->get($month);
             $totalPaid = $paymentData ? (float) $paymentData->total_pagado : 0.0;
 
-            // --- REGLA DE NEGOCIO: OBTENER LA TARIFA COMPLETA (Para sacar total e impuesto) ---
             if ($totalPaid == 0) {
-                // CORRECCIÓN: Escenario 1: No hay pagos. Se cobra directamente la tarifa vigente actual.
+                // Si es un mes futuro, utilizará correctamente la cuota actual vigente
                 $applicableFee = $currentFee;
             } else {
-                // Escenario 2: Pago parcial. Buscamos la tarifa que existía en la fecha del primer pago.
                 $mesDeLaFechaDePago = Carbon::parse($paymentData->fecha_primer_pago)->format('Y-m');
                 $applicableFee = $allFeesLookup->filter(fn($f, $k) => $k <= $mesDeLaFechaDePago)->last() ?? $currentFee;
             }
@@ -147,32 +175,35 @@ class PartnerDebtService
             $applicableFeeTotal = $applicableFee->total;
             $applicableFeeImpuesto = $applicableFee->impuesto ?? 0.00;
 
-            // Aplicamos el recargo familiar al total de la cuota elegida
             $nominalTotal = $applicableFeeTotal * (1 + $surchargeMultiplier);
             $deudaNominalPendiente = $nominalTotal - $totalPaid;
 
-            // Si la deuda está saldada (con un margen de 1 centavo por redondeos), pasamos al siguiente mes
             if (round($deudaNominalPendiente, 2) <= 0.009) {
                 continue;
             }
 
-            // --- REGLAS DE DESCUENTO (20%) ---
+            // --- LÓGICA DE DESCUENTO ACTUALIZADA ---
+
+            // Si el mes que evaluamos es más viejo que el mes pasado, se marca como deuda vieja
             if ($month < $thresholdOldDebt) {
                 $hasDisqualifyingOldDebt = true;
             }
 
             $discountMultiplier = 0.0;
-            $isCurrentMonth = ($month === $currentMonthKey);
 
-            if (($isCurrentMonth && now()->day <= 5) && !$hasDisqualifyingOldDebt) {
+            $isCurrentMonthValid = ($month === $currentMonthKey && now()->day <= 5);
+            $isFutureMonth = ($month > $currentMonthKey);
+
+            // Se aplica el 20% si es pronto pago (mes actual <= día 5 o mes futuro)
+            // y no arrastra deudas anteriores al mes pasado.
+            if (($isCurrentMonthValid || $isFutureMonth) && !$hasDisqualifyingOldDebt) {
                 $discountMultiplier = 0.20;
             }
 
-            // --- CÁLCULO DEL FACTOR Y EFECTIVO ---
+            // Calculamos el factor de conversión basado en recargos y descuentos
             $factorConversion = (1 + $surchargeMultiplier) / (1 + $surchargeMultiplier - $discountMultiplier);
             $efectivoRestante = $deudaNominalPendiente / $factorConversion;
 
-            // 6. Registrar la deuda estructurada
             $debts->push([
                 'mes' => $month,
                 'cuota_aplicada' => round($nominalTotal, 2),
@@ -182,20 +213,13 @@ class PartnerDebtService
                 'efectivo_restante' => round($efectivoRestante, 3),
                 'factor_conversion' => $factorConversion,
                 'tiene_descuento' => $discountMultiplier > 0,
-                'estado' => $totalPaid > 0 ? 'Pago Parcial' : 'Sin Pagar'
+                'estado' => $totalPaid > 0 ? 'Pago Parcial' : ($month > $currentMonthKey ? 'Por Adelantar' : 'Sin Pagar')
             ]);
         }
 
         return $debts;
     }
 
-    /**
-     * Verifica si el socio titular tiene un familiar "Hijo" mayor de 30 años.
-     * Retorna 0.25 (25%) si es verdadero, o 0.00 si es falso.
-     *
-     * @param Partner $partner
-     * @return float
-     */
     private function calculateFamilySurcharge(Partner $partner): float
     {
         $hasAdultChild = $partner->dependents->contains(function ($dependent) {
@@ -207,13 +231,6 @@ class PartnerDebtService
         return $hasAdultChild ? 0.25 : 0.00;
     }
 
-    /**
-     * Helper para generar el rango de meses entre dos fechas.
-     *
-     * @param string $start (Formato Y-m)
-     * @param string $end (Formato Y-m)
-     * @return array
-     */
     private function generateMonthRange(string $start, string $end): array
     {
         $dates = [];

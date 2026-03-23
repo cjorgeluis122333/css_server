@@ -38,20 +38,27 @@ class PartnerController extends Controller
 
 
     /**
-     * Muestra el estado de cuenta (deudas) de un socio.
-     * * @param int $id ID del socio (llave primaria 'ind')
-     * @return JsonResponse
+     * /partners/debs/5?adelanto=3
+     * Muestra el estado de cuenta.
+     * Si no se envía el parámetro 'adelanto', funciona exactamente como antes.
      */
     public function showDebts(int $id): JsonResponse
     {
-        // 1. Buscamos al socio (o lanzamos 404 si no existe)
+        // 1. Buscamos al socio
         $partner = Partner::findOrFail($id);
 
-        try {
-            // 2. Ejecutamos la lógica del servicio
-            $statement = $this->debtService->getAccountStatement($partner);
+        $mesesAdelanto = (int) request()->query('adelanto', 0);
 
-            // 3. Retornamos la respuesta estructurada
+        try {
+            // 3. Calculamos la fecha límite solo si hay meses de adelanto
+            $limitDate = $mesesAdelanto > 0
+                ? now()->addMonths($mesesAdelanto)->format('Y-m')
+                : null;
+
+            // 4. Llamamos al servicio (que ya sabe manejar el null como "hasta hoy")
+            $statement = $this->debtService->getAccountStatement($partner, $limitDate);
+
+            // 5. Retornamos la respuesta manteniendo la estructura original
             return response()->json([
                 'message' => 'success',
                 'data' => [
@@ -61,12 +68,11 @@ class PartnerController extends Controller
                         'categoria' => $partner->categoria,
                     ],
                     'resumen_deudas' => $statement,
-                    'total_a_pagar' => round($statement->sum('deuda_pendiente'), 2)
+                    'total_a_pagar' => round($statement->sum('deuda_pendiente'), 2),
                 ]
             ]);
 
         } catch (Exception $e) {
-            // Manejo de errores por si algo falla en el cálculo
             return response()->json([
                 'code' => 'error',
                 'message' => 'No se pudo calcular la deuda: ' . $e->getMessage()
