@@ -80,6 +80,45 @@ class PartnerController extends Controller
         }
     }
 
+    /**
+     * Genera una cotización de pagos por adelantado para un socio.
+     * * @param int $id ID del socio
+     * @return JsonResponse
+     */
+    public function getAdvanceQuotes(int $id): JsonResponse
+    {
+        // 1. Buscamos al socio
+        $partner = Partner::findOrFail($id);
+
+        // 2. Obtenemos cuántos meses quiere proyectar (por defecto 12)
+        $monthsToProject = (int) request()->query('adelanto', 12);
+
+        try {
+            // 3. Llamamos al método específico de cotización del servicio
+            $quotes = $this->debtService->getAdvancePaymentsQuotes($partner, $monthsToProject);
+
+            // 4. Estructuramos la respuesta
+            return response()->json([
+                "message" => "success",
+                "data" => [
+                    "socio" => [
+                        "nombre" => $partner->nombre,
+                        "acc" => $partner->acc,
+                        "categoria" => $partner->categoria
+                    ],
+                    "resumen_deudas" => $quotes,
+                    "total_a_pagar" => round($quotes->sum('deuda_pendiente'), 2)
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'code' => 'error',
+                'message' => 'Error al generar cotización: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
 
     /**
