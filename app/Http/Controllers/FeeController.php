@@ -6,6 +6,7 @@ use App\Http\Requests\FeeRequest;
 use App\Models\Fee;
 use App\Service\FeeService;
 use App\Traits\ApiResponse;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 
 class FeeController extends Controller
@@ -25,15 +26,22 @@ class FeeController extends Controller
         return $this->successResponse($fees, 'Lista de cuotas recuperada.');
     }
 
-    public function showByMonth(string $mes): JsonResponse
+    public function showByMonth(?string $mes = null): JsonResponse
     {
-        $fee = $this->feeService->getByMonth($mes);
-
-        if (!$fee) {
-            return $this->errorResponse("No se encontró la cuota para el mes {$mes}.", 404);
+        // Esto arregla el problema de "2026-1" -> "2026-01"
+        try {
+            $mesBusqueda = $mes ? Carbon::parse($mes)->format('Y-m') : now()->format('Y-m');
+        } catch (\Exception $e) {
+            return $this->errorResponse("Formato de fecha inválido.", 400);
         }
 
-        return $this->successResponse($fee, "Información de la cuota {$mes}.");
+        $fee = $this->feeService->getByMonth($mesBusqueda);
+
+        if (!$fee) {
+            return $this->errorResponse("No se encontró la cuota para el mes {$mesBusqueda}.", 404);
+        }
+
+        return $this->successResponse($fee, "Información de la cuota {$mesBusqueda}.");
     }
 
     public function store(FeeRequest $request): JsonResponse

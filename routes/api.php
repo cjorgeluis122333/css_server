@@ -39,8 +39,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/halls-pay', HallController::class);
     Route::apiResource('/halls-control', HallControlController::class);
     // Fee
-    Route::apiResource("/fee", FeeController::class);
-    Route::get("/fee/{mont}", [FeeController::class, "showByMonth"])->name("showByMonth");
+    Route::get("/fee/showByMonth/{mes?}", [FeeController::class, "showByMonth"])->name("showByMonth");
+    Route::apiResource('fee', FeeController::class);
     //Debt
     Route::get("/partners/debs/{id}", [PartnerController::class, "showDebts"])->name("showDebts");
 });

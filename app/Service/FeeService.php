@@ -12,9 +12,12 @@ class FeeService
         return Fee::orderBy('mes', 'desc')->get();
     }
 
-    public function getByMonth(string $mes): ?Fee
+    public function getByMonth(?string $mes = null): ?Fee
     {
-        return Fee::where('mes', $mes)->first();
+        // Si $mes es null o una cadena vacía, usamos el mes actual
+        $mesBusqueda = $mes ?: now()->format('Y-m');
+
+        return Fee::where('mes', $mesBusqueda)->first();
     }
 
     public function store(array $data): Fee
