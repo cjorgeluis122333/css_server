@@ -94,17 +94,20 @@ class PartnerController extends Controller
         $monthsToProject = (int) request()->query('adelanto', 12);
 
         try {
-            // 3. Llamamos al método específico de cotización del servicio
-            $quotes = $this->debtService->getAdvancePaymentsQuotes($partner, $monthsToProject);
+            // Llamamos al servicio que ahora nos devuelve un array con todo
+            $result = $this->debtService->getAdvancePaymentsQuotes($partner, $monthsToProject);
 
-            // 4. Estructuramos la respuesta
+            $quotes = $result['quotes'];
+            $hijos = $result['hijos_mayores'];
+
             return response()->json([
-                "message" => "success",
+                "status" => "success",
                 "data" => [
                     "socio" => [
                         "nombre" => $partner->nombre,
                         "acc" => $partner->acc,
-                        "categoria" => $partner->categoria
+                        "categoria" => $partner->categoria,
+                        "hijos_registrados" => $hijos // <-- Aquí incluimos los nombres
                     ],
                     "resumen_deudas" => $quotes,
                     "total_a_pagar" => round($quotes->sum('deuda_pendiente'), 2)
@@ -113,12 +116,11 @@ class PartnerController extends Controller
 
         } catch (Exception $e) {
             return response()->json([
-                'code' => 'error',
+                'status' => 'error',
                 'message' => 'Error al generar cotización: ' . $e->getMessage()
             ], 500);
         }
     }
-
 
 
     /**

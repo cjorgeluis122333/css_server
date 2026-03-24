@@ -60,6 +60,7 @@ class HistoryPayController extends Controller
      */
     public function store(HistoryPayRequest $request): JsonResponse
     {
+
         // 1. Validamos los datos (asegurándonos de que el 'acc' existe)
         $data = $request->validated();
 

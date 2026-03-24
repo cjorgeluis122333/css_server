@@ -18,20 +18,23 @@ class PartnerDebtService
      * @param array $paymentMetadata Datos extra (oper, operador, etc.)
      * @throws Exception
      */
-    public function processPayments(Partner $partner, array $paymentsList, array $paymentMetadata = [])
+    public function processPayments(Partner $partner, array $paymentsList, array $paymentMetadata = []): true
     {
         if (empty($paymentsList)) {
             return true;
         }
-
-        // 1. Detectamos el mes más lejano que se intenta pagar (puede ser un mes futuro)
+// 1. Detectamos el mes más lejano que se intenta pagar
         $maxMonthToPay = collect($paymentsList)->max('mes');
 
-        // 2. Generamos el estado de cuenta "estirándolo" hasta ese mes máximo
-        $statement = $this->getAccountStatement($partner, $maxMonthToPay)->keyBy('mes');
+        // 2. Obtenemos el estado de cuenta completo (Array)
+        $accountStatementData = $this->getAccountStatement($partner, $maxMonthToPay);
+
+        // 3. ENVOLVEMOS en collect() para forzar la Colección y luego aplicamos keyBy('mes')
+        $statement = collect($accountStatementData['debts'])->keyBy('mes');
 
         DB::beginTransaction();
-        try {
+
+      try {
             foreach ($paymentsList as $pago) {
                 $mes = $pago['mes'];
                 $montoEfectivoEnviado = (float)$pago['monto'];
@@ -79,33 +82,36 @@ class PartnerDebtService
     }
 
     /**
-     * NUEVO MÉTODO: Cotiza exactamente cuánto cuesta pagar N meses por adelantado
-     * tomando como base la cuota actual.
+     * Cotiza cuánto cuesta pagar N meses por adelantado incluyendo datos de hijos.
      *
      * @param Partner $partner
-     * @param int $monthsToAdvance Cantidad de meses a pagar a futuro
-     * @return Collection
+     * @param int $monthsToAdvance
+     * @return array Contiene 'quotes' (Collection) e 'hijos_mayores' (array)
+     * @throws Exception
      */
-    public function getAdvancePaymentsQuotes(Partner $partner, int $monthsToAdvance): Collection
+    public function getAdvancePaymentsQuotes(Partner $partner, int $monthsToAdvance): array
     {
         if ($monthsToAdvance <= 0) {
-            return collect();
+            return ['quotes' => collect(), 'hijos_mayores' => []];
         }
 
         $currentMonthKey = now()->format('Y-m');
-
-        // Calculamos hasta qué mes futuro vamos a proyectar
         $endFutureMonth = now()->addMonths($monthsToAdvance)->format('Y-m');
 
-        // Reutilizamos toda la lógica de getAccountStatement para obtener deudas futuras
-        $fullStatement = $this->getAccountStatement($partner, $endFutureMonth);
+        // 1. Obtenemos el estado de cuenta (que ya trae los hijos y las deudas)
+        $statementData = $this->getAccountStatement($partner, $endFutureMonth);
 
-        // Filtramos y retornamos SOLO los meses que son estrictamente futuros y tienen deuda
-        return $fullStatement->filter(function ($debt) use ($currentMonthKey) {
+        // 2. Filtramos solo los meses que son estrictamente futuros
+        $filteredQuotes = $statementData['debts']->filter(function ($debt) use ($currentMonthKey) {
             return $debt['mes'] > $currentMonthKey && $debt['deuda_pendiente'] > 0;
         })->values();
-    }
 
+        // 3. Retornamos la estructura completa
+        return [
+            'quotes' => $filteredQuotes,
+            'hijos_mayores' => $statementData['hijos_mayores']
+        ];
+    }
     /**
      * Extrae todas las deudas pendientes de un socio y los hijos mayores de 30 años.
      *

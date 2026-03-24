@@ -37,33 +37,28 @@ class HistoryPayRequest extends FormRequest
         return true;
     }
 
-    /**
-     * Validación personalizada para reglas de negocio (Deuda y límites).
-     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
             if ($validator->errors()->any()) return;
 
-            // 1. Localizamos al socio
             $partner = Partner::where('acc', $this->acc)->first();
             if (!$partner) return;
 
-            // 2. Obtenemos el servicio de deudas
             $debtService = app(PartnerDebtService::class);
-
-            // CORRECCIÓN AQUÍ: Obtenemos el mes más lejano del array (Ej: "2027-01") como String
             $ultimoMesAPagar = collect($this->pagos)->pluck('mes')->max();
 
-            // Ahora enviamos un STRING al servicio, evitando el error 500
-            $estadoCuenta = $debtService->getAccountStatement($partner, $ultimoMesAPagar)->keyBy('mes');
+            // --- CORRECCIÓN AQUÍ ---
+            $resultado = $debtService->getAccountStatement($partner, $ultimoMesAPagar);
 
-            // 3. Validamos cada pago individualmente
+            // Extraemos 'debts' y lo convertimos en colección para usar keyBy
+            $estadoCuenta = collect($resultado['debts'])->keyBy('mes');
+            // -----------------------
+
             foreach ($this->pagos as $index => $pago) {
                 $mes = $pago['mes'];
                 $montoEnviado = (float) $pago['monto'];
 
-                // Regla A: El mes debe existir en el estado de cuenta
                 if (!$estadoCuenta->has($mes)) {
                     $validator->errors()->add(
                         "pagos.{$index}.mes",
@@ -73,10 +68,8 @@ class HistoryPayRequest extends FormRequest
                 }
 
                 $infoDeuda = $estadoCuenta->get($mes);
-                // Usamos el campo 'efectivo_restante' según tu lógica
                 $limiteEfectivo = (float) ($infoDeuda['efectivo_restante'] ?? 0);
 
-                // Regla B: El monto no puede superar lo requerido
                 if (round($montoEnviado, 2) > round($limiteEfectivo, 2)) {
                     $validator->errors()->add(
                         "pagos.{$index}.monto",
