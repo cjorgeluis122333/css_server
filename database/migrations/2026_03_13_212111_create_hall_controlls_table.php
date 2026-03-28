@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('0cc_salones_control_unificado', function (Blueprint $table) {
             $table->id('ind');
 
-            // Mejoramos 'tinytext' a 'date' para que el índice sea ultra rápido
+            // Mejoramos 'tinytext' a 'date' para que el índice sea ultrarápido
             $table->date('fecha')->nullable()->index('idx_fecha');
 
             // Convertimos tinytext a string (VARCHAR) para permitir indexación futura y ahorrar espacio
