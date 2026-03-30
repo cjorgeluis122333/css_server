@@ -1,11 +1,13 @@
 <?php
 
 namespace App\Service;
+
 use App\Models\Guest;
 use Illuminate\Support\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Exception;
 use Illuminate\Support\Collection;
+
 class GuestService
 {
     /**
@@ -86,4 +88,65 @@ class GuestService
 
         return $paginatedYears;
     }
+
+    /**
+     * Actualiza un invitado existente validando reglas de negocio.
+     * @throws Exception
+     */
+    public function updateGuest(int $ind, array $data): Guest
+    {
+        $guest = Guest::findOrFail($ind);
+
+        $fecha = Carbon::parse($data['fecha'] ?? $guest->fecha);
+        $mes = $fecha->month;
+        $year = $fecha->year;
+        $acc = $data['acc'] ?? $guest->acc;
+        $cedula = $data['cedula'] ?? $guest->cedula;
+
+        // 1. Validar límite del socio (Excluyendo el registro actual si es el mismo mes/año)
+        $invitacionesSocio = Guest::where('acc', $acc)
+            ->whereMonth('fecha', $mes)
+            ->whereYear('fecha', $year)
+            ->where('ind', '!=', $ind) // Importante: excluirse a sí mismo
+            ->count();
+
+        if ($invitacionesSocio >= 12) {
+            throw new Exception('El socio titular ya alcanzó el límite de 12 invitaciones para ese periodo.', 422);
+        }
+
+        // 2. Validar límite del invitado (Excluyendo el registro actual)
+        $visitasInvitado = Guest::where('cedula', $cedula)
+            ->whereMonth('fecha', $mes)
+            ->whereYear('fecha', $year)
+            ->where('ind', '!=', $ind)
+            ->count();
+
+        if ($visitasInvitado >= 4) {
+            throw new Exception('El invitado ya tiene el máximo de 4 ingresos permitidos en ese periodo.', 422);
+        }
+
+        $guest->update($data);
+        return $guest;
+    }
+
+    /**
+     * Elimina un registro de invitado.
+     */
+    public function deleteGuest(int $ind): bool
+    {
+        $guest = Guest::findOrFail($ind);
+        return $guest->delete();
+    }
+
+    /**
+     * Obtiene los invitados de una acción para el mes y año en curso.
+     */
+    public function getCurrentMonthGuests(int $acc): Collection
+    {
+        return Guest::where('acc', $acc)
+            ->currentMonth() // Uso del scope definido en tu modelo
+            ->orderBy('fecha', 'desc')
+            ->get();
+    }
+
 }

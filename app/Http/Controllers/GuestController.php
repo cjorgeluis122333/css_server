@@ -45,4 +45,41 @@ class GuestController extends Controller
             return $this->errorResponse($e->getMessage(), $statusCode);
         }
     }
+
+
+    /**
+     * Retorna los invitados del socio para el mes y año actual.
+     */
+    public function currentMonth(int $acc): JsonResponse
+    {
+        $guests = $this->guestService->getCurrentMonthGuests($acc);
+        return $this->successResponse($guests, "Invitados del mes actual recuperados.");
+    }
+
+    /**
+     * Actualiza los datos de un invitado.
+     */
+    public function update(GuestRequest $request, int $ind): JsonResponse
+    {
+        try {
+            $guest = $this->guestService->updateGuest($ind, $request->validated());
+            return $this->successResponse($guest, "Invitado actualizado correctamente.");
+        } catch (Exception $e) {
+            $statusCode = $e->getCode() ?: 500;
+            return $this->errorResponse($e->getMessage(), $statusCode);
+        }
+    }
+
+    /**
+     * Elimina un invitado.
+     */
+    public function destroy(int $ind): JsonResponse
+    {
+        try {
+            $this->guestService->deleteGuest($ind);
+            return $this->successResponse(null, "Invitado eliminado correctamente.");
+        } catch (Exception $e) {
+            return $this->errorResponse("No se pudo eliminar el registro.", 500);
+        }
+    }
 }

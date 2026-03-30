@@ -47,7 +47,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get("/partners/debs/advance/{id}", [PartnerController::class, "getAdvanceQuotes"])->name("partners.advanceQuotes");
     //Guest
     Route::get("/guest/{acc}",[GuestController::class, "index"])->name("guest.index");
+    Route::get("/guest-current/{acc}",[GuestController::class, "currentMonth"])->name("guest.current-month");
+
     Route::apiResource('/guest', GuestController::class);
+
 
 });
 

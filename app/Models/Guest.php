@@ -21,7 +21,7 @@ class Guest extends Model
     protected $casts = [
         'cedula' => 'integer',
         'acc'    => 'integer',
-        'fecha'  => 'date',
+        'fecha'  => 'date:Y-m-d'
     ];
 
     // --- RELATIONS ---
