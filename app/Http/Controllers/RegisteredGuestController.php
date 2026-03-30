@@ -43,18 +43,6 @@ class RegisteredGuestController extends Controller
         }
     }
 
-    /**
-     * Registra o actualiza un invitado. Ideal para llamar desde el proceso de invitación.
-     */
-    public function syncVisit(RegisteredGuestRequest $request): JsonResponse
-    {
-        try {
-            $guest = $this->registeredGuestService->registerOrUpdateGuest($request->validated());
-            return $this->successResponse($guest, "Catálogo de invitado sincronizado tras la visita.");
-        } catch (Exception $e) {
-            return $this->errorResponse("Error al sincronizar invitado: " . $e->getMessage(), 500);
-        }
-    }
 
     /**
      * Actualiza los datos de un invitado existente en el catálogo.

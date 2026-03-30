@@ -10,6 +10,7 @@ use App\Http\Controllers\HistoryPayController;
 use App\Http\Controllers\ManagerBoardsController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\PartnerController;
+use App\Http\Controllers\RegisteredGuestController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -48,9 +49,9 @@ Route::middleware('auth:sanctum')->group(function () {
     //Guest
     Route::get("/guest/{acc}",[GuestController::class, "index"])->name("guest.index");
     Route::get("/guest-current/{acc}",[GuestController::class, "currentMonth"])->name("guest.current-month");
-
     Route::apiResource('/guest', GuestController::class);
-
+    //Register Guests
+    Route::apiResource('/register-guest', RegisteredGuestController::class);
 
 });
 
