@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FamilyController;
 use App\Http\Controllers\FeeController;
+use App\Http\Controllers\GuestController;
 use App\Http\Controllers\HallControlController;
 use App\Http\Controllers\HallController;
 use App\Http\Controllers\HistoryPayController;
@@ -44,6 +45,10 @@ Route::middleware('auth:sanctum')->group(function () {
     //Debt
     Route::get("/partners/debs/{id}", [PartnerController::class, "showDebts"])->name("showDebts");
     Route::get("/partners/debs/advance/{id}", [PartnerController::class, "getAdvanceQuotes"])->name("partners.advanceQuotes");
+    //Guest
+    Route::get("/guest/{acc}",[GuestController::class, "index"])->name("guest.index");
+    Route::apiResource('/guest', GuestController::class);
+
 });
 
 

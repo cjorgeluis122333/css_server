@@ -76,6 +76,16 @@ class Partner extends Model
             ->where('categoria', PartnerCategory::TITULAR);
     }
 
+    /**
+     * Get the invitations made by this account.
+     * Only valid for the main holder.
+     */
+    public function invitations(): HasMany
+    {
+        // Solo el titular debería poder ver/gestionar las invitaciones asociadas a su 'acc'
+        return $this->hasMany(Guest::class, 'acc', 'acc');
+    }
+
     public function paymentHistories(): HasMany
     {
         // Relacionamos por la columna 'acc' que comparten ambas tablas
