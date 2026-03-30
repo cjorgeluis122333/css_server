@@ -3,17 +3,20 @@
 namespace App\Service;
 
 use App\Models\Guest;
+use App\Models\RegisteredGuest;
 use Illuminate\Support\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Support\Collection;
 
 class GuestService
 {
     /**
-     * Inserta un nuevo invitado validando las reglas de negocio en la fecha dada.
+     * Inserta un nuevo invitado validando las reglas de negocio y
+     * sincronizando el catálogo de invitados registrados.
      *
-     * @throws Exception Si se superan los límites permitidos.
+     * @throws Exception Si se superan los límites permitidos o falla la BD.
      */
     public function createGuest(array $data): Guest
     {
@@ -41,8 +44,25 @@ class GuestService
             throw new Exception('Este invitado ya ha ingresado el máximo de 4 veces permitidas en este mes.', 422);
         }
 
-        // 3. Crear el registro si pasa las validaciones
-        return Guest::create($data);
+        // 3. Flujo de Sincronización y Creación (Atómico)
+        return DB::transaction(function () use ($data, $fecha) {
+
+            // A. Sincronizar con el catálogo (invitados_registrados)
+            // Si la cédula existe, actualiza el nombre y la última visita.
+            // Si no existe, lo crea automáticamente.
+            RegisteredGuest::updateOrCreate(
+                ['cedula' => $data['cedula']],  //attribute
+                [//Values
+                    'nombre'    => $data['nombre'],
+                    'acc'       => $data['acc'], // Asociamos al socio que lo trajo
+                    'last_time' => $fecha,       // Marcamos la fecha de esta visita
+                    'operador'  => $data['operador'] ?? null
+                ]
+            );
+
+            // B. Crear el registro en el historial de invitados
+            return Guest::create($data);
+        });
     }
 
     /**
