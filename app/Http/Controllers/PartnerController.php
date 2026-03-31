@@ -9,31 +9,31 @@ use App\Service\PartnerService;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\JsonResponse;
 
 class PartnerController extends Controller
 {
     use ApiResponse;
 
     protected PartnerService $partnerService;
+
     protected PartnerDebtService $debtService;
+
     /**
      * Campos ligeros para el listado masivo (Index).
      */
     protected array $selectIndex = [
-        'ind', 'acc', 'nombre', 'cedula','carnet', 'celular', 'correo', 'nacimiento', 'categoria', 'telefono',  'ingreso','direccion', 'ocupacion',  'cobrador'
+        'ind', 'acc', 'nombre', 'cedula', 'carnet', 'celular', 'correo', 'nacimiento', 'categoria', 'telefono',  'ingreso', 'direccion', 'ocupacion',  'cobrador',
     ];
 
-
     // Inyectamos el servicio en el constructor
-    public function __construct(PartnerService $partnerService,PartnerDebtService $debtService)
+    public function __construct(PartnerService $partnerService, PartnerDebtService $debtService)
     {
         $this->partnerService = $partnerService;
         $this->debtService = $debtService;
     }
-
 
     /**
      * /partners/debs/5?adelanto=3
@@ -67,21 +67,21 @@ class PartnerController extends Controller
                     'hijos_mayores_30' => $result['hijos_mayores'],
                     'resumen_deudas' => $result['debts'],
                     'total_a_pagar' => round($result['debts']->sum('deuda_pendiente'), 2),
-                ]
+                ],
             ]);
 
         } catch (Exception $e) {
             return response()->json([
                 'code' => 'error',
-                'message' => 'No se pudo calcular la deuda: ' . $e->getMessage()
+                'message' => 'No se pudo calcular la deuda: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Genera una cotización de pagos por adelantado para un socio.
+     *
      * * @param int $id ID del socio
-     * @return JsonResponse
      */
     public function getAdvanceQuotes(int $id): JsonResponse
     {
@@ -99,24 +99,39 @@ class PartnerController extends Controller
             $hijos = $result['hijos_mayores'];
 
             return response()->json([
-                "status" => "success",
-                "data" => [
-                    "socio" => [
-                        "nombre" => $partner->nombre,
-                        "acc" => $partner->acc,
-                        "categoria" => $partner->categoria,
-                        "hijos_registrados" => $hijos // <-- Aquí incluimos los nombres
+                'status' => 'success',
+                'data' => [
+                    'socio' => [
+                        'nombre' => $partner->nombre,
+                        'acc' => $partner->acc,
+                        'categoria' => $partner->categoria,
+                        'hijos_registrados' => $hijos, // <-- Aquí incluimos los nombres
                     ],
-                    "resumen_deudas" => $quotes,
-                    "total_a_pagar" => round($quotes->sum('deuda_pendiente'), 2)
-                ]
+                    'resumen_deudas' => $quotes,
+                    'total_a_pagar' => round($quotes->sum('deuda_pendiente'), 2),
+                ],
             ]);
 
         } catch (Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error al generar cotización: ' . $e->getMessage()
+                'message' => 'Error al generar cotización: '.$e->getMessage(),
             ], 500);
+        }
+    }
+
+    public function titularDebtSummary(): JsonResponse
+    {
+        try {
+            $summary = $this->debtService->getTitularDebtSummaryList();
+
+            return response()->json([
+                'status' => 'success',
+                'count' => count($summary),
+                'data' => $summary,
+            ]);
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al generar la deuda de titulares: '.$e->getMessage(), 500);
         }
     }
 
@@ -127,14 +142,15 @@ class PartnerController extends Controller
 
             return response()->json([
                 'status' => 'susses',
-                'count'   => $partners->count(),
-                'data'    => $partners
+                'count' => $partners->count(),
+                'data' => $partners,
             ], 200);
 
         } catch (Exception $e) {
-            return $this->errorResponse('Error al obtener la lista de acceso: ' . $e->getMessage(),500);
+            return $this->errorResponse('Error al obtener la lista de acceso: '.$e->getMessage(), 500);
         }
     }
+
     /**
      * GET /api/partners
      * Parameters:  (page, per_page)
@@ -162,7 +178,7 @@ class PartnerController extends Controller
             ->where('acc', $id)
             ->first();
 
-        if (!$partner) {
+        if (! $partner) {
             return $this->errorResponse('Socio titular no encontrado', 404);
         }
 
@@ -185,7 +201,7 @@ class PartnerController extends Controller
                 201
             );
         } catch (Exception $e) {
-            return $this->errorResponse('Error al crear socio: ' . $e->getMessage(), 500);
+            return $this->errorResponse('Error al crear socio: '.$e->getMessage(), 500);
         }
     }
 
@@ -211,10 +227,12 @@ class PartnerController extends Controller
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse('Socio titular no encontrado con esa Acción', 404);
         } catch (Exception $e) {
-            Log::error("Error update partner {$acc}: " . $e->getMessage());
+            Log::error("Error update partner {$acc}: ".$e->getMessage());
+
             return $this->errorResponse('No se pudo actualizar el socio', 500);
         }
     }
+
     /**
      * DELETE /api/partners/{id}
      * Elimina un socio (Hard Delete).

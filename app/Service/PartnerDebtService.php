@@ -3,19 +3,76 @@
 namespace App\Service;
 
 use App\Models\Fee;
-use App\Models\Partner;
 use App\Models\HistoryPay;
+use App\Models\Partner;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class PartnerDebtService
 {
+    public function getTitularDebtSummaryList(): array
+    {
+        $defaultStartMonth = '2019-01';
+        $currentMonth = now()->format('Y-m');
+        $endOfCurrentYearMonth = now()->endOfYear()->format('Y-m');
+
+        $partners = $this->getEligibleTitularPartners();
+
+        if ($partners->isEmpty()) {
+            return [];
+        }
+
+        $feesByMonth = $this->buildFeeLookupByMonth($defaultStartMonth, $endOfCurrentYearMonth);
+        $paymentsByAccAndMonth = $this->getPaymentsLookupByAccountAndMonth(
+            $partners->pluck('acc')->all(),
+            $defaultStartMonth,
+            $endOfCurrentYearMonth
+        );
+
+        $result = [];
+        $position = 1;
+
+        foreach ($partners as $partner) {
+            $startMonth = $this->resolveMembershipStartMonth($partner->ingreso, $defaultStartMonth);
+
+            if ($startMonth > $endOfCurrentYearMonth) {
+                $months = [];
+            } else {
+                $months = array_reverse($this->generateMonthRange($startMonth, $endOfCurrentYearMonth));
+            }
+
+            $deuda = [];
+            $pagos = [];
+
+            foreach ($months as $month) {
+                $monthlyPayment = round((float) ($paymentsByAccAndMonth[$partner->acc][$month] ?? 0.0), 2);
+                $monthlyBaseDebt = $month <= $currentMonth
+                    ? round((float) ($feesByMonth[$month] ?? 0.0), 2)
+                    : 0.0;
+
+                $deuda[$month] = round($monthlyBaseDebt - $monthlyPayment, 2);
+                $pagos[$month] = $monthlyPayment;
+            }
+
+            $result[(string) $position] = [
+                'acc' => (int) $partner->acc,
+                'total' => round(array_sum($deuda), 2),
+                'deuda' => $deuda,
+                'pagos' => $pagos,
+            ];
+
+            $position++;
+        }
+
+        return $result;
+    }
+
     /**
-     * @param Partner $partner
-     * @param array $paymentsList Ejemplo: [['mes' => '2026-03', 'monto' => 36.656], ['mes' => '2026-04', 'monto' => 20.00]]
-     * @param array $paymentMetadata Datos extra (oper, operador, etc.)
+     * @param  array  $paymentsList  Ejemplo: [['mes' => '2026-03', 'monto' => 36.656], ['mes' => '2026-04', 'monto' => 20.00]]
+     * @param  array  $paymentMetadata  Datos extra (oper, operador, etc.)
+     *
      * @throws Exception
      */
     public function processPayments(Partner $partner, array $paymentsList, array $paymentMetadata = []): true
@@ -23,7 +80,7 @@ class PartnerDebtService
         if (empty($paymentsList)) {
             return true;
         }
-// 1. Detectamos el mes más lejano que se intenta pagar
+        // 1. Detectamos el mes más lejano que se intenta pagar
         $maxMonthToPay = collect($paymentsList)->max('mes');
 
         // 2. Obtenemos el estado de cuenta completo (Array)
@@ -34,14 +91,16 @@ class PartnerDebtService
 
         DB::beginTransaction();
 
-      try {
+        try {
             foreach ($paymentsList as $pago) {
                 $mes = $pago['mes'];
-                $montoEfectivoEnviado = (float)$pago['monto'];
+                $montoEfectivoEnviado = (float) $pago['monto'];
 
-                if ($montoEfectivoEnviado <= 0) continue;
+                if ($montoEfectivoEnviado <= 0) {
+                    continue;
+                }
 
-                if (!$statement->has($mes)) {
+                if (! $statement->has($mes)) {
                     throw new Exception("El mes {$mes} no presenta deudas o no es válido para este socio.");
                 }
 
@@ -73,6 +132,7 @@ class PartnerDebtService
             }
 
             DB::commit();
+
             return true;
 
         } catch (Exception $e) {
@@ -84,9 +144,8 @@ class PartnerDebtService
     /**
      * Cotiza cuánto cuesta pagar N meses por adelantado incluyendo datos de hijos.
      *
-     * @param Partner $partner
-     * @param int $monthsToAdvance
      * @return array Contiene 'quotes' (Collection) e 'hijos_mayores' (array)
+     *
      * @throws Exception
      */
     public function getAdvancePaymentsQuotes(Partner $partner, int $monthsToAdvance): array
@@ -109,15 +168,16 @@ class PartnerDebtService
         // 3. Retornamos la estructura completa
         return [
             'quotes' => $filteredQuotes,
-            'hijos_mayores' => $statementData['hijos_mayores']
+            'hijos_mayores' => $statementData['hijos_mayores'],
         ];
     }
+
     /**
      * Extrae todas las deudas pendientes de un socio y los hijos mayores de 30 años.
      *
-     * @param Partner $partner
-     * @param string|null $endMonthLimit Permite evaluar meses hacia el futuro (Formato Y-m)
+     * @param  string|null  $endMonthLimit  Permite evaluar meses hacia el futuro (Formato Y-m)
      * @return array Retorna un array con las deudas ('debts') y los nombres de los hijos ('hijos_mayores')
+     *
      * @throws Exception
      */
     public function getAccountStatement(Partner $partner, ?string $endMonthLimit = null): array
@@ -130,10 +190,10 @@ class PartnerDebtService
         $allFeesLookup = Fee::all()->keyBy('mes')->sortKeys();
         $currentMonthKey = now()->format('Y-m');
 
-        $currentFee = $allFeesLookup->filter(fn($fee, $key) => $key <= $currentMonthKey)->last();
+        $currentFee = $allFeesLookup->filter(fn ($fee, $key) => $key <= $currentMonthKey)->last();
 
-        if (!$currentFee) {
-            throw new Exception("No se encontró una cuota base configurada en el sistema.");
+        if (! $currentFee) {
+            throw new Exception('No se encontró una cuota base configurada en el sistema.');
         }
 
         $paymentsByMonth = HistoryPay::where('acc', $partner->acc)
@@ -145,7 +205,7 @@ class PartnerDebtService
         $fechaIngreso = $partner->fecha_ingreso ?? $partner->fecha_ingreso_validada;
         $fechaLimite = Carbon::create(2019, 1, 1);
 
-        if (!$fechaIngreso) {
+        if (! $fechaIngreso) {
             $startMonth = '2019-01';
         } else {
             $ingresoCarbon = Carbon::parse($fechaIngreso);
@@ -179,7 +239,7 @@ class PartnerDebtService
                 $applicableFee = $currentFee;
             } else {
                 $mesDeLaFechaDePago = Carbon::parse($paymentData->fecha_primer_pago)->format('Y-m');
-                $applicableFee = $allFeesLookup->filter(fn($f, $k) => $k <= $mesDeLaFechaDePago)->last() ?? $currentFee;
+                $applicableFee = $allFeesLookup->filter(fn ($f, $k) => $k <= $mesDeLaFechaDePago)->last() ?? $currentFee;
             }
 
             $applicableFeeTotal = $applicableFee->total;
@@ -207,7 +267,7 @@ class PartnerDebtService
 
             // Se aplica el 20% si es pronto pago (mes actual <= día 5 o mes futuro)
             // y no arrastra deudas anteriores al mes pasado.
-            if (($isCurrentMonthValid || $isFutureMonth) && !$hasDisqualifyingOldDebt) {
+            if (($isCurrentMonthValid || $isFutureMonth) && ! $hasDisqualifyingOldDebt) {
                 $discountMultiplier = 0.20;
             }
 
@@ -224,22 +284,19 @@ class PartnerDebtService
                 'efectivo_restante' => round($efectivoRestante, 3),
                 'factor_conversion' => $factorConversion,
                 'tiene_descuento' => $discountMultiplier > 0,
-                'estado' => $totalPaid > 0 ? 'Pago Parcial' : ($month > $currentMonthKey ? 'Por Adelantar' : 'Sin Pagar')
+                'estado' => $totalPaid > 0 ? 'Pago Parcial' : ($month > $currentMonthKey ? 'Por Adelantar' : 'Sin Pagar'),
             ]);
         }
 
         // 2. Retornamos ambas cosas en un array
         return [
             'debts' => $debts,
-            'hijos_mayores' => $nombresHijosMayores
+            'hijos_mayores' => $nombresHijosMayores,
         ];
     }
 
     /**
      * Verifica cuántos hijos mayores de 30 años tiene el socio y extrae sus nombres.
-     *
-     * @param Partner $partner
-     * @return array
      */
     private function getAdultChildrenData(Partner $partner): array
     {
@@ -256,15 +313,15 @@ class PartnerDebtService
 
             // Extraemos solo los nombres (asumiendo que el campo en BD se llama 'nombre')
             // Si tu campo se llama 'name' u otra cosa, cámbialo aquí dentro del pluck()
-            'names' => $adultChildren->pluck('nombre')->toArray()
+            'names' => $adultChildren->pluck('nombre')->toArray(),
         ];
     }
 
     private function generateMonthRange(string $start, string $end): array
     {
         $dates = [];
-        $current = Carbon::parse($start . '-01');
-        $last = Carbon::parse($end . '-01');
+        $current = Carbon::parse($start.'-01');
+        $last = Carbon::parse($end.'-01');
 
         while ($current->lte($last)) {
             $dates[] = $current->format('Y-m');
@@ -278,9 +335,7 @@ class PartnerDebtService
      * Obtiene el historial de pagos realizados por el socio en un rango de meses.
      * Busca desde el mes actual hasta el mes objetivo seleccionado (o viceversa).
      *
-     * @param Partner $partner
-     * @param string $targetMonth Formato 'Y-m' (ej. '2023-05')
-     * @return Collection
+     * @param  string  $targetMonth  Formato 'Y-m' (ej. '2023-05')
      */
     public function getPaymentsBetweenCurrentAndTargetMonth(Partner $partner, string $targetMonth): Collection
     {
@@ -294,5 +349,77 @@ class PartnerDebtService
             ->orderBy('mes', 'desc')
             ->orderBy('fecha', 'desc')
             ->get();
+    }
+
+    private function getEligibleTitularPartners(): Collection
+    {
+        return Partner::query()
+            ->holders()
+            ->select(['acc', 'ingreso', 'nombre'])
+            ->whereRaw("UPPER(COALESCE(nombre, '')) NOT LIKE ?", ['%TESORERIA%'])
+            ->whereRaw("UPPER(COALESCE(nombre, '')) NOT LIKE ?", ['%DESOCUPADO%'])
+            ->orderBy('acc')
+            ->get();
+    }
+
+    private function buildFeeLookupByMonth(string $startMonth, string $endMonth): array
+    {
+        $fees = Fee::query()
+            ->select(['mes', 'cuota', 'impuesto'])
+            ->orderBy('mes')
+            ->get()
+            ->keyBy('mes');
+
+        $lookup = [];
+        $activeFee = 0.0;
+
+        foreach ($this->generateMonthRange($startMonth, $endMonth) as $month) {
+            if ($fees->has($month)) {
+                $activeFee = round((float) $fees->get($month)->total, 2);
+            }
+
+            $lookup[$month] = $activeFee;
+        }
+
+        return $lookup;
+    }
+
+    private function getPaymentsLookupByAccountAndMonth(array $accounts, string $startMonth, string $endMonth): array
+    {
+        if (empty($accounts)) {
+            return [];
+        }
+
+        $payments = HistoryPay::query()
+            ->selectRaw('acc, mes, SUM(monto) as total_pagado')
+            ->whereIn('acc', $accounts)
+            ->whereBetween('mes', [$startMonth, $endMonth])
+            ->groupBy('acc', 'mes')
+            ->get();
+
+        $lookup = [];
+
+        foreach ($payments as $payment) {
+            $lookup[(int) $payment->acc][$payment->mes] = round((float) $payment->total_pagado, 2);
+        }
+
+        return $lookup;
+    }
+
+    private function resolveMembershipStartMonth(?string $ingreso, string $defaultStartMonth): string
+    {
+        $rawIngreso = is_string($ingreso) ? trim($ingreso) : '';
+
+        if ($rawIngreso === '' || $rawIngreso === '-') {
+            return $defaultStartMonth;
+        }
+
+        try {
+            $parsedMonth = Carbon::parse($rawIngreso)->format('Y-m');
+        } catch (Exception) {
+            return $defaultStartMonth;
+        }
+
+        return $parsedMonth < $defaultStartMonth ? $defaultStartMonth : $parsedMonth;
     }
 }
