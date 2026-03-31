@@ -6,6 +6,35 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Partner;
 class PartnerService
 {
+
+
+    /**
+     * Obtiene la lista de socios y familiares habilitados para el control de acceso.
+     * Excluye cuentas en Tesorería, Desocupados y sus familiares asociados.
+     */
+    public function getValidPartnersForAccess()
+    {
+        return Partner::query()
+            // 1. Cargamos los familiares (dependents) de cada titular
+            ->with('dependents')
+            // 2. Filtramos solo los Titulares (para que sea la raíz de la lista)
+            ->holders()
+            // 3. Excluimos todas las cuentas (acc) donde el TITULAR sea Tesorería o Desocupado
+            ->whereNotIn('acc', function ($query) {
+                $query->select('acc')
+                    ->from('0cc_socios')
+                    ->where('categoria', PartnerCategory::TITULAR->value)
+                    ->where(function ($q) {
+                        $q->where('nombre', 'LIKE', '%TESORERIA%')
+                            ->orWhere('nombre', 'LIKE', '%DESOCUPADO%');
+                    });
+            })
+            // 4. Filtro de seguridad individual por si acaso
+            ->where('nombre', 'NOT LIKE', '%TESORERIA%')
+            ->where('nombre', 'NOT LIKE', '%DESOCUPADO%')
+            ->get();
+    }
+
     /**
      * Crea un socio de tipo Titular con sus valores por defecto.
      */

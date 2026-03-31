@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     // Partners
     Route::apiResource('/partners', PartnerController::class);
+    Route::get('/partners-access', [PartnerController::class,"access_controller"])->name('partners.access');
     // Family Partners
     Route::apiResource('/family', FamilyController::class);
     // Manager

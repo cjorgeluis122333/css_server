@@ -35,8 +35,6 @@ class PartnerController extends Controller
     }
 
 
-
-
     /**
      * /partners/debs/5?adelanto=3
      * Muestra el estado de cuenta.
@@ -122,7 +120,21 @@ class PartnerController extends Controller
         }
     }
 
+    public function access_controller(): JsonResponse
+    {
+        try {
+            $partners = $this->partnerService->getValidPartnersForAccess();
 
+            return response()->json([
+                'status' => 'susses',
+                'count'   => $partners->count(),
+                'data'    => $partners
+            ], 200);
+
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al obtener la lista de acceso: ' . $e->getMessage(),500);
+        }
+    }
     /**
      * GET /api/partners
      * Parameters:  (page, per_page)
