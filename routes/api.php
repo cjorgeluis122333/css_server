@@ -21,13 +21,16 @@ Route::get('/user', function (Request $request) {
 // --- Public route ---
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+// solvencia
+Route::get('/partners/solvencia', [PartnerController::class, 'titularDebtSummary'])->name('partners.titularDebtSummary');
+Route::get('/partners/access', [PartnerController::class, 'access_controller'])->name('partners.access');
+
 
 Route::middleware('auth:sanctum')->group(function () {
     // Authentication
     Route::post('/logout', [AuthController::class, 'logout']);
     // Partners
     Route::apiResource('/partners', PartnerController::class);
-    Route::get('/partners-access', [PartnerController::class, 'access_controller'])->name('partners.access');
     // Family Partners
     Route::apiResource('/family', FamilyController::class);
     // Manager
@@ -43,7 +46,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/fee/showByMonth/{mes?}', [FeeController::class, 'showByMonth'])->name('showByMonth');
     Route::apiResource('fee', FeeController::class);
     // Debt
-    Route::get('/partners/debs/titular-summary', [PartnerController::class, 'titularDebtSummary'])->name('partners.titularDebtSummary');
     Route::get('/partners/debs/{id}', [PartnerController::class, 'showDebts'])->name('showDebts');
     Route::get('/partners/debs/advance/{id}', [PartnerController::class, 'getAdvanceQuotes'])->name('partners.advanceQuotes');
     // Guest
