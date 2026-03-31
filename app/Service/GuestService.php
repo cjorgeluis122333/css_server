@@ -47,7 +47,7 @@ class GuestService
         // 3. Flujo de Sincronización y Creación (Atómico)
         return DB::transaction(function () use ($data, $fecha) {
 
-            // A. Sincronizar con el catálogo (invitados_registrados)
+            // A. Sincronizar con el catálogo (0cc_invitados)
             // Si la cédula existe, actualiza el nombre y la última visita.
             // Si no existe, lo crea automáticamente.
             RegisteredGuest::updateOrCreate(

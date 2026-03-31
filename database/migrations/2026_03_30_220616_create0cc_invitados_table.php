@@ -17,7 +17,7 @@ return new class extends Migration {
             // Llave foránea lógica (indexada) hacia el socio
             $table->unsignedBigInteger('acc')->nullable()->index();
 
-            $table->timestamp('last_time')->nullable();
+            $table->integer('last_time')->unsigned()->nullable();
 
             $table->string('operador', 50)->nullable();
         });

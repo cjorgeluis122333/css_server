@@ -22,11 +22,10 @@ class RegisteredGuestRequest extends FormRequest
                 'string',
                 'max:20',
                 // Si estamos actualizando, ignoramos el ID actual para la regla unique
-                'unique:invitados_registrados,cedula,' . $ind . ',ind'
+                'unique:0cc_invitados,cedula,' . $ind . ',ind'
             ],
             'nombre' => 'required|string|max:150',
             'acc' => 'nullable|integer',
-            'last_time' => 'nullable|date',
             'operador' => 'nullable|string|max:50'
         ];
     }

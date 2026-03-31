@@ -28,9 +28,16 @@ class RegisteredGuest extends Model
     protected $casts = [
         'cedula'    => 'string', // O 'integer' si lo definiste así en la migración
         'acc'       => 'integer',
-        'last_time' => 'datetime', // Carbon se encargará de esto automáticamente
     ];
 
+    protected static function booted()
+    {
+        static::creating(function ($guest) {
+            if (!$guest->last_time) {
+                $guest->last_time = time(); // Usa time() de PHP que devuelve el entero exacto
+            }
+        });
+    }
     // --- RELACIONES ---
 
     /**

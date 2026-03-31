@@ -71,6 +71,7 @@ class RegisteredGuestService
      */
     public function createGuest(array $data): RegisteredGuest
     {
+        // El 'last_time' se llenará solo gracias al evento 'creating' del modelo
         return RegisteredGuest::create($data);
     }
 
@@ -79,10 +80,15 @@ class RegisteredGuestService
      */
     public function updateGuest(int $ind, array $data): RegisteredGuest
     {
-        $guest = RegisteredGuest::findOrFail($ind);
-        $guest->update($data);
-
-        return $guest;
+        return RegisteredGuest::updateOrCreate(
+            ['cedula' => $data['cedula']],
+            [
+                'nombre'    => $data['nombre'],
+                'acc'       => $data['acc'] ?? null,
+                'last_time' => time(), // Insertamos el entero actual
+                'operador'  => $data['operador'] ?? null
+            ]
+        );
     }
 
     /**
