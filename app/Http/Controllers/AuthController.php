@@ -19,7 +19,7 @@ class AuthController extends Controller
         $data = $request->validated();
 
         // 2. Check if the ACC (Action) is already registered
-        if (User::where('acc', $data->acc)->exists()) {
+        if (User::where('acc', $data['acc'])->exists()) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Esta acción ya tiene un usuario registrado. Los demás familiares deben usar esas credenciales.'
