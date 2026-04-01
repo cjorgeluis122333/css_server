@@ -21,10 +21,9 @@ Route::get('/user', function (Request $request) {
 // --- Public route ---
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
-// solvencia
+// solvencia and access
 Route::get('/partners/solvencia', [PartnerController::class, 'titularDebtSummary'])->name('partners.titularDebtSummary');
 Route::get('/partners/access', [PartnerController::class, 'access_controller'])->name('partners.access');
-
 
 Route::middleware('auth:sanctum')->group(function () {
     // Authentication

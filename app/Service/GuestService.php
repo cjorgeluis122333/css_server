@@ -48,14 +48,15 @@ class GuestService
         return DB::transaction(function () use ($data, $fecha) {
 
             // A. Sincronizar con el catálogo (0cc_invitados)
-            // Si la cédula existe, actualiza el nombre y la última visita.
-            // Si no existe, lo crea automáticamente.
+            // Ahora la unicidad es la combinación de Cédula + Acción (Socio)
             RegisteredGuest::updateOrCreate(
-                ['cedula' => $data['cedula']],  //attribute
-                [//Values
+                [
+                    'cedula' => $data['cedula'],
+                    'acc'    => $data['acc']      // <- EL CAMBIO CLAVE: Buscamos por ambos campos
+                ],
+                [
                     'nombre'    => $data['nombre'],
-                    'acc'       => $data['acc'], // Asociamos al socio que lo trajo
-                    'last_time' => $fecha,       // Marcamos la fecha de esta visita
+                    'last_time' => $fecha,
                     'operador'  => $data['operador'] ?? null
                 ]
             );

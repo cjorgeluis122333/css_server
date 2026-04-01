@@ -15,11 +15,11 @@ return new class extends Migration {
             $table->string('nombre', 150)->nullable()->index();
 
             // Llave foránea lógica (indexada) hacia el socio
-            $table->unsignedBigInteger('acc')->nullable()->index();
-
+            $table->unsignedBigInteger('acc')->nullable();
             $table->integer('last_time')->unsigned()->nullable();
 
             $table->string('operador', 50)->nullable();
+            $table->unique(['acc', 'cedula'], 'idx_socio_invitado_unico');
         });
     }
 
