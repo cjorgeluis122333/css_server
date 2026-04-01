@@ -52,7 +52,7 @@ class GuestService
             RegisteredGuest::updateOrCreate(
                 [
                     'cedula' => $data['cedula'],
-                    'acc'    => $data['acc']      // <- EL CAMBIO CLAVE: Buscamos por ambos campos
+                    'acc'    => $data['acc']      //Buscamos por ambos campos
                 ],
                 [
                     'nombre'    => $data['nombre'],
