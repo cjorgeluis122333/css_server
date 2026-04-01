@@ -56,7 +56,7 @@ class GuestService
                 ],
                 [
                     'nombre'    => $data['nombre'],
-                    'last_time' => $fecha,
+                    'last_time' => now()->timestamp,
                     'operador'  => $data['operador'] ?? null
                 ]
             );
