@@ -120,6 +120,10 @@ class PartnerController extends Controller
         }
     }
 
+    /**
+     * @return JsonResponse
+     * SOLVENCIA
+     */
     public function titularDebtSummary(): JsonResponse
     {
         try {
@@ -135,6 +139,10 @@ class PartnerController extends Controller
         }
     }
 
+    /**
+     * @return JsonResponse
+     * Access
+     */
     public function access_controller(): JsonResponse
     {
         try {
@@ -148,6 +156,31 @@ class PartnerController extends Controller
 
         } catch (Exception $e) {
             return $this->errorResponse('Error al obtener la lista de acceso: '.$e->getMessage(), 500);
+        }
+    }
+
+
+    /**
+     * Ejecuta el servicio para obtener el conteo de invitados del mes por acción.
+     * Get: /partner/guest
+     */
+    public function getMonthlyGuestsCount(): JsonResponse
+    {
+        try {
+            $data = $this->partnerService->getGuestCountThisMonth();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $data
+            ], 200);
+
+        } catch (Exception $e) {
+            // Manejo básico de errores para no exponer la traza completa
+            return response()->json([
+                'success' => false,
+                'message' => 'Ocurrió un error al procesar la consulta.',
+                'error'   => $e->getMessage()
+            ], 500);
         }
     }
 

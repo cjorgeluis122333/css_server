@@ -36,6 +36,32 @@ class PartnerService
     }
 
     /**
+     * Tomar socios mas el total de invitados del mes actual
+     */
+    /**
+     * Retorna una lista con la cuenta (acc) y el total de invitados del mes actual,
+     * solo para socios Titulares que no estén marcados como DESOCUPADO.
+     */
+    public function getGuestCountThisMonth()
+    {
+        return Partner::query()
+            ->select('acc') // Solo necesitamos cargar este campo en memoria
+            ->holders() // Filtra por PartnerCategory::TITULAR
+            ->where('nombre', 'NOT LIKE', '%DESOCUPADO%')
+            // Contamos la relación 'invitations' aplicando el scope 'currentMonth' del modelo Guest
+            ->withCount(['invitations as count_guest' => function ($query) {
+                $query->currentMonth();
+            }])
+            ->get()
+            // Mapeamos para retornar estrictamente un arreglo con los dos campos solicitados
+            ->map(function ($partner) {
+                return [
+                    'acc' => $partner->acc,
+                    'count_guest' => $partner->count_guest,
+                ];
+            });
+    }
+    /**
      * Crea un socio de tipo Titular con sus valores por defecto.
      */
     public function createTitular(array $data): Partner

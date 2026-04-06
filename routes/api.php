@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/guest/{acc}', [GuestController::class, 'index'])->name('guest.index');
     Route::get('/guest-current/{acc}', [GuestController::class, 'currentMonth'])->name('guest.current-month');
     Route::apiResource('/guest', GuestController::class);
+    Route::get('/partner/guest', [PartnerController::class, 'getMonthlyGuestsCount'])->name('guest.guest-count');  // Total guest by partner of the month
     // Register Guests
     Route::apiResource('/register-guest', RegisteredGuestController::class);
 

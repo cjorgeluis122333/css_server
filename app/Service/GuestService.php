@@ -24,14 +24,14 @@ class GuestService
         $mes = $fecha->month;
         $year = $fecha->year;
 
-        // 1. Validar límite del socio (Máximo 12 al mes)
+        // 1. Validar límite del socio (Máximo 24 al mes)
         $invitacionesSocio = Guest::where('acc', $data['acc'])
             ->whereMonth('fecha', $mes)
             ->whereYear('fecha', $year)
             ->count();
 
-        if ($invitacionesSocio >= 12) {
-            throw new Exception('El socio titular ya ha alcanzado el límite de 12 invitaciones para este mes.', 422);
+        if ($invitacionesSocio >= 24) {
+            throw new Exception('El socio titular ya ha alcanzado el límite de 24 invitaciones para este mes.', 422);
         }
 
         // 2. Validar límite del invitado (Máximo 4 visitas al mes)
@@ -131,8 +131,8 @@ class GuestService
             ->where('ind', '!=', $ind) // Importante: excluirse a sí mismo
             ->count();
 
-        if ($invitacionesSocio >= 12) {
-            throw new Exception('El socio titular ya alcanzó el límite de 12 invitaciones para ese periodo.', 422);
+        if ($invitacionesSocio >= 24) {
+            throw new Exception('El socio titular ya alcanzó el límite de 24 invitaciones para ese periodo.', 422);
         }
 
         // 2. Validar límite del invitado (Excluyendo el registro actual)
