@@ -138,7 +138,21 @@ class PartnerController extends Controller
             return $this->errorResponse('Error al generar la deuda de titulares: '.$e->getMessage(), 500);
         }
     }
+    public function titularDebtSummaryByYear(int $year): JsonResponse
+    {
+        try {
+            // Recibe solo el año por parámetro (ej. 2026) y lo pasa al servicio
+            $summary = $this->debtService->titularDebtSummaryByYear($year);
 
+            return response()->json([
+                'status' => 'success',
+                'count' => count($summary),
+                'data' => $summary,
+            ]);
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al generar la deuda de titulares: '.$e->getMessage(), 500);
+        }
+    }
     /**
      * @return JsonResponse
      * Access

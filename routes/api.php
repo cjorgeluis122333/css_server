@@ -23,6 +23,7 @@ Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 // solvencia and access
 Route::get('/partners/solvencia', [PartnerController::class, 'titularDebtSummary'])->name('partners.titularDebtSummary');
+
 Route::get('/partners/access', [PartnerController::class, 'access_controller'])->name('partners.access');
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -54,5 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/partner/guest', [PartnerController::class, 'getMonthlyGuestsCount'])->name('guest.guest-count');  // Total guest by partner of the month
     // Register Guests
     Route::apiResource('/register-guest', RegisteredGuestController::class);
+    // Solvencia
+    Route::get('/partners/solvencia/{year}', [PartnerController::class, 'titularDebtSummaryByYear'])->name('partners.titularDebtSummaryByYear');
 
 });

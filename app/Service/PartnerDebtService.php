@@ -68,7 +68,70 @@ class PartnerDebtService
 
         return $result;
     }
+    public function titularDebtSummaryByYear(int $year): array
+    {
+        $currentMonth = now()->format('Y-m');
 
+        // 1. Creamos el intervalo estricto a partir de ese año, desde su inicio hasta su fin
+        $startOfYear = "{$year}-01";
+        $endOfYear = "{$year}-12";
+
+        $partners = $this->getEligibleTitularPartners();
+
+        if ($partners->isEmpty()) {
+            return [];
+        }
+
+        // Limitamos las consultas de base de datos a ese año para optimizar
+        $feesByMonth = $this->buildFeeLookupByMonth($startOfYear, $endOfYear);
+        $paymentsByAccAndMonth = $this->getPaymentsLookupByAccountAndMonth(
+            $partners->pluck('acc')->all(),
+            $startOfYear,
+            $endOfYear
+        );
+
+        $result = [];
+        $position = 1;
+
+        // 2. El array de meses se genera UNA SOLA VEZ para todo el año completo (12 meses fijos)
+        // Usamos array_reverse para mantener tu lógica original (de diciembre hacia enero)
+        $months = array_reverse($this->generateMonthRange($startOfYear, $endOfYear));
+
+        foreach ($partners as $partner) {
+            // Obtenemos cuándo ingresó realmente el socio
+            $startMonth = $this->resolveMembershipStartMonth($partner->ingreso, '2019-01');
+
+            $deuda = [];
+            $pagos = [];
+
+            foreach ($months as $month) {
+                $monthlyPayment = round((float) ($paymentsByAccAndMonth[$partner->acc][$month] ?? 0.0), 2);
+
+                // 3. Condición para la deuda base:
+                // - Si el mes que estamos evaluando es ANTERIOR a su fecha de ingreso, la deuda es 0.0
+                // - Si el mes está en el FUTURO (ej. pides 2026 pero estamos en abril), la deuda es 0.0
+                // - Si el mes es válido, se le carga la cuota correspondiente.
+                if ($month >= $startMonth && $month <= $currentMonth) {
+                    $monthlyBaseDebt = round((float) ($feesByMonth[$month] ?? 0.0), 2);
+                } else {
+                    $monthlyBaseDebt = 0.0;
+                }
+
+                $deuda[$month] = round($monthlyBaseDebt - $monthlyPayment, 2);
+                $pagos[$month] = $monthlyPayment;
+            }
+
+            $result[(string) $position] = [
+                'acc' => (int) $partner->acc,
+                'total' => round(array_sum($deuda), 2),
+                'deuda' => $deuda,
+                'pagos' => $pagos,
+            ];
+            $position++;
+        }
+
+        return $result;
+    }
     /**
      * @param  array  $paymentsList  Ejemplo: [['mes' => '2026-03', 'monto' => 36.656], ['mes' => '2026-04', 'monto' => 20.00]]
      * @param  array  $paymentMetadata  Datos extra (oper, operador, etc.)
