@@ -123,6 +123,7 @@ class PartnerDebtService
 
             $result[(string) $position] = [
                 'acc' => (int) $partner->acc,
+                'name' => $partner->nombre,
                 'total' => round(array_sum($deuda), 2),
                 'deuda' => $deuda,
                 'pagos' => $pagos,
