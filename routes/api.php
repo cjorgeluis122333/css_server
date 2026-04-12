@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/history', HistoryPayController::class);
     // Hall
     Route::apiResource('/halls-pay', HallController::class);
+    Route::get('/halls-control/recent', [HallControlController::class, 'recentHistory']);
     Route::apiResource('/halls-control', HallControlController::class);
     // Fee
     Route::get('/fee/showByMonth/{mes?}', [FeeController::class, 'showByMonth'])->name('showByMonth');

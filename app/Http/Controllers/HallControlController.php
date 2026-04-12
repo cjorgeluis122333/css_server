@@ -32,6 +32,21 @@ class HallControlController extends Controller
         }
     }
 
+    public function recentHistory()
+    {
+        try {
+            $history = $this->salonService->getRecentHistory();
+
+            return $this->successResponse(
+                $history,
+                'Historial de salones obtenido correctamente.'
+            );
+        } catch (Exception $e) {
+            // Puedes usar $e->getMessage() para depurar si lo necesitas en entorno de desarrollo
+            return $this->errorResponse('Ocurrió un error al obtener el historial de los salones.', 500);
+        }
+    }
+
     /**
      * Crear un nuevo registro.
      */
