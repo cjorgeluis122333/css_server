@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Models\HallControl;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 
 class HallControlService
@@ -18,23 +19,15 @@ class HallControlService
      */
     public function getRecentHistory(): \Illuminate\Support\Collection
     {
-        // 1. Obtener el registro con la fecha más reciente
-        $latestRecord = HallControl::orderBy('fecha', 'desc')->first();
+        // 1. Definimos el intervalo: desde hoy hasta 30 días en el futuro
+        $fechaInicio = Carbon::now()->startOfDay();
+        $fechaFin = Carbon::now()->addDays(30)->endOfDay();
 
-        // Si la tabla está vacía, retornamos una colección vacía para no romper la vista
-        if (!$latestRecord) {
-            return collect([]);
-        }
-
-        // 2. Calcular exactamente 30 días hacia atrás desde esa última fecha
-        $dateLimit = \Carbon\Carbon::parse($latestRecord->fecha)
-            ->subDays(30)
-            ->toDateString();
-
-        // 3. Traer TODOS los salones desde la fecha límite calculada, sin usar take()
-        return HallControl::where('fecha', '>=', $dateLimit)
-            ->orderBy('fecha', 'desc')
-            ->orderBy('salon', 'asc') // Opcional: Agrupa alfabéticamente los salones del mismo día
+        // 2. Filtramos por el rango de fechas
+        // Usamos whereBetween para que el código sea más legible y eficiente
+        return HallControl::whereBetween('fecha', [$fechaInicio, $fechaFin])
+            ->orderBy('fecha', 'asc') // De hoy hacia el futuro
+            ->orderBy('salon', 'asc') // Organización alfabética para el mismo día
             ->get();
     }
     public function getById(int $id): ?HallControl
