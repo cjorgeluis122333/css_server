@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ExcelController;
 use App\Http\Controllers\FamilyController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\GuestController;
@@ -58,5 +59,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/register-guest', RegisteredGuestController::class);
     // Solvencia
     Route::get('/partners/solvencia/{year}', [PartnerController::class, 'titularDebtSummaryByYear'])->name('partners.titularDebtSummaryByYear');
-
+    //Excel
+    Route::get('/generate/exel/solvencia/{year}',[ExcelController::class, 'exportTitularDebtSummaryByYearInExel'])->name('exel.solvencia');
 });
