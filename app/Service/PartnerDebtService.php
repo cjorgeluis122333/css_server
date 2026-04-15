@@ -133,6 +133,94 @@ class PartnerDebtService
 
         return $result;
     }
+
+    /**
+     * Retorna un resumen global de la morosidad y las deudas de los socios.
+     *
+     * @return array
+     */
+    public function getGlobalDebtMetrics(): array
+    {
+        // 1. Obtenemos el listado base procesado por el método que ya tienes
+        $partnersSummary = $this->getTitularDebtSummaryList();
+
+        $deudaTotal = 0.0;
+
+        $pendientesMes = [
+            'cantidad_socios' => 0,
+            'total_deuda'     => 0.0
+        ];
+
+        $morosos3Meses = [
+            'cantidad_socios' => 0,
+            'total_deuda'     => 0.0
+        ];
+
+        $morosos6Meses = [
+            'cantidad_socios' => 0,
+            'total_deuda'     => 0.0
+        ];
+
+        // Calculamos el mes anterior dinámicamente según la fecha actual
+        $previousMonth = now()->subMonth()->format('Y-m');
+
+        foreach ($partnersSummary as $partnerData) {
+            $partnerTotalDebt = (float) $partnerData['total'];
+            $deudaPorMes      = $partnerData['deuda'];
+
+            // Si el socio no tiene deudas en absoluto, lo saltamos
+            if ($partnerTotalDebt <= 0) {
+                continue;
+            }
+
+            // --- Deuda Total ---
+            $deudaTotal += $partnerTotalDebt;
+
+            // --- Pendientes Mes (Solo el mes anterior) ---
+            // Verificamos si en el mes anterior específico debe algo
+            if (isset($deudaPorMes[$previousMonth]) && $deudaPorMes[$previousMonth] > 0) {
+                $pendientesMes['cantidad_socios']++;
+                $pendientesMes['total_deuda'] += $deudaPorMes[$previousMonth];
+            }
+
+            // Calculamos cuántos meses individuales tiene en deuda este socio
+            $mesesConDeuda = 0;
+            foreach ($deudaPorMes as $monto) {
+                if ($monto > 0) {
+                    $mesesConDeuda++;
+                }
+            }
+
+            // --- Morosos 3 meses (3 meses o más) ---
+            if ($mesesConDeuda >= 3) {
+                $morosos3Meses['cantidad_socios']++;
+                $morosos3Meses['total_deuda'] += $partnerTotalDebt;
+            }
+
+            // --- Morosos 6 meses (6 meses o más) ---
+            if ($mesesConDeuda >= 6) {
+                $morosos6Meses['cantidad_socios']++;
+                $morosos6Meses['total_deuda'] += $partnerTotalDebt;
+            }
+        }
+
+        // Retornamos el objeto final redondeando los totales para evitar problemas de coma flotante
+        return [
+            'deuda_total'     => round($deudaTotal, 2),
+            'pendientes_mes'  => [
+                'cantidad_socios' => $pendientesMes['cantidad_socios'],
+                'total_deuda'     => round($pendientesMes['total_deuda'], 2),
+            ],
+            'morosos_3_meses' => [
+                'cantidad_socios' => $morosos3Meses['cantidad_socios'],
+                'total_deuda'     => round($morosos3Meses['total_deuda'], 2),
+            ],
+            'morosos_6_meses' => [
+                'cantidad_socios' => $morosos6Meses['cantidad_socios'],
+                'total_deuda'     => round($morosos6Meses['total_deuda'], 2),
+            ],
+        ];
+    }
     /**
      * @param  array  $paymentsList  Ejemplo: [['mes' => '2026-03', 'monto' => 36.656], ['mes' => '2026-04', 'monto' => 20.00]]
      * @param  array  $paymentMetadata  Datos extra (oper, operador, etc.)

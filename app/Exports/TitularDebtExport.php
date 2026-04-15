@@ -14,8 +14,8 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class TitularDebtExport implements FromArray, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, ShouldAutoSize
 {
-protected $data;
-protected $year;
+protected array $data;
+protected int $year;
 
 public function __construct(array $data, int $year)
 {
@@ -79,7 +79,7 @@ return [
 ];
 }
 
-public function styles(Worksheet $sheet)
+public function styles(Worksheet $sheet): array
 {
 $lastRow = count($this->data) + 1;
 

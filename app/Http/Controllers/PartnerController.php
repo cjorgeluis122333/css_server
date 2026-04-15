@@ -172,7 +172,27 @@ class PartnerController extends Controller
             return $this->errorResponse('Error al obtener la lista de acceso: '.$e->getMessage(), 500);
         }
     }
+    /**
+     * Retorna las métricas globales de morosidad y deudas del club.
+     *
+     * @return JsonResponse
+     * MÉTRICAS DE DEUDA GLOBAL
+     */
+    public function globalDebtMetrics(): JsonResponse
+    {
+        try {
+            // Invocamos el método que extrae los totales, morosos de 3 y 6 meses
+            $metrics = $this->debtService->getGlobalDebtMetrics();
 
+            return response()->json([
+                'status' => 'success',
+                'data'   => $metrics,
+            ]);
+        } catch (Exception $e) {
+            // Mantenemos tu estándar de manejo de errores
+            return $this->errorResponse('Error al generar las métricas globales de deuda: ' . $e->getMessage(), 500);
+        }
+    }
 
     /**
      * Ejecuta el servicio para obtener el conteo de invitados del mes por acción.

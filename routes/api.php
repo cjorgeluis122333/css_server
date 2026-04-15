@@ -24,7 +24,6 @@ Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 // solvencia and access
 Route::get('/partners/solvencia', [PartnerController::class, 'titularDebtSummary'])->name('partners.titularDebtSummary');
-
 Route::get('/partners/access', [PartnerController::class, 'access_controller'])->name('partners.access');
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -58,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Register Guests
     Route::apiResource('/register-guest', RegisteredGuestController::class);
     // Solvencia
+    Route::get('/partners/solvencia/metrics', [PartnerController::class, 'globalDebtMetrics'])->name('partners.globalDebtMetrics');
     Route::get('/partners/solvencia/{year}', [PartnerController::class, 'titularDebtSummaryByYear'])->name('partners.titularDebtSummaryByYear');
     //Excel
     Route::get('/generate/exel/solvencia/{year}',[ExcelController::class, 'exportTitularDebtSummaryByYearInExel'])->name('exel.solvencia');
