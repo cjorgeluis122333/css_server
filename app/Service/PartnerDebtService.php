@@ -134,73 +134,57 @@ class PartnerDebtService
         return $result;
     }
 
-    /** * Retorna un resumen global de la morosidad y las deudas de los socios.
-     * * @param float $cuotaMensual Valor actual de la cuota mensual
-     * @return array
+    /**
+     * Retorna un resumen global de la morosidad y las deudas de los socios.
+     * * @return array
      */
-    public function getGlobalDebtMetrics(float $cuotaMensual): array
+    public function getGlobalDebtMetrics(): array
     {
         // 1. Obtenemos el listado base procesado.
-        // Este listado YA VIENE filtrado por getEligibleTitularPartners()
-        // por lo que excluye automáticamente a 'TESORERIA' y 'DESOCUPADO'.
+        // Este listado ya filtra "TESORERIA" y "DESOCUPADO".
         $partnersSummary = $this->getTitularDebtSummaryList();
 
-        // 2. Obtenemos los socios activos dinámicamente contando los registros del array
+        // 2. Obtenemos la cantidad de socios activos contando el resultado
         $sociosActivos = count($partnersSummary);
 
+        // 3. Obtenemos la cuota mensual actual a través del FeeService
+        $mesActual = now()->format('Y-m');
+        $feeRecord = $this->feeService->getByMonth($mesActual);
+
+        // Extraemos el valor numérico de la cuota (asumo 'monto' o 'valor', ajusta según tu modelo Fee)
+        $cuotaMensual = $feeRecord ? (float) $feeRecord->monto : 0.0;
+
         $deudaTotal = 0.0;
+        $pendientesMes = ['cantidad_socios' => 0, 'total_deuda' => 0.0];
+        $morosos3Meses = ['cantidad_socios' => 0, 'total_deuda' => 0.0];
+        $morosos6Meses = ['cantidad_socios' => 0, 'total_deuda' => 0.0];
 
-        $pendientesMes = [
-            'cantidad_socios' => 0,
-            'total_deuda'     => 0.0
-        ];
-
-        $morosos3Meses = [
-            'cantidad_socios' => 0,
-            'total_deuda'     => 0.0
-        ];
-
-        $morosos6Meses = [
-            'cantidad_socios' => 0,
-            'total_deuda'     => 0.0
-        ];
-
-        // Calculamos el mes anterior dinámicamente según la fecha actual
         $previousMonth = now()->subMonth()->format('Y-m');
 
         foreach ($partnersSummary as $partnerData) {
             $partnerTotalDebt = (float) $partnerData['total'];
             $deudaPorMes      = $partnerData['deuda'];
 
-            // Si el socio no tiene deudas en absoluto, lo saltamos
-            if ($partnerTotalDebt <= 0) {
-                continue;
-            }
+            if ($partnerTotalDebt <= 0) continue;
 
-            // --- Deuda Total ---
             $deudaTotal += $partnerTotalDebt;
 
-            // --- Pendiente Mes (Solo el mes anterior) ---
+            // Pendientes Mes anterior
             if (isset($deudaPorMes[$previousMonth]) && $deudaPorMes[$previousMonth] > 0) {
                 $pendientesMes['cantidad_socios']++;
                 $pendientesMes['total_deuda'] += $deudaPorMes[$previousMonth];
             }
 
-            // Calculamos cuántos meses individuales tiene en deuda este socio
             $mesesConDeuda = 0;
             foreach ($deudaPorMes as $monto) {
-                if ($monto > 0) {
-                    $mesesConDeuda++;
-                }
+                if ($monto > 0) $mesesConDeuda++;
             }
 
-            // --- Morosos 3 meses (3 meses o más) ---
             if ($mesesConDeuda >= 3) {
                 $morosos3Meses['cantidad_socios']++;
                 $morosos3Meses['total_deuda'] += $partnerTotalDebt;
             }
 
-            // --- Morosos 6 meses (6 meses o más) ---
             if ($mesesConDeuda >= 6) {
                 $morosos6Meses['cantidad_socios']++;
                 $morosos6Meses['total_deuda'] += $partnerTotalDebt;
@@ -211,13 +195,17 @@ class PartnerDebtService
         $diasMorosidad = 0;
         $denominador = $sociosActivos * $cuotaMensual;
 
-        // Validamos para evitar el error de división por cero
         if ($denominador > 0) {
+            // Fórmula: 30 * Deuda_Total / (Socios_activos * Cuota_mensual)
             $calculoDias = (30 * $deudaTotal) / $denominador;
-            $diasMorosidad = (int) round($calculoDias);
+
+            /** * Aplicamos el redondeo para obtener el valor exacto entero.
+             * Según tu ejemplo: 36.37 -> 36. Usamos (int) para truncar
+             * o floor() si quieres asegurar el redondeo hacia abajo.
+             */
+            $diasMorosidad = (int) $calculoDias;
         }
 
-        // Retornamos el objeto final
         return [
             'deuda_total'     => round($deudaTotal, 2),
             'dias_morosidad'  => $diasMorosidad,
@@ -235,6 +223,10 @@ class PartnerDebtService
             ],
         ];
     }
+
+
+
+
     /**
      * @param  array  $paymentsList  Ejemplo: [['mes' => '2026-03', 'monto' => 36.656], ['mes' => '2026-04', 'monto' => 20.00]]
      * @param  array  $paymentMetadata  Datos extra (oper, operador, etc.)
