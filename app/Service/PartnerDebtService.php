@@ -12,6 +12,15 @@ use Illuminate\Support\Facades\DB;
 
 class PartnerDebtService
 {
+    // 1. Declaramos la propiedad protegida
+    protected FeeService $feeService;
+
+    // 2. Inyectamos el servicio en el constructor
+    public function __construct(FeeService $feeService)
+    {
+        $this->feeService = $feeService;
+    }
+
     public function getTitularDebtSummaryList(): array
     {
         $defaultStartMonth = '2019-01';
