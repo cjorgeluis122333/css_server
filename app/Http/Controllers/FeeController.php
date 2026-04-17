@@ -28,7 +28,7 @@ class FeeController extends Controller
 
     public function showByMonth(?string $mes = null): JsonResponse
     {
-        // Esto arregla el problema de "2026-1" -> "2026-01"
+        // Esto arregla el problema de "2026-1" ⇾ "2026-01"
         try {
             $mesBusqueda = $mes ? Carbon::parse($mes)->format('Y-m') : now()->format('Y-m');
         } catch (\Exception $e) {

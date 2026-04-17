@@ -134,15 +134,19 @@ class PartnerDebtService
         return $result;
     }
 
-    /**
-     * Retorna un resumen global de la morosidad y las deudas de los socios.
-     *
+    /** * Retorna un resumen global de la morosidad y las deudas de los socios.
+     * * @param float $cuotaMensual Valor actual de la cuota mensual
      * @return array
      */
-    public function getGlobalDebtMetrics(): array
+    public function getGlobalDebtMetrics(float $cuotaMensual): array
     {
-        // 1. Obtenemos el listado base procesado por el método que ya tienes
+        // 1. Obtenemos el listado base procesado.
+        // Este listado YA VIENE filtrado por getEligibleTitularPartners()
+        // por lo que excluye automáticamente a 'TESORERIA' y 'DESOCUPADO'.
         $partnersSummary = $this->getTitularDebtSummaryList();
+
+        // 2. Obtenemos los socios activos dinámicamente contando los registros del array
+        $sociosActivos = count($partnersSummary);
 
         $deudaTotal = 0.0;
 
@@ -176,8 +180,7 @@ class PartnerDebtService
             // --- Deuda Total ---
             $deudaTotal += $partnerTotalDebt;
 
-            // --- Pendientes Mes (Solo el mes anterior) ---
-            // Verificamos si en el mes anterior específico debe algo
+            // --- Pendiente Mes (Solo el mes anterior) ---
             if (isset($deudaPorMes[$previousMonth]) && $deudaPorMes[$previousMonth] > 0) {
                 $pendientesMes['cantidad_socios']++;
                 $pendientesMes['total_deuda'] += $deudaPorMes[$previousMonth];
@@ -204,9 +207,20 @@ class PartnerDebtService
             }
         }
 
-        // Retornamos el objeto final redondeando los totales para evitar problemas de coma flotante
+        // --- Cálculo de Días de Morosidad ---
+        $diasMorosidad = 0;
+        $denominador = $sociosActivos * $cuotaMensual;
+
+        // Validamos para evitar el error de división por cero
+        if ($denominador > 0) {
+            $calculoDias = (30 * $deudaTotal) / $denominador;
+            $diasMorosidad = (int) round($calculoDias);
+        }
+
+        // Retornamos el objeto final
         return [
             'deuda_total'     => round($deudaTotal, 2),
+            'dias_morosidad'  => $diasMorosidad,
             'pendientes_mes'  => [
                 'cantidad_socios' => $pendientesMes['cantidad_socios'],
                 'total_deuda'     => round($pendientesMes['total_deuda'], 2),
