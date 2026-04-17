@@ -150,18 +150,18 @@ class PartnerDebtService
     public function getGlobalDebtMetrics(): array
     {
         // 1. Obtenemos el listado base procesado.
-        // Este listado ya filtra "TESORERIA" y "DESOCUPADO".
         $partnersSummary = $this->getTitularDebtSummaryList();
 
-        // 2. Obtenemos la cantidad de socios activos contando el resultado
+        // 2. Cantidad de socios (usamos el conteo del array para ser exactos)
         $sociosActivos = count($partnersSummary);
 
-        // 3. Obtenemos la cuota mensual actual a través del FeeService
-        $mesActual = now()->format('Y-m');
-        $feeRecord = $this->feeService->getByMonth($mesActual);
+        // 3. Obtenemos la ÚLTIMA cuota registrada (independientemente del mes)
+        // Asumo que tu feeService tiene un método para obtener la última,
+        // si no, podrías usar el modelo directamente: Fee::latest('mes')->first();
+        $feeRecord = $this->feeService->getLastRegistered();
 
-        // Extraemos el valor numérico de la cuota (asumo 'monto' o 'valor', ajusta según tu modelo Fee)
-        $cuotaMensual = $feeRecord ? (float) $feeRecord->monto : 0.0;
+        // Extraemos el valor de la cuota (ajusta 'monto' al nombre real de tu columna)
+        $cuotaMensual = $feeRecord ? (float) ($feeRecord->monto ?? $feeRecord->total ?? 0) : 0.0;
 
         $deudaTotal = 0.0;
         $pendientesMes = ['cantidad_socios' => 0, 'total_deuda' => 0.0];
@@ -232,7 +232,6 @@ class PartnerDebtService
             ],
         ];
     }
-
 
 
 

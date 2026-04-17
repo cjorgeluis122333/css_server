@@ -36,4 +36,9 @@ class FeeService
         $Fee = Fee::findOrFail($id);
         return $Fee->delete();
     }
+
+    public function getLastRegistered(): Fee
+    {
+        return Fee::orderBy('mes', 'desc')->first();
+    }
 }
