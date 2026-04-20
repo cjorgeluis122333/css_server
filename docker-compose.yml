@@ -1,0 +1,28 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ccv_app
+    depends_on:
+      - mysql
+    ports:
+      - "8080:80"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0.28
+    container_name: ccv_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ccv_server
+      MYSQL_ROOT_PASSWORD: 1
+    ports:
+      - "3307:3306"
+    volumes:
+      - ccv_mysql_data:/var/lib/mysql
+
+volumes:
+  ccv_mysql_data:
