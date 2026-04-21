@@ -40,14 +40,27 @@ class HallControlService
         return HallControl::create($data);
     }
 
-    public function update(HallControl $registro, array $data): HallControl
+   public function update(HallControl $salon, array $data): HallControl
     {
-        $registro->update($data);
-        return $registro;
+        // Eloquent actualizará solo los campos que vengan en $data
+        $salon->update($data);
+        return $salon;
     }
 
-    public function delete(HallControl $registro): bool
+    /**
+     * "Elimina" la reserva/ocupación devolviendo el salón a su estado inicial (Disponible)
+     */
+    public function resetToAvailable(HallControl $salon): HallControl
     {
-        return $registro->delete();
+        $salon->update([
+            'acc'    => 0,
+            'nombre' => null,
+            'abono'  => null,
+            'pago'   => null,
+            'pases'  => null,
+            'hora'   => null
+        ]);
+
+        return $salon;
     }
 }
