@@ -178,7 +178,7 @@ class PartnerDebtService
 
             $deudaTotal += $partnerTotalDebt;
 
-            // Pendientes Mes anterior
+            // Pendiente Mes anterior
             if (isset($deudaPorMes[$previousMonth]) && $deudaPorMes[$previousMonth] > 0) {
                 $pendientesMes['cantidad_socios']++;
                 $pendientesMes['total_deuda'] += $deudaPorMes[$previousMonth];
