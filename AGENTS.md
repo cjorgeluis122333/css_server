@@ -1,236 +1,531 @@
-<laravel-boost-guidelines>
-=== foundation rules ===
+# 🤖 Project Context & Agent Rules
 
-# Laravel Boost Guidelines
+> **Última actualización:** 21 de abril de 2026
+> Este archivo es la guía definitiva para cualquier agente IA que trabaje en este repositorio. Léelo **completo** antes de escribir una sola línea de código.
 
-The Laravel Boost guidelines are specifically curated by Laravel maintainers for this application. These guidelines should be followed closely to ensure the best experience when building Laravel applications.
+---
 
-## Foundational Context
+## 📌 Visión General
 
-This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
+**CCV Backend** es la API REST de un sistema de gestión para un club social. Gestiona:
 
-- php - 8.2.30
-- laravel/framework (LARAVEL) - v12
-- laravel/prompts (PROMPTS) - v0
-- laravel/sanctum (SANCTUM) - v4
-- laravel/mcp (MCP) - v0
-- laravel/pint (PINT) - v1
-- laravel/sail (SAIL) - v1
-- pestphp/pest (PEST) - v3
-- phpunit/phpunit (PHPUNIT) - v11
-- tailwindcss (TAILWINDCSS) - v4
+- **Socios** (titulares y familiares) con estructura jerárquica por número de acción (`acc`).
+- **Cuotas mensuales** y cálculo de deuda/morosidad.
+- **Historial de pagos** con procesamiento de abonos y cuotas adelantadas.
+- **Invitados** con validación de límites (24 invitaciones/mes por socio, 4 visitas/mes por invitado).
+- **Salones** (precios, reservas y control de ocupación).
+- **Junta Directiva** con cargos anuales (presidente, vicepresidente, secretario, etc.).
+- **Torneos de Dominó** (módulo en desarrollo: torneos, rondas, partidas, equipos, jugadores).
+- **Exportación a Excel** de reportes de deuda.
+- **Administración de usuarios** con roles jerárquicos basados en número de acción.
 
-## Skills Activation
+El frontend es una aplicación **React** en un repositorio separado que consume esta API mediante **Laravel Sanctum**.
 
-This project has domain-specific skills available. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
+---
 
-- `pest-testing` — Tests applications using the Pest 3 PHP framework. Activates when writing tests, creating unit or feature tests, adding assertions, testing Livewire components, architecture testing, debugging test failures, working with datasets or mocking; or when the user mentions test, spec, TDD, expects, assertion, coverage, or needs to verify functionality works.
-- `tailwindcss-development` — Styles applications using Tailwind CSS v4 utilities. Activates when adding styles, restyling components, working with gradients, spacing, layout, flex, grid, responsive design, dark mode, colors, typography, or borders; or when the user mentions CSS, styling, classes, Tailwind, restyle, hero section, cards, buttons, or any visual/UI changes.
+## 🛠 Stack Técnico
 
-## Conventions
+| Componente         | Tecnología                                        |
+| ------------------ | ------------------------------------------------- |
+| **Framework**      | Laravel 12.x                                      |
+| **PHP**            | ^8.2                                              |
+| **Base de Datos**  | MySQL 8.0.28 (Docker) / SQLite (dev local)        |
+| **Autenticación**  | Laravel Sanctum 4.0 (tokens + SPA CSRF)           |
+| **Frontend**       | React (repo separado), Vite 7 + Tailwind CSS 4    |
+| **Testing**        | Pest 3.8 + Pest Plugin Laravel 3.2                |
+| **Exports**        | Maatwebsite/Excel 3.1                             |
+| **Code Style**     | Laravel Pint 1.24                                 |
+| **DevOps**         | Docker (php:8.2-apache), Docker Compose            |
+| **Dev Tools**      | Laravel Sail 1.41, Laravel Boost 2.0, Pail 1.2.2  |
+| **HTTP Client**    | Axios 1.11 (frontend)                              |
 
-- You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, and naming.
-- Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
-- Check for existing components to reuse before writing a new one.
+### Comandos Clave
 
-## Verification Scripts
+```bash
+# Desarrollo local
+composer run setup       # Instalación completa (deps, .env, migrations, npm)
+composer run dev         # Servidor Laravel + Queue + Vite concurrentes
+composer run test        # Ejecutar tests con Pest
 
-- Do not create verification scripts or tinker when tests cover that functionality and prove they work. Unit and feature tests are more important.
+# Docker
+docker-compose up -d     # Levantar app (puerto 8080) + MySQL (puerto 3307)
+```
 
-## Application Structure & Architecture
+---
 
-- Stick to existing directory structure; don't create new base folders without approval.
-- Do not change the application's dependencies without approval.
+## 🏗 Arquitectura y Patrones
 
-## Frontend Bundling
+### Patrón Principal: Service-Oriented MVC
 
-- If the user doesn't see a frontend change reflected in the UI, it could mean they need to run `npm run build`, `npm run dev`, or `composer run dev`. Ask them.
+```
+Routes (api.php)
+    ↓
+Controllers (thin — solo orquestación)
+    ↓
+Services (lógica de negocio)
+    ↓
+Models (Eloquent directo — sin Repository)
+```
 
-## Documentation Files
+**No se utilizan:** Repositories, DTOs, Actions, Events/Listeners, Jobs, Policies.
 
-- You must only create documentation files if explicitly requested by the user.
+### Patrones Implementados
 
-## Replies
+| Patrón                        | Implementación                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| **Service Layer**             | `app/Service/` — 11 services con lógica de negocio                             |
+| **FormRequest Validation**    | `app/Http/Requests/` — validación desacoplada de controllers                   |
+| **API Response Trait**        | `app/Traits/ApiResponse.php` — formato estándar JSON                           |
+| **API Resources**             | `app/Http/Resources/` — transformación de modelos (parcialmente implementado)   |
+| **Backed Enums (PHP 8.1)**    | `app/Enum/` — `PartnerCategory`, `UserRole`                                   |
+| **Eloquent Scopes**           | Filtros reutilizables en modelos (`scopeHolders()`, `scopeCurrentMonth()`)     |
+| **Constructor DI**            | Controllers inyectan Services; Services pueden inyectar otros Services         |
+| **DB Transactions**           | `DB::transaction()` en operaciones de escritura críticas                       |
+| **Global Exception Handling** | `bootstrap/app.php` maneja excepciones para rutas `api/*`                      |
+| **Excel Exports**             | `FromArray` + `WithHeadings` + `WithStyles` + `ShouldAutoSize`                |
 
-- Be concise in your explanations - focus on what's important rather than explaining obvious details.
+---
 
-=== boost rules ===
+## 📁 Estructura de Directorios
 
-# Laravel Boost
+```
+app/
+├── Enum/                  # PHP 8.1 Backed Enums (PartnerCategory, UserRole)
+├── Exports/               # Clases de exportación Excel (Maatwebsite)
+├── Http/
+│   ├── Controllers/       # 14 controllers (thin, delegan a Services)
+│   ├── Middleware/         # Middleware personalizado
+│   ├── Requests/          # FormRequest validation classes
+│   └── Resources/         # API Resource transformations
+├── Models/                # 16 modelos Eloquent
+├── Providers/             # Service Providers (AppServiceProvider)
+├── Service/               # ⚠️ SINGULAR — 11 services de lógica de negocio
+└── Traits/                # Traits compartidos (ApiResponse)
 
-- Laravel Boost is an MCP server that comes with powerful tools designed specifically for this application. Use them.
+bootstrap/
+└── app.php                # Bootstrapping, rutas, middleware, exception handling global
 
-## Artisan
+config/                    # Configuración Laravel estándar + cors.php, sanctum.php
+database/
+├── migrations/            # Migraciones de esquema
+└── seeders/               # Seeders (DatabaseSeeder)
 
-- Use the `list-artisan-commands` tool when you need to call an Artisan command to double-check the available parameters.
+routes/
+├── api.php                # ✅ TODAS las rutas API viven aquí
+├── web.php                # Vacío (proyecto API-only)
+└── console.php            # Comandos de consola
 
-## URLs
+tests/                     # Tests con Pest (Feature/ y Unit/)
+```
 
-- Whenever you share a project URL with the user, you should use the `get-absolute-url` tool to ensure you're using the correct scheme, domain/IP, and port.
+> **Nota crítica:** El directorio de services es `app/Service/` (singular), NO `app/Services/`. Respetar esta convención al crear nuevos services.
 
-## Tinker / Debugging
+---
 
-- You should use the `tinker` tool when you need to execute PHP to debug code or query Eloquent models directly.
-- Use the `database-query` tool when you only need to read from the database.
+## 📏 Reglas de Desarrollo (Core Rules)
 
-## Reading Browser Logs With the `browser-logs` Tool
+### 1. Nomenclatura
 
-- You can read browser logs, errors, and exceptions using the `browser-logs` tool from Boost.
-- Only recent browser logs will be useful - ignore old logs.
+| Elemento      | Convención          | Ejemplo                                      |
+| ------------- | ------------------- | -------------------------------------------- |
+| Controllers   | PascalCase singular | `PartnerController`, `HallControlController` |
+| Models        | PascalCase singular | `Partner`, `HallControl`, `ManagerBoards`    |
+| Services      | PascalCase singular | `PartnerService`, `PartnerDebtService`       |
+| FormRequests  | PascalCase singular | `PartnerRequest`, `HallControlRequest`       |
+| Resources     | PascalCase singular | `PartnerResource`, `ManagerBoardsResource`   |
+| Enums         | PascalCase          | `PartnerCategory`, `UserRole`                |
+| Métodos       | camelCase           | `getAdvanceQuotes()`, `titularDebtSummary()`  |
+| Propiedades   | camelCase + tipo    | `protected PartnerService $partnerService`   |
+| Tablas DB     | Legacy: `0cc_*` / `domino_*` / Laravel estándar                  |
 
-## Searching Documentation (Critically Important)
+### 2. Tipado
 
-- Boost comes with a powerful `search-docs` tool you should use before trying other approaches when working with Laravel or Laravel ecosystem packages. This tool automatically passes a list of installed packages and their versions to the remote Boost API, so it returns only version-specific documentation for the user's circumstance. You should pass an array of packages to filter on if you know you need docs for particular packages.
-- Search the documentation before making code changes to ensure we are taking the correct approach.
-- Use multiple, broad, simple, topic-based queries at once. For example: `['rate limiting', 'routing rate limiting', 'routing']`. The most relevant results will be returned first.
-- Do not add package names to queries; package information is already shared. For example, use `test resource table`, not `filament 4 test resource table`.
+- **No se usa `declare(strict_types=1)`** actualmente en el proyecto.
+- **Tipado de retorno obligatorio** en métodos de controllers y services (ej: `: JsonResponse`, `: Collection`, `: array`).
+- **Type hints en parámetros** de constructores y métodos públicos.
+- **Casts en modelos** para tipo seguro: `integer`, `decimal:2`, `date:Y-m-d`, Enums, `array`, `hashed`.
 
-### Available Search Syntax
+### 3. Validación
 
-1. Simple Word Searches with auto-stemming - query=authentication - finds 'authenticate' and 'auth'.
-2. Multiple Words (AND Logic) - query=rate limit - finds knowledge containing both "rate" AND "limit".
-3. Quoted Phrases (Exact Position) - query="infinite scroll" - words must be adjacent and in that order.
-4. Mixed Queries - query=middleware "rate limit" - "middleware" AND exact phrase "rate limit".
-5. Multiple Queries - queries=["authentication", "middleware"] - ANY of these terms.
+- **SIEMPRE** usar `FormRequest` classes. **NUNCA** validar inline en controllers.
+- `authorize()` retorna `true` — permisos delegados al middleware `auth:sanctum`.
+- Lógica de validación compleja va en `withValidator()` (ej: `HallControlRequest`, `HistoryPayRequest`).
+- Mensajes de error personalizados en español vía el método `messages()`.
+- Para reglas únicas con update: usar `Rule::unique()->ignore()` con detección de Route Model Binding.
 
-=== php rules ===
+### 4. Respuestas API
 
-# PHP
+**Todo controller debe usar el trait `ApiResponse`:**
 
-- Always use curly braces for control structures, even for single-line bodies.
+```php
+use App\Traits\ApiResponse;
 
-## Constructors
-
-- Use PHP 8 constructor property promotion in `__construct()`.
-    - <code-snippet>public function __construct(public GitHub $github) { }</code-snippet>
-- Do not allow empty `__construct()` methods with zero parameters unless the constructor is private.
-
-## Type Declarations
-
-- Always use explicit return type declarations for methods and functions.
-- Use appropriate PHP type hints for method parameters.
-
-<code-snippet name="Explicit Return Types and Method Params" lang="php">
-protected function isAccessible(User $user, ?string $path = null): bool
+class MiController extends Controller
 {
-    ...
+    use ApiResponse;
 }
-</code-snippet>
+```
 
-## Enums
+**Formato estándar de éxito:**
+```json
+{
+    "status": "success",
+    "message": "Descripción opcional",
+    "data": { }
+}
+```
 
-- Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+**Formato estándar de error:**
+```json
+{
+    "status": "error",
+    "message": "Descripción del error",
+    "code": 400
+}
+```
 
-## Comments
+**Métodos disponibles:**
+- `$this->successResponse($data, $message = null, $code = 200)`
+- `$this->errorResponse($message, $code)`
 
-- Prefer PHPDoc blocks over inline comments. Never use comments within the code itself unless the logic is exceptionally complex.
+### 5. Manejo de Excepciones
 
-## PHPDoc Blocks
+| Capa          | Patrón                                                                         |
+| ------------- | ------------------------------------------------------------------------------ |
+| **Controllers** | `try/catch (Exception $e)` → `$this->errorResponse('mensaje', 500)`         |
+| **Services**    | `throw new \Exception('mensaje', 422)` para reglas de negocio violadas       |
+| **Global**      | `bootstrap/app.php` maneja: `AuthenticationException` (401), `ValidationException` (422), `NotFoundHttpException` (404), `QueryException` (500) |
 
-- Add useful array shape type definitions when appropriate.
+### 6. Inyección de Dependencias
 
-=== laravel/core rules ===
+```php
+// ✅ CORRECTO — Inyectar Services en el constructor
+public function __construct(
+    protected PartnerService $partnerService,
+    protected PartnerDebtService $debtService
+) {}
 
-# Do Things the Laravel Way
+// ❌ INCORRECTO — Eloquent directo en controller
+public function index() {
+    $partners = Partner::all(); // NO hacer esto
+}
+```
 
-- Use `php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using the `list-artisan-commands` tool.
-- If you're creating a generic PHP class, use `php artisan make:class`.
-- Pass `--no-interaction` to all Artisan commands to ensure they work without user input. You should also pass the correct `--options` to ensure correct behavior.
+### 7. Transacciones de Base de Datos
 
-## Database
+Usar `DB::transaction()` para operaciones que modifiquen múltiples registros:
 
-- Always use proper Eloquent relationship methods with return type hints. Prefer relationship methods over raw queries or manual joins.
-- Use Eloquent models and relationships before suggesting raw database queries.
-- Avoid `DB::`; prefer `Model::query()`. Generate code that leverages Laravel's ORM capabilities rather than bypassing them.
-- Generate code that prevents N+1 query problems by using eager loading.
-- Use Laravel's query builder for very complex database operations.
+```php
+return DB::transaction(function () use ($data) {
+    $model = Model::create($data);
+    // más operaciones...
+    return $model;
+});
+```
 
-### Model Creation
+---
 
-- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `list-artisan-commands` to check the available options to `php artisan make:model`.
+## 🗃 Modelos y Relaciones Clave
 
-### APIs & Eloquent Resources
+### Modelos del Dominio Principal
 
-- For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.
+| Modelo            | Tabla                        | PK    | Timestamps | Notas                                          |
+| ----------------- | ---------------------------- | ----- | ---------- | ---------------------------------------------- |
+| `Partner`         | `0cc_socios`                 | `ind` | No         | Modelo central. Categoría: TITULAR / FAMILIAR  |
+| `User`            | `users`                      | `id`  | Sí         | Auth con Sanctum. Rol basado en `acc`          |
+| `Fee`             | `0cc_cuotas`                 | `ind` | No         | Cuotas mensuales con impuesto                  |
+| `HistoryPay`      | `historial_pagos_separado`   | `ind` | No         | Registro individual de pagos                   |
+| `Guest`           | `0cc_invitados_unificados`   | `ind` | No         | Invitados por fecha con límites de negocio     |
+| `RegisteredGuest` | `0cc_invitados`              | `ind` | No         | Catálogo de invitados conocidos                |
+| `Hall`            | `0cc_salones`                | `ind` | No         | Precios de salones (socio / no socio)          |
+| `HallControl`     | `salones_control_unificado`  | `ind` | No         | Reservas y control de salones                  |
+| `Manager`         | `0cc_directivos_datos`       | `ind` | No         | Datos de directivos                            |
+| `ManagerBoards`   | `0cc_directivos_juntas`      | `year`| No         | Juntas anuales. PK no auto-incrementable       |
 
-## Controllers & Validation
+### Modelos del Módulo de Torneos (En Desarrollo)
 
-- Always create Form Request classes for validation rather than inline validation in controllers. Include both validation rules and custom error messages.
-- Check sibling Form Requests to see if the application uses array or string based validation rules.
+| Modelo         | Tabla                        | PK   | Timestamps        |
+| -------------- | ---------------------------- | ---- | ------------------ |
+| `Tournament`   | `domino_2025_torneos`        | `id` | `fecha_creacion`   |
+| `Round`        | `domino_2025_rondas`         | `id` | `created_at`       |
+| `Game`         | `domino_2025_partidas`       | `id` | `fecha_actualizacion` |
+| `Couple`       | `domino_2025_parejas`        | `id` | Sí                 |
+| `Team`         | `domino_2025_equipos`        | `id` | Sí                 |
+| `Player`       | `domino_2025_jugadores`      | `id` | Sí                 |
+| `Substitution` | `domino_2025_sustituciones`  | `id` | Sí                 |
 
-## Authentication & Authorization
+### Relaciones Principales
 
-- Use Laravel's built-in authentication and authorization features (gates, policies, Sanctum, etc.).
+```
+User ──hasMany──▶ Partner (by acc)
 
-## URL Generation
+Partner (TITULAR)
+    ├──hasMany──▶ Partner (FAMILIAR, same acc)
+    ├──hasMany──▶ Guest
+    └──hasMany──▶ HistoryPay
 
-- When generating links to other pages, prefer named routes and the `route()` function.
+Guest ──belongsTo──▶ Partner (titular)
+RegisteredGuest ──belongsTo──▶ Partner (titular)
 
-## Queues
+ManagerBoards ──belongsTo (x13)──▶ Manager (one per cargo)
 
-- Use queued jobs for time-consuming operations with the `ShouldQueue` interface.
+Tournament ──hasMany──▶ Round ──hasMany──▶ Game
+Tournament ──hasMany──▶ Couple
+Tournament ──hasMany──▶ Substitution
+```
 
-## Configuration
+### Enums
 
-- Use environment variables only in configuration files - never use the `env()` function directly outside of config files. Always use `config('app.name')`, not `env('APP_NAME')`.
+```php
+// app/Enum/PartnerCategory.php — Backed Enum: string
+PartnerCategory::TITULAR   // 'titular'
+PartnerCategory::FAMILIAR  // 'familiar'
 
-## Testing
+// app/Enum/UserRole.php — Backed Enum: string
+// Roles derivados del número de acción (acc):
+// 1000        → SUPER_ADMIN
+// 991-999     → ADMIN
+// 961-990     → OPERATOR
+// 931-960     → SUPERVISOR
+// 901-930     → ALLY
+// 801-900     → HONORARY
+// resto       → PARTNER
+```
 
-- When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
-- Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
-- When creating tests, make use of `php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
+---
 
-## Vite Error
+## 🗺 Endpoints API (Resumen)
 
-- If you receive an "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error, you can run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
+### Rutas Públicas (sin autenticación)
 
-=== laravel/v12 rules ===
+| Método | Ruta                    | Controller            | Acción                    |
+| ------ | ----------------------- | --------------------- | ------------------------- |
+| POST   | `/register`             | `AuthController`      | Registro de usuario       |
+| POST   | `/login`                | `AuthController`      | Login (retorna token)     |
+| GET    | `/partners/solvencia`   | `PartnerController`   | Resumen de deuda pública  |
+| GET    | `/partners/access`      | `PartnerController`   | Validación de acceso      |
 
-# Laravel 12
+### Rutas Protegidas (`auth:sanctum`)
 
-- CRITICAL: ALWAYS use `search-docs` tool for version-specific Laravel documentation and updated code examples.
-- Since Laravel 11, Laravel has a new streamlined file structure which this project uses.
+| Recurso             | Tipo          | Controller                 | Notas                          |
+| ------------------- | ------------- | -------------------------- | ------------------------------ |
+| `partners`          | `apiResource` | `PartnerController`        | + rutas custom de deuda        |
+| `family`            | `apiResource` | `FamilyController`         | Familiares de socios           |
+| `manager`           | `apiResource` | `ManagerController`        | Directivos                     |
+| `board`             | `apiResource` | `ManagerBoardsController`  | Juntas directivas              |
+| `history`           | `apiResource` | `HistoryPayController`     | + historial reciente, por mes  |
+| `halls-pay`         | `apiResource` | `HallController`           | Precios de salones             |
+| `halls-control`     | `apiResource` | `HallControlController`    | Control de salones             |
+| `fee`               | `apiResource` | `FeeController`            | Cuotas + por mes               |
+| `guest`             | `apiResource` | `GuestController`          | + conteo mensual               |
+| `register-guest`    | `apiResource` | `RegisteredGuestController`| Catálogo de invitados          |
 
-## Laravel 12 Structure
+**Rutas adicionales destacadas:**
+- `GET /partners/{id}/debts` — Deudas de un socio
+- `GET /partners/{id}/advance-quotes` — Cuotas adelantadas
+- `GET /partners/metrics` — Métricas globales de morosidad
+- `GET /history/months/{acc}` — Meses con pagos
+- `GET /history/recent/{acc}` — Historial reciente
+- `POST /logout` — Cierre de sesión
+- `GET /excel/titular-debt` — Exportar deuda a Excel
+- `POST /user-admin` — CRUD de usuarios admin
 
-- In Laravel 12, middleware are no longer registered in `app/Http/Kernel.php`.
-- Middleware are configured declaratively in `bootstrap/app.php` using `Application::configure()->withMiddleware()`.
-- `bootstrap/app.php` is the file to register middleware, exceptions, and routing files.
-- `bootstrap/providers.php` contains application specific service providers.
-- The `app\Console\Kernel.php` file no longer exists; use `bootstrap/app.php` or `routes/console.php` for console configuration.
-- Console commands in `app/Console/Commands/` are automatically available and do not require manual registration.
+---
 
-## Database
+## 🔄 Flujo de Trabajo para el Agente
 
-- When modifying a column, the migration must include all of the attributes that were previously defined on the column. Otherwise, they will be dropped and lost.
-- Laravel 12 allows limiting eagerly loaded records natively, without external packages: `$query->latest()->limit(10);`.
+### Antes de Programar
 
-### Models
+1. **Lee este archivo completo.**
+2. Identifica en qué módulo/dominio cae la tarea.
+3. Revisa los archivos existentes del módulo para entender el patrón actual.
 
-- Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
+### Al Crear una Nueva Funcionalidad
 
-=== pint/core rules ===
+Seguir este checklist:
 
-# Laravel Pint Code Formatter
+```
+□ Crear/actualizar Migration en database/migrations/
+□ Crear/actualizar Model en app/Models/ (con fillable, casts, relaciones)
+□ Crear Service en app/Service/ (lógica de negocio)
+□ Crear FormRequest en app/Http/Requests/ (validación)
+□ Crear Controller en app/Http/Controllers/ (thin, inyecta Service, usa ApiResponse)
+□ Crear Resource en app/Http/Resources/ (si se necesita transformación)
+□ Registrar rutas en routes/api.php
+□ ✅ Actualizar AGENTS.md
+```
 
-- You must run `vendor/bin/pint --dirty` before finalizing changes to ensure your code matches the project's expected style.
-- Do not run `vendor/bin/pint --test`, simply run `vendor/bin/pint` to fix any formatting issues.
+### Template: Nuevo Controller
 
-=== pest/core rules ===
+```php
+<?php
 
-## Pest
+namespace App\Http\Controllers;
 
-- This project uses Pest for testing. Create tests: `php artisan make:test --pest {name}`.
-- Run tests: `php artisan test --compact` or filter: `php artisan test --compact --filter=testName`.
-- Do NOT delete tests without approval.
-- CRITICAL: ALWAYS use `search-docs` tool for version-specific Pest documentation and updated code examples.
-- IMPORTANT: Activate `pest-testing` every time you're working with a Pest or testing-related task.
+use App\Http\Requests\NuevoRequest;
+use App\Http\Resources\NuevoResource;
+use App\Service\NuevoService;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
 
-=== tailwindcss/core rules ===
+class NuevoController extends Controller
+{
+    use ApiResponse;
 
-# Tailwind CSS
+    public function __construct(
+        protected NuevoService $nuevoService
+    ) {}
 
-- Always use existing Tailwind conventions; check project patterns before adding new ones.
-- IMPORTANT: Always use `search-docs` tool for version-specific Tailwind CSS documentation and updated code examples. Never rely on training data.
-- IMPORTANT: Activate `tailwindcss-development` every time you're working with a Tailwind CSS or styling-related task.
-</laravel-boost-guidelines>
+    public function index(): JsonResponse
+    {
+        try {
+            $data = $this->nuevoService->getAll();
+            return $this->successResponse($data, 'Listado obtenido');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al obtener listado', 500);
+        }
+    }
+
+    public function store(NuevoRequest $request): JsonResponse
+    {
+        try {
+            $item = $this->nuevoService->create($request->validated());
+            return $this->successResponse($item, 'Creado exitosamente', 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 500);
+        }
+    }
+
+    public function show(int $id): JsonResponse
+    {
+        try {
+            $item = $this->nuevoService->getById($id);
+            return $this->successResponse($item, 'Detalle obtenido');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Recurso no encontrado', 404);
+        }
+    }
+
+    public function update(NuevoRequest $request, int $id): JsonResponse
+    {
+        try {
+            $item = $this->nuevoService->update($id, $request->validated());
+            return $this->successResponse($item, 'Actualizado exitosamente');
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 500);
+        }
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        try {
+            $this->nuevoService->delete($id);
+            return $this->successResponse(null, 'Eliminado exitosamente');
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 500);
+        }
+    }
+}
+```
+
+### Template: Nuevo Service
+
+```php
+<?php
+
+namespace App\Service;
+
+use App\Models\NuevoModel;
+use Illuminate\Support\Facades\DB;
+
+class NuevoService
+{
+    public function getAll()
+    {
+        return NuevoModel::all();
+    }
+
+    public function getById(int $id): NuevoModel
+    {
+        return NuevoModel::findOrFail($id);
+    }
+
+    public function create(array $data): NuevoModel
+    {
+        return DB::transaction(fn () => NuevoModel::create($data));
+    }
+
+    public function update(int $id, array $data): NuevoModel
+    {
+        return DB::transaction(function () use ($id, $data) {
+            $item = NuevoModel::findOrFail($id);
+            $item->update($data);
+            return $item;
+        });
+    }
+
+    public function delete(int $id): bool
+    {
+        return DB::transaction(function () use ($id) {
+            $item = NuevoModel::findOrFail($id);
+            return $item->delete();
+        });
+    }
+}
+```
+
+---
+
+## 🚨 Restricciones Específicas
+
+1. **No colocar lógica de negocio en rutas ni en controllers.** Los controllers solo orquestan: reciben request, llaman al service, retornan response.
+2. **No ejecutar queries Eloquent directas en controllers.** Toda interacción con la BD pasa por Services.
+3. **No validar inline en controllers.** Siempre usar FormRequest classes.
+4. **No crear endpoints en `routes/web.php`.** Este es un proyecto API-only; todas las rutas van en `routes/api.php`.
+5. **Usar `DB::transaction()`** para cualquier operación que modifique múltiples tablas/registros.
+6. **CORS permisivo** — La configuración actual permite `*` en origins. En producción, restringir a dominios específicos en `config/cors.php`.
+7. **Tokens Sanctum sin expiración** — `sanctum.expiration` está en `null`. Evaluar configurar expiración para producción.
+8. **Directorio `app/Service/` es SINGULAR** — No crear `app/Services/` (con S).
+
+---
+
+## ⚠️ Inconsistencias Conocidas
+
+Estas son desviaciones del patrón estándar detectadas en el código actual. Al trabajar en estos archivos, considerar alinearlos con las convenciones:
+
+| Archivo                | Inconsistencia                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `AuthController`       | No usa el trait `ApiResponse`. Respuestas JSON manuales. No delega a Service.  |
+| `ExcelController`      | No usa el trait `ApiResponse`. Respuestas JSON manuales.                       |
+| `access_controller()`  | Método en `PartnerController` que rompe la convención camelCase.               |
+| Resources (6 de 10)    | Solo retornan `id`, `created_at`, `updated_at` — son scaffolding sin transformación real. |
+| FormRequests (6)       | Clases vacías sin reglas: `GameRequest`, `PlayerRequest`, `RoundRequest`, `SubstitutionRequest`, `TeamRequest`, `TournamentRequest`. |
+| `UserAdminService`     | `updateUser()` tiene tipo de retorno `Manager` en vez de `User` (bug).         |
+| Proyecto completo      | No se usa `declare(strict_types=1)` en ningún archivo.                         |
+
+---
+
+## 🔧 Mantenimiento — Regla de Oro
+
+> **OBLIGATORIO:** Cada vez que se implemente una nueva funcionalidad o se realice un cambio estructural, este archivo `AGENTS.md` DEBE ser actualizado para reflejar el estado actual del sistema.
+
+### ¿Cuándo actualizar?
+
+- [ ] Se crea un nuevo **Model**, **Service**, **Controller**, **FormRequest**, **Resource** o **Enum**.
+- [ ] Se agregan o modifican **rutas** en `api.php`.
+- [ ] Se cambia la **arquitectura** o se introduce un nuevo patrón (ej: Repository, Events, Jobs).
+- [ ] Se agrega una **dependencia** significativa en `composer.json`.
+- [ ] Se resuelve una de las **inconsistencias conocidas** listadas arriba.
+- [ ] Se modifica la configuración de **autenticación**, **CORS** o **excepciones globales**.
+- [ ] Se modifica la **estructura de directorios**.
+
+### ¿Qué secciones actualizar?
+
+| Cambio realizado                     | Secciones a actualizar                                       |
+| ------------------------------------ | ------------------------------------------------------------ |
+| Nuevo modelo/migración               | Modelos y Relaciones Clave                                   |
+| Nuevo controller + service + routes  | Endpoints API, Estructura de Directorios                     |
+| Nueva dependencia en composer.json   | Stack Técnico                                                |
+| Nuevo patrón arquitectónico          | Arquitectura y Patrones                                      |
+| Fix de inconsistencia                | Inconsistencias Conocidas (remover la resuelta)              |
+| Cambio en convenciones               | Reglas de Desarrollo                                         |
