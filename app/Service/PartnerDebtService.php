@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Enum\DebtMetricType;
 use App\Models\Fee;
 use App\Models\HistoryPay;
 use App\Models\Partner;
@@ -233,7 +234,76 @@ class PartnerDebtService
         ];
     }
 
+    /**
+     * Retorna el listado de socios filtrados por una métrica de deuda específica.
+     *
+     * @param DebtMetricType $metricType
+     * @return array
+     */
+    public function getPartnersByDebtMetric(DebtMetricType $metricType): array
+    {
+        $partnersSummary = $this->getTitularDebtSummaryList();
+        $previousMonth = now()->subMonth()->format('Y-m');
 
+        $partnersList = [];
+
+        foreach ($partnersSummary as $partnerData) {
+            $partnerTotalDebt = (float) $partnerData['total'];
+            $deudaPorMes      = $partnerData['deuda'];
+
+            // Si no debe nada, lo saltamos
+            if ($partnerTotalDebt <= 0) continue;
+
+            // Calculamos los meses con deuda del socio
+            $mesesConDeuda = 0;
+            foreach ($deudaPorMes as $monto) {
+                if ($monto > 0) {
+                    $mesesConDeuda++;
+                }
+            }
+
+            $matchesMetric = false;
+
+            // Evaluamos si el socio entra en la métrica solicitada
+            switch ($metricType) {
+                case DebtMetricType::MENSUAL:
+                    // Misma lógica: si tiene deuda del mes anterior
+                    if (isset($deudaPorMes[$previousMonth]) && $deudaPorMes[$previousMonth] > 0) {
+                        $matchesMetric = true;
+                    }
+                    break;
+
+                case DebtMetricType::TRIMESTRAL:
+                    // Morosos 3 meses o más
+                    if ($mesesConDeuda >= 3) {
+                        $matchesMetric = true;
+                    }
+                    break;
+
+                case DebtMetricType::SEMESTRAL:
+                    // Morosos 6 meses o más
+                    if ($mesesConDeuda >= 6) {
+                        $matchesMetric = true;
+                    }
+                    break;
+            }
+
+            // Si cumple con la condición, lo agregamos a nuestra lista de respuesta
+            if ($matchesMetric) {
+                $partnersList[] = [
+                    // NOTA: Ajusta estas llaves ('acc', 'nombre') según la
+                    // estructura real de lo que devuelve tu getTitularDebtSummaryList()
+                    'acc'             => $partnerData['acc'] ?? null,
+                    'nombre'          => $partnerData['nombre'] ?? 'Socio Desconocido',
+                    'total_deuda'     => round($partnerTotalDebt, 2),
+                    'meses_con_deuda' => $mesesConDeuda,
+                    'detalle_deuda'   => $deudaPorMes
+                ];
+            }
+        }
+
+        return $partnersList;
+    }
 
     /**
      * @param  array  $paymentsList  Ejemplo: [['mes' => '2026-03', 'monto' => 36.656], ['mes' => '2026-04', 'monto' => 20.00]]

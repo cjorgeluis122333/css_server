@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enum\DebtMetricType;
 use App\Http\Requests\PartnerRequest;
 use App\Models\Partner;
 use App\Service\PartnerDebtService;
@@ -193,7 +194,42 @@ class PartnerController extends Controller
             return $this->errorResponse('Error al generar las métricas globales de deuda: ' . $e->getMessage(), 500);
         }
     }
+    /**
+     * Retorna el listado de socios según su métrica de morosidad (mensual, trimestral, semestral).
+     *
+     * @param string $metric
+     * @return JsonResponse
+     */
+    public function partnersByDebtMetric(string $metric): JsonResponse
+    {
+        try {
+            // Intentamos convertir el string recibido en un Enum válido
+            $metricEnum = DebtMetricType::tryFrom(strtolower($metric));
 
+            // Si devuelve null, es porque mandaron algo distinto a los 3 casos permitidos
+            if (!$metricEnum) {
+                return $this->errorResponse(
+                    'Métrica no válida. Las opciones permitidas son: mensual, trimestral, semestral.',
+                    400
+                );
+            }
+
+            // Invocamos el servicio pasando el Enum validado
+            $partners = $this->debtService->getPartnersByDebtMetric($metricEnum);
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'metric'         => $metricEnum->value,
+                    'partners_quantity' => count($partners),
+                    'partners'          => $partners,
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al obtener el listado de socios morosos: ' . $e->getMessage(), 500);
+        }
+    }
     /**
      * Ejecuta el servicio para obtener el conteo de invitados del mes por acción.
      * Get: /partner/guest
