@@ -235,7 +235,8 @@ class PartnerDebtService
     }
 
     /**
-     * Retorna el listado de socios filtrados por una métrica de deuda específica.
+     * Retorna el listado de socios filtrados por una métrica de deuda específica,
+     * optimizado para detener la búsqueda al cumplir la condición y reducir el payload.
      *
      * @param DebtMetricType $metricType
      * @return array
@@ -243,61 +244,51 @@ class PartnerDebtService
     public function getPartnersByDebtMetric(DebtMetricType $metricType): array
     {
         $partnersSummary = $this->getTitularDebtSummaryList();
-        $previousMonth = now()->subMonth()->format('Y-m');
+
+        // 1. Definimos el límite exacto de deudas que necesitamos encontrar
+        $limiteDeudas = match ($metricType) {
+            DebtMetricType::MENSUAL    => 1,
+            DebtMetricType::TRIMESTRAL => 3,
+            DebtMetricType::SEMESTRAL  => 6,
+        };
 
         $partnersList = [];
 
         foreach ($partnersSummary as $partnerData) {
             $partnerTotalDebt = (float) $partnerData['total'];
-            $deudaPorMes      = $partnerData['deuda'];
 
-            // Si no debe nada, lo saltamos
+            // Si el socio no tiene deuda total, lo descartamos inmediatamente
             if ($partnerTotalDebt <= 0) continue;
 
-            // Calculamos los meses con deuda del socio
-            $mesesConDeuda = 0;
-            foreach ($deudaPorMes as $monto) {
+            $deudaPorMes      = $partnerData['deuda'];
+            $deudasDetectadas = [];
+            $contadorDeudas   = 0;
+            $cumpleMetrica    = false;
+
+            // 2. Iteramos el historial (asumiendo que viene desde el mes más actual hacia atrás)
+            foreach ($deudaPorMes as $mes => $monto) {
                 if ($monto > 0) {
-                    $mesesConDeuda++;
+                    // Guardamos solo el mes detectado con deuda
+                    $deudasDetectadas[$mes] = $monto;
+                    $contadorDeudas++;
+
+                    // 3. ¡El Cortocircuito!
+                    // Si alcanzamos el límite que exige la métrica, detenemos el bucle.
+                    if ($contadorDeudas === $limiteDeudas) {
+                        $cumpleMetrica = true;
+                        break;
+                    }
                 }
             }
 
-            $matchesMetric = false;
-
-            // Evaluamos si el socio entra en la métrica solicitada
-            switch ($metricType) {
-                case DebtMetricType::MENSUAL:
-                    // Misma lógica: si tiene deuda del mes anterior
-                    if (isset($deudaPorMes[$previousMonth]) && $deudaPorMes[$previousMonth] > 0) {
-                        $matchesMetric = true;
-                    }
-                    break;
-
-                case DebtMetricType::TRIMESTRAL:
-                    // Morosos 3 meses o más
-                    if ($mesesConDeuda >= 3) {
-                        $matchesMetric = true;
-                    }
-                    break;
-
-                case DebtMetricType::SEMESTRAL:
-                    // Morosos 6 meses o más
-                    if ($mesesConDeuda >= 6) {
-                        $matchesMetric = true;
-                    }
-                    break;
-            }
-
-            // Si cumple con la condición, lo agregamos a nuestra lista de respuesta
-            if ($matchesMetric) {
+            // 4. Si el socio cumplió la métrica, lo añadimos al listado final
+            if ($cumpleMetrica) {
                 $partnersList[] = [
-                    // NOTA: Ajusta estas llaves ('acc', 'nombre') según la
-                    // estructura real de lo que devuelve tu getTitularDebtSummaryList()
-                    'acc'             => $partnerData['acc'] ?? null,
-                    'nombre'          => $partnerData['nombre'] ?? 'Socio Desconocido',
-                    'total_deuda'     => round($partnerTotalDebt, 2),
-                    'meses_con_deuda' => $mesesConDeuda,
-                    'detalle_deuda'   => $deudaPorMes
+                    'acc'           => $partnerData['acc'] ?? null,
+                    'nombre'        => $partnerData['nombre'] ?? 'Socio Desconocido',
+                    'total_deuda'   => round($partnerTotalDebt, 2),
+                    // El payload ahora solo contiene los 1, 3 o 6 meses estrictamente necesarios
+                    'detalle_deuda' => $deudasDetectadas
                 ];
             }
         }
