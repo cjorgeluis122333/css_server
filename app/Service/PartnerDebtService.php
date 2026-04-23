@@ -243,7 +243,9 @@ class PartnerDebtService
      */
     public function getPartnersByDebtMetric(DebtMetricType $metricType): array
     {
+        // 1. Obtenemos los datos base (sin nombres) y nuestro nuevo lookup de nombres
         $partnersSummary = $this->getTitularDebtSummaryList();
+        $namesLookup = $this->getPartnersNameLookup();
 
         // 1. Definimos el límite exacto de deudas que necesitamos encontrar
         $limiteDeudas = match ($metricType) {
@@ -255,6 +257,7 @@ class PartnerDebtService
         $partnersList = [];
 
         foreach ($partnersSummary as $partnerData) {
+            $acc = (int) $partnerData['acc'];
             $partnerTotalDebt = (float) $partnerData['total'];
 
             // Si el socio no tiene deuda total, lo descartamos inmediatamente
@@ -265,7 +268,7 @@ class PartnerDebtService
             $contadorDeudas   = 0;
             $cumpleMetrica    = false;
 
-            // 2. Iteramos el historial (asumiendo que viene desde el mes más actual hacia atrás)
+            // 2. Aplicamos el Cortocircuito (Optimización de CPU)
             foreach ($deudaPorMes as $mes => $monto) {
                 if ($monto > 0) {
                     // Guardamos solo el mes detectado con deuda
@@ -281,13 +284,12 @@ class PartnerDebtService
                 }
             }
 
-            // 4. Si el socio cumplió la métrica, lo añadimos al listado final
+            // 3. Si cumple la métrica, inyectamos el nombre desde nuestro lookup
             if ($cumpleMetrica) {
                 $partnersList[] = [
-                    'acc'           => $partnerData['acc'] ?? null,
-                    'nombre'        => $partnerData['nombre'] ?? 'Socio Desconocido',
+                    'acc'           => $acc,
+                    'nombre'        => $namesLookup[$acc] ?? 'Socio Desconocido',
                     'total_deuda'   => round($partnerTotalDebt, 2),
-                    // El payload ahora solo contiene los 1, 3 o 6 meses estrictamente necesarios
                     'detalle_deuda' => $deudasDetectadas
                 ];
             }
@@ -648,5 +650,18 @@ class PartnerDebtService
         }
 
         return $parsedMonth < $defaultStartMonth ? $defaultStartMonth : $parsedMonth;
+    }
+
+
+
+    /**
+     * Obtiene los nombres de los socios titulares indexados por su cuenta.
+     * * @return \Illuminate\Support\Collection
+     */
+    private function getPartnersNameLookup(): \Illuminate\Support\Collection
+    {
+        // Usamos el mismo método de origen que el summary list para ser consistentes
+        return $this->getEligibleTitularPartners()
+            ->pluck('nombre', 'acc');
     }
 }
