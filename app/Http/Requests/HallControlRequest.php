@@ -14,9 +14,13 @@ class HallControlRequest extends FormRequest
 
     public function rules(): array
     {
+        // Para PUT/PATCH el salon ya existe en el registro — no debe requerirse ni modificarse.
+        // Para POST es obligatorio identificar a qué salón corresponde el nuevo registro.
+        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
+
         return [
             'fecha'  => 'nullable|date',
-            'salon'  => 'required|string|max:30',
+            'salon'  => $isUpdate ? 'sometimes|string|max:30' : 'required|string|max:30',
             'acc'    => 'nullable|integer',
             'nombre' => 'nullable|string|max:50',
             'abono'  => 'nullable|numeric|min:0',
