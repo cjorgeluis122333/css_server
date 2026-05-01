@@ -2,54 +2,79 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enum\UserRole;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+
 class User extends Authenticatable
 {
-    use Notifiable, HasApiTokens; // <--- 2. USAR ESTO
+    use Notifiable, HasApiTokens;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'acc',
         'correo',
         'cedula',
         'password',
-        'role'
+        'role',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'password' => 'hashed',
             'acc' => 'integer',
+            'role' => UserRole::class,
         ];
     }
 
-// Relación para obtener TODOS los socios que pertenecen a esta acción
     public function familyMembers()
     {
         return $this->hasMany(Partner::class, 'acc', 'acc');
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->acc === 1000;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->acc >= 991 && $this->acc <= 999;
+    }
+
+    public function isOperator(): bool
+    {
+        return $this->acc >= 961 && $this->acc <= 990;
+    }
+
+    public function isSupervisor(): bool
+    {
+        return $this->acc >= 931 && $this->acc <= 960;
+    }
+
+    public function isAlly(): bool
+    {
+        return $this->acc >= 901 && $this->acc <= 930;
+    }
+
+    public function isHonorary(): bool
+    {
+        return $this->acc >= 801 && $this->acc <= 900;
+    }
+
+    public function isPartner(): bool
+    {
+        return $this->acc >= 1 && $this->acc <= 800;
+    }
+
+    public function hasRole(UserRole ...$roles): bool
+    {
+        return in_array(UserRole::fromAcc($this->acc), $roles);
     }
 }

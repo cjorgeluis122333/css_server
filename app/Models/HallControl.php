@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HallControl extends Model
 {
@@ -24,6 +25,12 @@ class HallControl extends Model
         'abono',
         'pago',
         'pases',
-        'hora'
+        'hora',
+        'performed_by',
     ];
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'performed_by');
+    }
 }

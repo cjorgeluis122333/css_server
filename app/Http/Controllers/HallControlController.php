@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\HallControlRequest;
+use App\Http\Resources\HallControlResource;
 use App\Service\HallControlService;
 use App\Traits\ApiResponse;
 use Exception;
@@ -26,7 +27,7 @@ class HallControlController extends Controller
     {
         try {
             $register = $this->salonService->getAll();
-            return $this->successResponse($register, 'Registros obtenidos correctamente.');
+            return $this->successResponse(HallControlResource::collection($register), 'Registros obtenidos correctamente.');
         } catch (Exception $e) {
             return $this->errorResponse('Ocurrió un error al obtener los registros.', 500);
         }
@@ -38,7 +39,7 @@ class HallControlController extends Controller
             $history = $this->salonService->getRecentHistory();
 
             return $this->successResponse(
-                $history,
+                HallControlResource::collection($history),
                 'Historial de salones obtenido correctamente.'
             );
         } catch (Exception $e) {
@@ -55,9 +56,14 @@ class HallControlController extends Controller
         try {
             // El request ya viene validado aquí
             $register = $this->salonService->create($request->validated());
-            return $this->successResponse($register, 'Registro creado exitosamente.', 201);
+            return $this->successResponse(new HallControlResource($register), 'Registro creado exitosamente.', 201);
         } catch (Exception $e) {
-            return $this->errorResponse('Ocurrió un error al crear el registro.', 500);
+            \Log::error('HallControl Store Error', [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'validated_data' => $request->validated(),
+            ]);
+            return $this->errorResponse('Error al crear registro: ' . $e->getMessage(), 500);
         }
     }
 
@@ -72,7 +78,7 @@ class HallControlController extends Controller
             return $this->errorResponse('Registro no encontrado.', 404);
         }
 
-        return $this->successResponse($register, 'Registro obtenido correctamente.');
+        return $this->successResponse(new HallControlResource($register), 'Registro obtenido correctamente.');
     }
 
     /**
@@ -90,7 +96,7 @@ class HallControlController extends Controller
             // Pasamos los datos validados al servicio
             $updatedSalon = $this->salonService->update($salon, $request->validated());
             
-            return $this->successResponse($updatedSalon, 'Salón actualizado correctamente.');
+            return $this->successResponse(new HallControlResource($updatedSalon), 'Salón actualizado correctamente.');
         } catch (Exception $e) {
             return $this->errorResponse('Ocurrió un error al actualizar el salón.', 500);
         }

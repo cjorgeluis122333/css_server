@@ -12,18 +12,20 @@ class HistoryPay extends Model
 
     protected $fillable = [
         'acc', 'time', 'fecha', 'mes',
-        'oper', 'resibo','control','factura',  //new
+        'oper', 'resibo','control','factura',
         'monto', 'descript',
-        'observaciones',   //new
-        'seniat', 'operador'
+        'observaciones',
+        'seniat', 'operador',
+        'performed_by',
     ];
 
-    /**
-     * Relación inversa: Un historial pertenece a un Socio (Partner)
-     * Se usa 'acc' como llave foránea y local.
-     */
     public function partner(): BelongsTo
     {
         return $this->belongsTo(Partner::class, 'acc', 'acc');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'performed_by');
     }
 }
