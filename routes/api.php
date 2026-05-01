@@ -97,11 +97,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/halls-control/{halls_control}', [HallControlController::class, 'show'])->name('halls-control.show');
     });
 
-    // === Salones: reservar/editar/eliminar (SUPER_ADMIN + ADMIN + HONORARY own + PARTNER own) ===
+    // === Salones: reservar/eliminar (SUPER_ADMIN + ADMIN + HONORARY own + PARTNER own) ===
     Route::middleware('can:reserve-salones')->group(function () {
         Route::post('/halls-control', [HallControlController::class, 'store'])->name('halls-control.store');
-        Route::put('/halls-control/{halls_control}', [HallControlController::class, 'update'])->name('halls-control.update');
         Route::delete('/halls-control/{halls_control}', [HallControlController::class, 'destroy'])->name('halls-control.destroy');
+    });
+
+    // === Salones: editar reservas (SUPER_ADMIN + ADMIN únicamente) ===
+    Route::middleware('can:manage-halls-control')->group(function () {
+        Route::put('/halls-control/{halls_control}', [HallControlController::class, 'update'])->name('halls-control.update');
     });
 
     // === Salones: gestión de precios (SUPER_ADMIN + ADMIN) ===

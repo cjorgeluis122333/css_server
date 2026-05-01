@@ -242,7 +242,7 @@ return DB::transaction(function () use ($data) {
 | `Guest`           | `0cc_invitados_unificados`   | `ind` | No         | Invitados por fecha con límites de negocio     |
 | `RegisteredGuest` | `0cc_invitados`              | `ind` | No         | Catálogo de invitados conocidos                |
 | `Hall`            | `0cc_salones`                | `ind` | No         | Precios de salones (socio / no socio)          |
-| `HallControl`     | `salones_control_unificado`  | `ind` | No         | Reservas y control de salones                  |
+| `HallControl`     | `0cc_salones_control_unificado` | `ind` | No      | Reservas y control de salones                  |
 | `Manager`         | `0cc_directivos_datos`       | `ind` | No         | Datos de directivos                            |
 | `ManagerBoards`   | `0cc_directivos_juntas`      | `year`| No         | Juntas anuales. PK no auto-incrementable       |
 
@@ -329,7 +329,8 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | `view-socios`             | `GET /partners/{partner}`, `GET /family/{family}` | `PartnerController`, `FamilyController` | + Policy ownership; PARTNER/HONORARY solo su acc |
 | `manage-directivos`       | `apiResource /manager`, `/board`          | `Manager*Controller`       | SUPER_ADMIN + ADMIN                     |
 | `view-salones`            | `GET /halls-control`                      | `HallControlController`    | Todos los autenticados                  |
-| `reserve-salones`         | `POST/PUT/DELETE /halls-control`          | `HallControlController`    | + Policy + FormRequest business rules   |
+| `reserve-salones`         | `POST/DELETE /halls-control`              | `HallControlController`    | + Policy + FormRequest business rules   |
+| `manage-halls-control`    | `PUT /halls-control/{id}`                 | `HallControlController`    | Solo SUPER_ADMIN + ADMIN                |
 | `manage-salones-precios`  | `POST/PUT/DELETE /halls-pay`              | `HallController`           | SUPER_ADMIN + ADMIN                     |
 | `access-invitados`        | `apiResource /guest`, `/register-guest`   | `Guest*Controller`         | + Policy ownership para PARTNER/HONORARY|
 | `manage-users`            | `/user-admin`                             | `UserAdminController`      | SUPER_ADMIN + ADMIN                     |

@@ -100,6 +100,11 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole(UserRole::ADMIN, UserRole::HONORARY, UserRole::PARTNER);
         });
 
+        // Salones: editar reservas existentes (solo SUPER_ADMIN + ADMIN)
+        Gate::define('manage-halls-control', function (User $user): bool {
+            return $user->hasRole(UserRole::ADMIN);
+        });
+
         // Salones: ocupar (con pago presencial)
         Gate::define('occupy-salones', function (User $user): bool {
             return $user->hasRole(UserRole::ADMIN);
