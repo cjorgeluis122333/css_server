@@ -40,18 +40,20 @@ class FamilyController extends Controller
         return  $this->successResponse($families,"Lista de todos los familiares");
     }
     /**
-     * GET /api/families/{id}
+     * GET /api/family/{acc}
      */
-    public function show($acc)
+    public function show(Request $request, $acc): \Illuminate\Http\JsonResponse
     {
+        if (($request->user()->isPartner() || $request->user()->isHonorary())
+            && $request->user()->acc != $acc
+        ) {
+            return $this->errorResponse('No tienes permiso para ver esta información.', 403);
+        }
+
         $families = Partner::onlyDependents()
             ->where('acc', $acc)
             ->select($this->familyColumns)
             ->get();
-
-        if (!$families) {
-            return $this->errorResponse('Familiar no encontrado', 404);
-        }
 
         return $this->successResponse($families);
     }

@@ -37,12 +37,17 @@ class HallControlService
 
     public function create(array $data): HallControl
     {
+        // Si no viene fecha, asignar hoy
+        if (!isset($data['fecha']) || empty($data['fecha'])) {
+            $data['fecha'] = now()->format('Y-m-d');
+        }
+        $data['performed_by'] = auth()->id();
         return HallControl::create($data);
     }
 
    public function update(HallControl $salon, array $data): HallControl
     {
-        // Eloquent actualizará solo los campos que vengan en $data
+        $data['performed_by'] = auth()->id();
         $salon->update($data);
         return $salon;
     }

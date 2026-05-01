@@ -43,8 +43,10 @@ class PartnerController extends Controller
      */
     public function showDebts(int $id): JsonResponse
     {
-        // 1. Buscamos al socio
         $partner = Partner::findOrFail($id);
+
+        // Policy: PARTNER solo ve su propia deuda
+        $this->authorize('viewDebts', $partner);
 
         $mesesAdelanto = (int) request()->query('adelanto', 0);
 
@@ -86,10 +88,11 @@ class PartnerController extends Controller
      */
     public function getAdvanceQuotes(int $id): JsonResponse
     {
-        // 1. Buscamos al socio
         $partner = Partner::findOrFail($id);
 
-        // 2. Obtenemos cuántos meses quiere proyectar (por defecto 12)
+        // Policy: PARTNER solo ve su propia deuda
+        $this->authorize('viewDebts', $partner);
+
         $monthsToProject = (int) request()->query('adelanto', 12);
 
         try {
@@ -275,8 +278,6 @@ class PartnerController extends Controller
      */
     public function show($id)
     {
-        // Buscamos por ID ('ind') pero aseguramos que sea TITULAR.
-        // Si el ID existe pero es un FAMILIAR, devolverá 404 (seguridad).
         $partner = Partner::holders()
             ->where('acc', $id)
             ->first();
@@ -284,6 +285,9 @@ class PartnerController extends Controller
         if (! $partner) {
             return $this->errorResponse('Socio titular no encontrado', 404);
         }
+
+        // Policy: PARTNER/HONORARY solo ven sus propios datos
+        $this->authorize('view', $partner);
 
         return $this->successResponse($partner);
     }

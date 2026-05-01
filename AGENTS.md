@@ -1,6 +1,6 @@
 # 🤖 Project Context & Agent Rules
 
-> **Última actualización:** 21 de abril de 2026
+> **Última actualización:** 30 de abril de 2026
 > Este archivo es la guía definitiva para cualquier agente IA que trabaje en este repositorio. Léelo **completo** antes de escribir una sola línea de código.
 
 ---
@@ -67,7 +67,7 @@ Services (lógica de negocio)
 Models (Eloquent directo — sin Repository)
 ```
 
-**No se utilizan:** Repositories, DTOs, Actions, Events/Listeners, Jobs, Policies.
+**No se utilizan:** Repositories, DTOs, Actions, Events/Listeners, Jobs.
 
 ### Patrones Implementados
 
@@ -76,13 +76,16 @@ Models (Eloquent directo — sin Repository)
 | **Service Layer**             | `app/Service/` — 11 services con lógica de negocio                             |
 | **FormRequest Validation**    | `app/Http/Requests/` — validación desacoplada de controllers                   |
 | **API Response Trait**        | `app/Traits/ApiResponse.php` — formato estándar JSON                           |
-| **API Resources**             | `app/Http/Resources/` — transformación de modelos (parcialmente implementado)   |
-| **Backed Enums (PHP 8.1)**    | `app/Enum/` — `PartnerCategory`, `UserRole`                                   |
+| **API Resources**             | `app/Http/Resources/` — transformación de modelos + display condicional RBAC   |
+| **Backed Enums (PHP 8.1)**    | `app/Enum/` — `PartnerCategory`, `UserRole`, `DebtMetricType`                 |
 | **Eloquent Scopes**           | Filtros reutilizables en modelos (`scopeHolders()`, `scopeCurrentMonth()`)     |
 | **Constructor DI**            | Controllers inyectan Services; Services pueden inyectar otros Services         |
 | **DB Transactions**           | `DB::transaction()` en operaciones de escritura críticas                       |
 | **Global Exception Handling** | `bootstrap/app.php` maneja excepciones para rutas `api/*`                      |
 | **Excel Exports**             | `FromArray` + `WithHeadings` + `WithStyles` + `ShouldAutoSize`                |
+| **Gates (Authorization)**     | `AppServiceProvider::boot()` — 14 gates para control de acceso por módulo     |
+| **Policies (Ownership)**      | `app/Policies/` — 4 policies para validación de propiedad de datos            |
+| **Audit Trail**               | `performed_by` en tablas de operaciones, visible solo para SUPER_ADMIN         |
 
 ---
 
@@ -90,14 +93,15 @@ Models (Eloquent directo — sin Repository)
 
 ```
 app/
-├── Enum/                  # PHP 8.1 Backed Enums (PartnerCategory, UserRole)
+├── Enum/                  # PHP 8.1 Backed Enums (PartnerCategory, UserRole, DebtMetricType)
 ├── Exports/               # Clases de exportación Excel (Maatwebsite)
 ├── Http/
 │   ├── Controllers/       # 14 controllers (thin, delegan a Services)
 │   ├── Middleware/         # Middleware personalizado
 │   ├── Requests/          # FormRequest validation classes
-│   └── Resources/         # API Resource transformations
+│   └── Resources/         # API Resource transformations (con display condicional RBAC)
 ├── Models/                # 16 modelos Eloquent
+├── Policies/              # 4 Policies: Partner, HallControl, Guest, HistoryPay
 ├── Providers/             # Service Providers (AppServiceProvider)
 ├── Service/               # ⚠️ SINGULAR — 11 services de lógica de negocio
 └── Traits/                # Traits compartidos (ApiResponse)
@@ -194,7 +198,7 @@ class MiController extends Controller
 | ------------- | ------------------------------------------------------------------------------ |
 | **Controllers** | `try/catch (Exception $e)` → `$this->errorResponse('mensaje', 500)`         |
 | **Services**    | `throw new \Exception('mensaje', 422)` para reglas de negocio violadas       |
-| **Global**      | `bootstrap/app.php` maneja: `AuthenticationException` (401), `ValidationException` (422), `NotFoundHttpException` (404), `QueryException` (500) |
+| **Global**      | `bootstrap/app.php` maneja: `AuthenticationException` (401), `AuthorizationException` (403), `ValidationException` (422), `NotFoundHttpException` (404), `QueryException` (500) |
 
 ### 6. Inyección de Dependencias
 
@@ -305,30 +309,39 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | GET    | `/partners/solvencia`   | `PartnerController`   | Resumen de deuda pública  |
 | GET    | `/partners/access`      | `PartnerController`   | Validación de acceso      |
 
-### Rutas Protegidas (`auth:sanctum`)
+### Rutas Protegidas (`auth:sanctum`) — Segmentadas por Gates
 
-| Recurso             | Tipo          | Controller                 | Notas                          |
-| ------------------- | ------------- | -------------------------- | ------------------------------ |
-| `partners`          | `apiResource` | `PartnerController`        | + rutas custom de deuda        |
-| `family`            | `apiResource` | `FamilyController`         | Familiares de socios           |
-| `manager`           | `apiResource` | `ManagerController`        | Directivos                     |
-| `board`             | `apiResource` | `ManagerBoardsController`  | Juntas directivas              |
-| `history`           | `apiResource` | `HistoryPayController`     | + historial reciente, por mes  |
-| `halls-pay`         | `apiResource` | `HallController`           | Precios de salones             |
-| `halls-control`     | `apiResource` | `HallControlController`    | Control de salones             |
-| `fee`               | `apiResource` | `FeeController`            | Cuotas + por mes               |
-| `guest`             | `apiResource` | `GuestController`          | + conteo mensual               |
-| `register-guest`    | `apiResource` | `RegisteredGuestController`| Catálogo de invitados          |
+| Gate / Permiso            | Recurso / Ruta                            | Controller                 | Notas                                   |
+| ------------------------- | ----------------------------------------- | -------------------------- | --------------------------------------- |
+| *(todos autenticados)*    | `POST /logout`, `GET /user`, `GET /halls-pay`, `GET /halls-pay/{id}` | `AuthController`, `HallController` | Sin restricción de rol |
+| `list-socios`             | `GET /partners`                           | `PartnerController`        | SUPER_ADMIN + ADMIN                     |
+| `view-own-debt`           | `GET /partners/debs/{id}`                 | `PartnerController`        | + Policy: PARTNER solo su acc           |
+| `view-own-debt`           | `GET /partners/debs/advance/{id}`         | `PartnerController`        | + Policy: PARTNER solo su acc           |
+| `access-finanzas`         | `GET /history`, `POST /history`, `PUT/DELETE /history/{id}` | `HistoryPayController`     | SUPER_ADMIN + ADMIN                     |
+| `view-own-debt`           | `GET /history/{acc}`                      | `HistoryPayController`     | + ownership: PARTNER solo su acc        |
+| `access-finanzas`         | `GET /partners/solvencia/metrics`         | `PartnerController`        | Métricas globales de morosidad          |
+| `access-finanzas`         | `GET /generate/exel/solvencia/{year}`     | `ExcelController`          | Exportar deuda a Excel                  |
+| `access-solvencia`        | `GET /partners/solvencia/{year}`          | `PartnerController`        | + OPERATOR + SUPERVISOR                 |
+| `manage-cuotas`           | `apiResource fee`                         | `FeeController`            | Solo SUPER_ADMIN                        |
+| `list-socios`             | `GET /partners`                           | `PartnerController`        | SUPER_ADMIN + ADMIN                     |
+| `view-socios`             | `GET /partners/{partner}`                 | `PartnerController`        | + Policy ownership                      |
+| `manage-socios`           | `POST/PUT/DELETE /partners`, `GET/POST/PUT/DELETE /family` (excl. show) | `PartnerController`, `FamilyController` | + `apiResource /family` sin show |
+| `view-socios`             | `GET /partners/{partner}`, `GET /family/{family}` | `PartnerController`, `FamilyController` | + Policy ownership; PARTNER/HONORARY solo su acc |
+| `manage-directivos`       | `apiResource /manager`, `/board`          | `Manager*Controller`       | SUPER_ADMIN + ADMIN                     |
+| `view-salones`            | `GET /halls-control`                      | `HallControlController`    | Todos los autenticados                  |
+| `reserve-salones`         | `POST/PUT/DELETE /halls-control`          | `HallControlController`    | + Policy + FormRequest business rules   |
+| `manage-salones-precios`  | `POST/PUT/DELETE /halls-pay`              | `HallController`           | SUPER_ADMIN + ADMIN                     |
+| `access-invitados`        | `apiResource /guest`, `/register-guest`   | `Guest*Controller`         | + Policy ownership para PARTNER/HONORARY|
+| `manage-users`            | `/user-admin`                             | `UserAdminController`      | SUPER_ADMIN + ADMIN                     |
 
 **Rutas adicionales destacadas:**
-- `GET /partners/{id}/debts` — Deudas de un socio
-- `GET /partners/{id}/advance-quotes` — Cuotas adelantadas
-- `GET /partners/metrics` — Métricas globales de morosidad
-- `GET /history/months/{acc}` — Meses con pagos
-- `GET /history/recent/{acc}` — Historial reciente
+- `GET /partners/debs/{id}` — Estado de cuenta (con Policy de propiedad)
+- `GET /partners/debs/advance/{id}` — Cuotas adelantadas
+- `GET /partners/solvencia/metrics` — Métricas globales de morosidad
+- `GET /partners/solvencia/metrics/{metric}` — Socios por métrica de deuda
 - `POST /logout` — Cierre de sesión
-- `GET /excel/titular-debt` — Exportar deuda a Excel
-- `POST /user-admin` — CRUD de usuarios admin
+- `GET /generate/exel/solvencia/{year}` — Exportar deuda a Excel
+- `GET /user-admin` — Listar usuarios (CRUD admin)
 
 ---
 

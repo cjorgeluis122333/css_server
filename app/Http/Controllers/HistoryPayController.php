@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\HistoryPayRequest;
+use App\Http\Resources\HistoryPayResource;
 use App\Models\HistoryPay;
 use App\Models\Partner;
 use App\Service\HistoryPayService;
@@ -29,19 +30,21 @@ class HistoryPayController extends Controller
     public function index(Request $request)
     {
         try {
-            // 1. Determinamos cuántos elementos por página (por defecto 15)
             $perPage = $request->input('per_page', 25);
 
-            // 2. Construimos la consulta robusta
-            $history = HistoryPay::with('partner') // Carga la relación para evitar lentitud
-            ->orderBy('fecha', 'desc')         // Primero por fecha
-            ->paginate($perPage);
+            $query = HistoryPay::with('partner')
+                ->orderBy('fecha', 'desc');
 
-            // 3. Retornamos la respuesta estructurada
-            return response()->json($history, 200);
+            // Eager load creator only for SUPER_ADMIN
+            if ($request->user() && $request->user()->isSuperAdmin()) {
+                $query->with('creator');
+            }
+
+            $history = $query->paginate($perPage);
+
+            return HistoryPayResource::collection($history);
 
         } catch (Exception $e) {
-            // Logueamos el error para debugging
             Log::error("Error al obtener historial de pagos: " . $e->getMessage());
 
             return response()->json([
@@ -96,6 +99,10 @@ class HistoryPayController extends Controller
      */
     public function show(Request $request, $acc): JsonResponse
     {
+        if ($request->user()->isPartner() && $request->user()->acc != $acc) {
+            return $this->errorResponse('No tienes permiso para ver esta información.', 403);
+        }
+
         $history = HistoryPay::where('acc', $acc)
             ->orderBy('fecha', 'desc')
             ->paginate(15);

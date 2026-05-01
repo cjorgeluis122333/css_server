@@ -13,8 +13,7 @@ class HistoryPayService
     public function createHistory(array $data): HistoryPay
     {
         try {
-            // Aquí podrías agregar lógica extra, como formatear la fecha
-            // o calcular el 'mes' automáticamente si no viene.
+            $data['performed_by'] = auth()->id();
             return HistoryPay::create($data);
         } catch (Exception $e) {
             Log::error("Error al crear historial de pago: " . $e->getMessage());
