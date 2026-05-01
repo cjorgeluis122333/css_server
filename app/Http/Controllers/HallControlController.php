@@ -98,6 +98,12 @@ class HallControlController extends Controller
             
             return $this->successResponse(new HallControlResource($updatedSalon), 'Salón actualizado correctamente.');
         } catch (Exception $e) {
+            \Log::error('HallControl Update Error', [
+                'id'      => $id,
+                'message' => $e->getMessage(),
+                'code'    => $e->getCode(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
             return $this->errorResponse('Ocurrió un error al actualizar el salón.', 500);
         }
     }
