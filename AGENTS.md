@@ -314,7 +314,7 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | Gate / Permiso            | Recurso / Ruta                            | Controller                 | Notas                                   |
 | ------------------------- | ----------------------------------------- | -------------------------- | --------------------------------------- |
 | *(todos autenticados)*    | `POST /logout`, `GET /user`, `GET /halls-pay`, `GET /halls-pay/{id}` | `AuthController`, `HallController` | Sin restricción de rol |
-| `list-socios`             | `GET /partners`                           | `PartnerController`        | SUPER_ADMIN + ADMIN                     |
+| `list-socios`             | `GET /partners`                           | `PartnerController`        | SUPER_ADMIN + ADMIN + OPERATOR          |
 | `view-own-debt`           | `GET /partners/debs/{id}`                 | `PartnerController`        | + Policy: PARTNER solo su acc           |
 | `view-own-debt`           | `GET /partners/debs/advance/{id}`         | `PartnerController`        | + Policy: PARTNER solo su acc           |
 | `access-finanzas`         | `GET /history`, `POST /history`, `PUT/DELETE /history/{id}` | `HistoryPayController`     | SUPER_ADMIN + ADMIN                     |
@@ -323,7 +323,7 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | `access-finanzas`         | `GET /generate/exel/solvencia/{year}`     | `ExcelController`          | Exportar deuda a Excel                  |
 | `access-solvencia`        | `GET /partners/solvencia/{year}`          | `PartnerController`        | + OPERATOR + SUPERVISOR                 |
 | `manage-cuotas`           | `apiResource fee`                         | `FeeController`            | Solo SUPER_ADMIN                        |
-| `list-socios`             | `GET /partners`                           | `PartnerController`        | SUPER_ADMIN + ADMIN                     |
+| `list-socios`             | `GET /partners`                           | `PartnerController`        | SUPER_ADMIN + ADMIN + OPERATOR          |
 | `view-socios`             | `GET /partners/{partner}`                 | `PartnerController`        | + Policy ownership                      |
 | `manage-socios`           | `POST/PUT/DELETE /partners`, `GET/POST/PUT/DELETE /family` (excl. show) | `PartnerController`, `FamilyController` | + `apiResource /family` sin show |
 | `view-socios`             | `GET /partners/{partner}`, `GET /family/{family}` | `PartnerController`, `FamilyController` | + Policy ownership; PARTNER/HONORARY solo su acc |

@@ -74,7 +74,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Socios: listar todos
         Gate::define('list-socios', function (User $user): bool {
-            return $user->hasRole(UserRole::ADMIN);
+            return $user->hasRole(UserRole::ADMIN, UserRole::OPERATOR);
         });
 
         // Socios: crear, editar, eliminar
