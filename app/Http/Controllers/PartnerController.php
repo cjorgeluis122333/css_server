@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enum\DebtMetricType;
+use App\Enum\UserRole;
 use App\Http\Requests\PartnerRequest;
 use App\Models\Partner;
 use App\Service\PartnerDebtService;
@@ -145,8 +146,10 @@ class PartnerController extends Controller
     public function titularDebtSummaryByYear(int $year): JsonResponse
     {
         try {
-            // Recibe solo el año por parámetro (ej. 2026) y lo pasa al servicio
-            $summary = $this->debtService->titularDebtSummaryByYear($year);
+            $user = auth()->user();
+            $accFilter = $user->hasRole(UserRole::SUPERVISOR) ? $user->acc : null;
+
+            $summary = $this->debtService->titularDebtSummaryByYear($year, $accFilter);
 
             return response()->json([
                 'status' => 'success',

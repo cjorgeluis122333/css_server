@@ -78,7 +78,7 @@ class PartnerDebtService
 
         return $result;
     }
-    public function titularDebtSummaryByYear(int $year): array
+    public function titularDebtSummaryByYear(int $year, ?int $accFilter = null): array
     {
         $currentMonth = now()->format('Y-m');
 
@@ -87,6 +87,11 @@ class PartnerDebtService
         $endOfYear = "{$year}-12";
 
         $partners = $this->getEligibleTitularPartners();
+
+        // Si se provee un filtro de acc (ej. rol SUPERVISOR), solo incluir ese socio
+        if ($accFilter !== null) {
+            $partners = $partners->where('acc', $accFilter)->values();
+        }
 
         if ($partners->isEmpty()) {
             return [];
