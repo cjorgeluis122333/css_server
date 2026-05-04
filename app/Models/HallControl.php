@@ -26,7 +26,6 @@ class HallControl extends Model
         'pago',
         'pases',
         'hora',
-        'performed_by',
     ];
 
     public function creator(): BelongsTo
