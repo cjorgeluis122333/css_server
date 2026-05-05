@@ -63,7 +63,8 @@ class GuestController extends Controller
             $guest = $this->guestService->createGuest($data);
             return $this->successResponse(new GuestResource($guest), "Invitado registrado correctamente.", 201);
         } catch (Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
+            $statusCode = (int) ($e->getCode() ?: 500);
+            $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
             return $this->errorResponse($e->getMessage(), $statusCode);
         }
     }
@@ -95,7 +96,8 @@ class GuestController extends Controller
             $updatedGuest = $this->guestService->updateGuest($ind, $request->validated());
             return $this->successResponse(new GuestResource($updatedGuest), "Invitado actualizado correctamente.");
         } catch (Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
+            $statusCode = (int) ($e->getCode() ?: 500);
+            $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
             return $this->errorResponse($e->getMessage(), $statusCode);
         }
     }
