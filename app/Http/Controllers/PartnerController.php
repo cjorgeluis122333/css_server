@@ -238,12 +238,18 @@ class PartnerController extends Controller
     }
     /**
      * Ejecuta el servicio para obtener el conteo de invitados del mes por acción.
-     * Get: /partner/guest
+     * Get: /partner/guest?month=2026-01
      */
-    public function getMonthlyGuestsCount(): JsonResponse
+    public function getMonthlyGuestsCount(Request $request): JsonResponse
     {
         try {
-            $data = $this->partnerService->getGuestCountThisMonth();
+            $month = $request->query('month');
+
+            if ($month && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month)) {
+                return $this->errorResponse('Formato de mes inválido. Use yyyy-MM (ej: 2026-01).', 400);
+            }
+
+            $data = $this->partnerService->getGuestCountByMonth($month);
 
             return response()->json([
                 'success' => true,
@@ -251,7 +257,6 @@ class PartnerController extends Controller
             ], 200);
 
         } catch (Exception $e) {
-            // Manejo básico de errores para no exponer la traza completa
             return response()->json([
                 'success' => false,
                 'message' => 'Ocurrió un error al procesar la consulta.',

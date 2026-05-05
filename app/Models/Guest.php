@@ -54,4 +54,13 @@ class Guest extends Model
         $query->whereMonth('fecha', $now->month)
             ->whereYear('fecha', $now->year);
     }
+
+    /**
+     * Filtra los registros por un mes y año específicos.
+     */
+    public function scopeByMonth(Builder $query, int $year, int $month): void
+    {
+        $query->whereYear('fecha', $year)
+            ->whereMonth('fecha', $month);
+    }
 }

@@ -2,8 +2,9 @@
 
 namespace App\Service;
 use App\Enum\PartnerCategory;
-use Illuminate\Support\Facades\DB;
 use App\Models\Partner;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 class PartnerService
 {
 
@@ -39,21 +40,23 @@ class PartnerService
      * Tomar socios mas el total de invitados del mes actual
      */
     /**
-     * Retorna una lista con la cuenta (acc) y el total de invitados del mes actual,
+     * Retorna una lista con la cuenta (acc) y el total de invitados de un mes dado,
      * solo para socios Titulares que no estén marcados como DESOCUPADO.
+     *
+     * @param string|null $month Fecha en formato yyyy-MM (ej: 2026-01). Si es null, usa el mes actual.
      */
-    public function getGuestCountThisMonth()
+    public function getGuestCountByMonth(?string $month = null)
     {
+        $date = $month ? Carbon::createFromFormat('Y-m', $month) : Carbon::now();
+
         return Partner::query()
-            ->select('acc') // Solo necesitamos cargar este campo en memoria
-            ->holders() // Filtra por PartnerCategory::TITULAR
+            ->select('acc')
+            ->holders()
             ->where('nombre', 'NOT LIKE', '%DESOCUPADO%')
-            // Contamos la relación 'invitations' aplicando el scope 'currentMonth' del modelo Guest
-            ->withCount(['invitations as count_guest' => function ($query) {
-                $query->currentMonth();
+            ->withCount(['invitations as count_guest' => function ($query) use ($date) {
+                $query->byMonth($date->year, $date->month);
             }])
             ->get()
-            // Mapeamos para retornar estrictamente un arreglo con los dos campos solicitados
             ->map(function ($partner) {
                 return [
                     'acc' => $partner->acc,
