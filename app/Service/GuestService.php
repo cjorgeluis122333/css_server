@@ -62,7 +62,6 @@ class GuestService
             );
 
             // B. Crear el registro en el historial de invitados
-            $data['performed_by'] = auth()->id();
             return Guest::create($data);
         });
     }

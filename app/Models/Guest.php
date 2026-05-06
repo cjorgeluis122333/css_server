@@ -16,7 +16,6 @@ class Guest extends Model
 
     protected $fillable = [
         'cedula', 'nombre', 'fecha', 'acc', 'fuente', 'operador',
-        'performed_by',
     ];
 
     protected $casts = [
@@ -35,11 +34,6 @@ class Guest extends Model
     {
         return $this->belongsTo(Partner::class, 'acc', 'acc')
             ->where('categoria', PartnerCategory::TITULAR);
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'performed_by');
     }
 
     // --- SCOPES ---
