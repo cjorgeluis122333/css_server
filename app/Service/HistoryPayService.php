@@ -13,7 +13,6 @@ class HistoryPayService
     public function createHistory(array $data): HistoryPay
     {
         try {
-            $data['performed_by'] = auth()->id();
             return HistoryPay::create($data);
         } catch (Exception $e) {
             Log::error("Error al crear historial de pago: " . $e->getMessage());

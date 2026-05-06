@@ -16,7 +16,6 @@ class HistoryPay extends Model
         'monto', 'descript',
         'observaciones',
         'seniat', 'operador',
-        'performed_by',
     ];
 
     public function partner(): BelongsTo
@@ -24,8 +23,5 @@ class HistoryPay extends Model
         return $this->belongsTo(Partner::class, 'acc', 'acc');
     }
 
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'performed_by');
-    }
 }
+

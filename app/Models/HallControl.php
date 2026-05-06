@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HallControl extends Model
 {
@@ -28,8 +27,5 @@ class HallControl extends Model
         'hora',
     ];
 
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'performed_by');
-    }
 }
+
