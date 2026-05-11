@@ -41,13 +41,18 @@ class PartnerRequest extends FormRequest
             'cedula' => [
                 'nullable',
                 'max:30',
-                // Importante: Solo aplicamos ignore si realmente encontramos un ID
-                Rule::unique('0cc_socios', 'cedula')->ignore($partnerId, 'ind')
+                // Al actualizar: ignoramos todos los registros del mismo acc (titular + familiares)
+                // Al crear: validamos unicidad global (no hay accValue)
+                $accValue
+                    ? Rule::unique('0cc_socios', 'cedula')->where(fn ($q) => $q->where('acc', '<>', (int) $accValue))
+                    : Rule::unique('0cc_socios', 'cedula'),
             ],
             'carnet' => [
                 'nullable',
                 'string',
-                Rule::unique('0cc_socios', 'carnet')->ignore($partnerId, 'ind')
+                $accValue
+                    ? Rule::unique('0cc_socios', 'carnet')->where(fn ($q) => $q->where('acc', '<>', (int) $accValue))
+                    : Rule::unique('0cc_socios', 'carnet'),
             ],
             'celular'   => ['nullable', 'string', 'max:30'],
             'telefono'  => ['nullable', 'string', 'max:20'],
