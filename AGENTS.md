@@ -21,6 +21,8 @@
 
 El frontend es una aplicación **React** en un repositorio separado que consume esta API mediante **Laravel Sanctum**.
 
+> ⚠️ **Este servidor es 100% API REST.** Nunca se retorna HTML ni vistas Blade como respuesta HTTP. Los controllers **siempre** retornan `JsonResponse`. Las vistas Blade solo existen en `resources/views/emails/` para el contenido HTML de correos electrónicos enviados vía Mailables — nunca para respuestas HTTP.
+
 ---
 
 ## 🛠 Stack Técnico
@@ -73,7 +75,8 @@ Models (Eloquent directo — sin Repository)
 
 | Patrón                        | Implementación                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------ |
-| **Service Layer**             | `app/Service/` — 11 services con lógica de negocio                             |
+| **Service Layer**             | `app/Service/` — 12 services con lógica de negocio                             |
+| **Mailables**                 | `app/Mail/` — `PasswordResetMail` para OTP de recuperación de contraseña       |
 | **FormRequest Validation**    | `app/Http/Requests/` — validación desacoplada de controllers                   |
 | **API Response Trait**        | `app/Traits/ApiResponse.php` — formato estándar JSON                           |
 | **API Resources**             | `app/Http/Resources/` — transformación de modelos + display condicional RBAC   |
@@ -96,14 +99,15 @@ app/
 ├── Enum/                  # PHP 8.1 Backed Enums (PartnerCategory, UserRole, DebtMetricType)
 ├── Exports/               # Clases de exportación Excel (Maatwebsite)
 ├── Http/
-│   ├── Controllers/       # 14 controllers (thin, delegan a Services)
+│   ├── Controllers/       # 15 controllers (thin, delegan a Services)
 │   ├── Middleware/         # Middleware personalizado
 │   ├── Requests/          # FormRequest validation classes
 │   └── Resources/         # API Resource transformations (con display condicional RBAC)
+├── Mail/                  # Mailables (PasswordResetMail)
 ├── Models/                # 16 modelos Eloquent
 ├── Policies/              # 4 Policies: Partner, HallControl, Guest, HistoryPay
 ├── Providers/             # Service Providers (AppServiceProvider)
-├── Service/               # ⚠️ SINGULAR — 11 services de lógica de negocio
+├── Service/               # ⚠️ SINGULAR — 12 services de lógica de negocio
 └── Traits/                # Traits compartidos (ApiResponse)
 
 bootstrap/
@@ -302,12 +306,15 @@ PartnerCategory::FAMILIAR  // 'familiar'
 
 ### Rutas Públicas (sin autenticación)
 
-| Método | Ruta                    | Controller            | Acción                    |
-| ------ | ----------------------- | --------------------- | ------------------------- |
-| POST   | `/register`             | `AuthController`      | Registro de usuario       |
-| POST   | `/login`                | `AuthController`      | Login (retorna token)     |
-| GET    | `/partners/solvencia`   | `PartnerController`   | Resumen de deuda pública  |
-| GET    | `/partners/access`      | `PartnerController`   | Validación de acceso      |
+| Método | Ruta                           | Controller                  | Acción                                        |
+| ------ | ------------------------------ | --------------------------- | --------------------------------------------- |
+| POST   | `/register`                    | `AuthController`            | Registro de usuario                           |
+| POST   | `/login`                       | `AuthController`            | Login (retorna token)                         |
+| GET    | `/partners/solvencia`          | `PartnerController`         | Resumen de deuda pública                      |
+| GET    | `/partners/access`             | `PartnerController`         | Validación de acceso                          |
+| POST   | `/forgot-password/request`     | `PasswordResetController`   | Paso 1: validar acc+cédula y enviar OTP       |
+| POST   | `/forgot-password/verify`      | `PasswordResetController`   | Paso 2: verificar código OTP de 6 dígitos     |
+| POST   | `/forgot-password/reset`       | `PasswordResetController`   | Paso 3: establecer nueva contraseña           |
 
 ### Rutas Protegidas (`auth:sanctum`) — Segmentadas por Gates
 
@@ -496,6 +503,7 @@ class NuevoService
 2. **No ejecutar queries Eloquent directas en controllers.** Toda interacción con la BD pasa por Services.
 3. **No validar inline en controllers.** Siempre usar FormRequest classes.
 4. **No crear endpoints en `routes/web.php`.** Este es un proyecto API-only; todas las rutas van en `routes/api.php`.
+5. **Nunca retornar vistas Blade ni HTML como respuesta HTTP.** Todos los controllers retornan exclusivamente `JsonResponse`. Las vistas Blade (`resources/views/`) están reservadas **únicamente** para el cuerpo HTML de correos electrónicos (Mailables). El frontend React es responsable de toda la presentación.
 5. **Usar `DB::transaction()`** para cualquier operación que modifique múltiples tablas/registros.
 6. **CORS permisivo** — La configuración actual permite `*` en origins. En producción, restringir a dominios específicos en `config/cors.php`.
 7. **Tokens Sanctum sin expiración** — `sanctum.expiration` está en `null`. Evaluar configurar expiración para producción.

@@ -11,6 +11,7 @@ use App\Http\Controllers\HistoryPayController;
 use App\Http\Controllers\ManagerBoardsController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\PartnerController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\RegisteredGuestController;
 use App\Http\Controllers\UserAdminController;
 use Illuminate\Http\Request;
@@ -21,6 +22,11 @@ Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/partners/solvencia', [PartnerController::class, 'titularDebtSummary'])->name('partners.titularDebtSummary');
 Route::get('/partners/access', [PartnerController::class, 'access_controller'])->name('partners.access');
+
+// --- Password recovery (public, no auth required) ---
+Route::post('/forgot-password/request', [PasswordResetController::class, 'request'])->name('forgot-password.request');
+Route::post('/forgot-password/verify', [PasswordResetController::class, 'verify'])->name('forgot-password.verify');
+Route::post('/forgot-password/reset', [PasswordResetController::class, 'reset'])->name('forgot-password.reset');
 
 // --- Authenticated routes ---
 Route::middleware('auth:sanctum')->group(function () {
