@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class HistoryPayService
 {
+
     /**
      * Crea un nuevo registro de historial.
      */
@@ -45,30 +46,36 @@ class HistoryPayService
      */
     public function computeRunningDebtMap(int $acc): array
     {
-        // 1. Determinar el mes de inicio del socio titular
+        // 1. Determinar el socio y su fecha de inicio unificada
         $partner = Partner::where('acc', $acc)
             ->where('categoria', PartnerCategory::TITULAR->value)
             ->first();
 
         $startMonth = '2019-01';
+        $surchargeMultiplier = 0.0;
 
         if ($partner) {
-            $rawIngreso = trim((string) ($partner->ingreso ?? ''));
+            // Unificamos la lógica de fecha de ingreso con getAccountStatement
+            $fechaIngreso = $partner->fecha_ingreso ?? $partner->fecha_ingreso_validada ?? $partner->ingreso;
+            $fechaLimite = Carbon::create(2019, 1, 1);
 
-            if ($rawIngreso !== '' && $rawIngreso !== '-') {
+            if ($fechaIngreso) {
                 try {
-                    $ingresoCarbon = Carbon::parse($rawIngreso);
-
-                    if ($ingresoCarbon->year >= 2019) {
+                    $ingresoCarbon = Carbon::parse($fechaIngreso);
+                    if ($ingresoCarbon->gte($fechaLimite)) {
                         $startMonth = $ingresoCarbon->format('Y-m');
                     }
                 } catch (Exception) {
-                    // Usar el mes de inicio por defecto si la fecha no es parseable
+                    // Mantiene 2019-01 si falla el parseo
                 }
             }
+
+            // EXTRAEMOS EL MULTIPLICADOR DE HIJOS MAYORES
+            $childrenData = $this->getAdultChildrenData($partner);
+            $surchargeMultiplier = $childrenData['multiplier'] ?? 0.0;
         }
 
-        // 2. Construir el lookup de cuota por mes (con arrastre del último valor conocido)
+        // 2. Construir el lookup de cuota por mes incluyendo RECARGOS
         $currentMonthKey = now()->format('Y-m');
         $allFees = Fee::all()->sortBy('mes')->keyBy('mes');
         $months = $this->generateMonthRange($startMonth, $currentMonthKey);
@@ -82,7 +89,10 @@ class HistoryPayService
                 $currentFeeValue = (float) $allFees->get($month)->total;
             }
 
-            $cumulativeFee += $currentFeeValue;
+            // APLICAMOS EL MULTIPLICADOR DE LA MISMA FORMA QUE EN getAccountStatement
+            $nominalTotal = $currentFeeValue * (1 + $surchargeMultiplier);
+
+            $cumulativeFee += $nominalTotal;
             $cumFees[$month] = round($cumulativeFee, 2);
         }
 
@@ -99,9 +109,7 @@ class HistoryPayService
         foreach ($payments as $payment) {
             $cumulativePaid += (float) $payment->monto;
 
-            // Usamos el mes en que se realizó el pago (fecha) como base para acumular cuotas,
-            // no el mes que se está pagando (mes). Así, pagar una deuda vieja en 2026
-            // descuenta del total de deuda actual (cuotas hasta hoy − pagos hasta este registro).
+            // Mes base para acumular cuotas
             $fechaMonth = $payment->fecha
                 ? Carbon::parse($payment->fecha)->format('Y-m')
                 : $payment->mes;
@@ -113,6 +121,25 @@ class HistoryPayService
         return $result;
     }
 
+
+    private function getAdultChildrenData(Partner $partner): array
+    {
+        // Filtramos para obtener la colección completa de hijos que cumplen la condición
+        $adultChildren = $partner->dependents->filter(function ($dependent) {
+            return strtolower(trim($dependent->direccion)) === 'hijo'
+                && $dependent->age !== null
+                && $dependent->age > 30;
+        });
+
+        return [
+            // Multiplicamos 0.25 por la cantidad exacta de hijos encontrados
+            'multiplier' => $adultChildren->count() * 0.25,
+
+            // Extraemos solo los nombres (asumiendo que el campo en BD se llama 'nombre')
+            // Si tu campo se llama 'name' u otra cosa, cámbialo aquí dentro del pluck()
+            'names' => $adultChildren->pluck('nombre')->toArray(),
+        ];
+    }
     private function generateMonthRange(string $start, string $end): array
     {
         $dates = [];
