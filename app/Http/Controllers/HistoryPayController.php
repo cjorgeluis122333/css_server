@@ -16,10 +16,10 @@ use Illuminate\Support\Facades\Log;
 
 class HistoryPayController extends Controller
 {
-
     use ApiResponse;
 
     protected HistoryPayService $historyService;
+
     protected PartnerDebtService $debtService;
 
     public function __construct(HistoryPayService $historyService, PartnerDebtService $debtService)
@@ -27,6 +27,7 @@ class HistoryPayController extends Controller
         $this->historyService = $historyService;
         $this->debtService = $debtService;
     }
+
     public function index(Request $request)
     {
         try {
@@ -45,16 +46,14 @@ class HistoryPayController extends Controller
             return HistoryPayResource::collection($history);
 
         } catch (Exception $e) {
-            Log::error("Error al obtener historial de pagos: " . $e->getMessage());
+            Log::error('Error al obtener historial de pagos: '.$e->getMessage());
 
             return response()->json([
                 'error' => 'No se pudo recuperar el historial',
-                'details' => $e->getMessage()
+                'details' => $e->getMessage(),
             ], 500);
         }
     }
-
-
 
     /**
      * Procesa los pagos enviados desde el frontend.
@@ -81,21 +80,21 @@ class HistoryPayController extends Controller
             );
 
             return response()->json([
-                'status'  => 'success',
-                'message' => 'Los pagos se han procesado y escalado al valor nominal correctamente.'
+                'status' => 'success',
+                'message' => 'Los pagos se han procesado y escalado al valor nominal correctamente.',
             ], 201);
 
         } catch (\Exception $e) {
             // Si el monto supera la deuda o algo falla, retornamos el error
             return response()->json([
-                'status'  => 'error',
-                'message' => $e->getMessage()
+                'status' => 'error',
+                'message' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
-     * Listar historial por socio.
+     * Listar historial por socio con deuda acumulada en cada registro.
      */
     public function show(Request $request, $acc): JsonResponse
     {
@@ -103,11 +102,25 @@ class HistoryPayController extends Controller
             return $this->errorResponse('No tienes permiso para ver esta información.', 403);
         }
 
-        $history = HistoryPay::where('acc', $acc)
-            ->orderBy('fecha', 'desc')
-            ->paginate(15);
+        try {
+            // Calcula la deuda acumulada para cada registro (necesita todos los pagos)
+            $deudaMap = $this->historyService->computeRunningDebtMap((int) $acc);
 
-        return response()->json($history);
+            $history = HistoryPay::where('acc', $acc)
+                ->orderBy('fecha', 'desc')
+                ->paginate(15);
+
+            // Inyecta el campo deuda en cada registro de la página actual
+            $history->getCollection()->transform(function (HistoryPay $record) use ($deudaMap) {
+                $record->deuda = $deudaMap[(int) $record->ind] ?? null;
+
+                return $record;
+            });
+
+            return response()->json($history);
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al obtener el historial de pagos.', 500);
+        }
     }
 
     public function update(HistoryPayRequest $request, HistoryPay $historyPay)
