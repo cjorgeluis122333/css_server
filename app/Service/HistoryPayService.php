@@ -99,7 +99,14 @@ class HistoryPayService
         foreach ($payments as $payment) {
             $cumulativePaid += (float) $payment->monto;
 
-            $totalFeesThrough = $cumFees[$payment->mes] ?? 0.0;
+            // Usamos el mes en que se realizó el pago (fecha) como base para acumular cuotas,
+            // no el mes que se está pagando (mes). Así, pagar una deuda vieja en 2026
+            // descuenta del total de deuda actual (cuotas hasta hoy − pagos hasta este registro).
+            $fechaMonth = $payment->fecha
+                ? Carbon::parse($payment->fecha)->format('Y-m')
+                : $payment->mes;
+
+            $totalFeesThrough = $cumFees[$fechaMonth] ?? 0.0;
             $result[(int) $payment->ind] = round($totalFeesThrough - $cumulativePaid, 2);
         }
 
