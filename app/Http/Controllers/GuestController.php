@@ -9,6 +9,7 @@ use App\Models\Guest;
 use App\Service\GuestService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Exception;
 
 class GuestController extends Controller
@@ -70,9 +71,10 @@ class GuestController extends Controller
     }
 
     /**
-     * Retorna los invitados del socio para el mes y año actual.
+     * Retorna los invitados del socio para un mes dado (?month=yyyy-MM).
+     * Si no se provee, usa el mes actual.
      */
-    public function currentMonth(int $acc): JsonResponse
+    public function currentMonth(Request $request, int $acc): JsonResponse
     {
         $user = auth()->user();
 
@@ -80,8 +82,14 @@ class GuestController extends Controller
             return $this->errorResponse('Solo puedes consultar invitados de tu propia acción.', 403);
         }
 
-        $guests = $this->guestService->getCurrentMonthGuests($acc);
-        return $this->successResponse(GuestResource::collection($guests), "Invitados del mes actual recuperados.");
+        $month = $request->query('month');
+
+        if ($month && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month)) {
+            return $this->errorResponse('Formato de mes inválido. Use yyyy-MM (ej: 2026-05).', 400);
+        }
+
+        $guests = $this->guestService->getCurrentMonthGuests($acc, $month ?: null);
+        return $this->successResponse(GuestResource::collection($guests), 'Invitados del mes recuperados.');
     }
 
     /**

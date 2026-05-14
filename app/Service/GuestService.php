@@ -160,14 +160,21 @@ class GuestService
     }
 
     /**
-     * Obtiene los invitados de una acción para el mes y año en curso.
+     * Obtiene los invitados de una acción para un mes dado (formato yyyy-MM).
+     * Si no se provee mes, usa el mes actual.
      */
-    public function getCurrentMonthGuests(int $acc): Collection
+    public function getCurrentMonthGuests(int $acc, ?string $month = null): Collection
     {
-        return Guest::where('acc', $acc)
-            ->currentMonth() // Uso del scope definido en tu modelo
-            ->orderBy('fecha', 'desc')
-            ->get();
+        $query = Guest::where('acc', $acc);
+
+        if ($month) {
+            $date = Carbon::createFromFormat('Y-m', $month);
+            $query->byMonth($date->year, $date->month);
+        } else {
+            $query->currentMonth();
+        }
+
+        return $query->orderBy('fecha', 'desc')->get();
     }
 
 }
