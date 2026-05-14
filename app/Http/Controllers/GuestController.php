@@ -93,6 +93,28 @@ class GuestController extends Controller
     }
 
     /**
+     * Retorna todos los invitados de todos los socios para un mes dado (?month=yyyy-MM).
+     * Solo accesible para ADMIN, OPERATOR y SUPERVISOR.
+     */
+    public function allGuests(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole(UserRole::PARTNER, UserRole::HONORARY)) {
+            return $this->errorResponse('No tienes permisos para ver invitados de todos los socios.', 403);
+        }
+
+        $month = $request->query('month');
+
+        if ($month && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month)) {
+            return $this->errorResponse('Formato de mes inválido. Use yyyy-MM (ej: 2026-05).', 400);
+        }
+
+        $guests = $this->guestService->getAllGuestsByMonth($month ?: null);
+        return $this->successResponse(GuestResource::collection($guests), 'Invitados de todos los socios recuperados.');
+    }
+
+    /**
      * Actualiza los datos de un invitado.
      */
     public function update(GuestRequest $request, int $ind): JsonResponse

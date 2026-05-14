@@ -129,6 +129,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('can:access-invitados')->group(function () {
         Route::get('/guest/{acc}', [GuestController::class, 'index'])->name('guest.index');
         Route::get('/guest-current/{acc}', [GuestController::class, 'currentMonth'])->name('guest.current-month');
+        Route::get('/guests-all', [GuestController::class, 'allGuests'])->name('guest.all');
         Route::apiResource('/guest', GuestController::class);
         Route::get('/partner/guest', [PartnerController::class, 'getMonthlyGuestsCount'])->name('guest.guest-count');
         Route::apiResource('/register-guest', RegisteredGuestController::class);

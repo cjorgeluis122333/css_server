@@ -177,4 +177,22 @@ class GuestService
         return $query->orderBy('fecha', 'desc')->get();
     }
 
+    /**
+     * Retorna todos los invitados de todos los socios, filtrados por mes (yyyy-MM).
+     * Si no se provee mes, usa el mes actual.
+     */
+    public function getAllGuestsByMonth(?string $month = null): Collection
+    {
+        $query = Guest::query();
+
+        if ($month) {
+            $date = Carbon::createFromFormat('Y-m', $month);
+            $query->byMonth($date->year, $date->month);
+        } else {
+            $query->currentMonth();
+        }
+
+        return $query->orderBy('acc')->orderBy('fecha', 'desc')->get();
+    }
+
 }
