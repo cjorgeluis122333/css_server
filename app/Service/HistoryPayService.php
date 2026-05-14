@@ -46,7 +46,7 @@ class HistoryPayService
      */
     public function computeRunningDebtMap(int $acc): array
     {
-        // 1. Determinar el socio y su fecha de inicio unificada
+        // 1. Determinar el socio
         $partner = Partner::where('acc', $acc)
             ->where('categoria', PartnerCategory::TITULAR->value)
             ->first();
@@ -55,72 +55,90 @@ class HistoryPayService
         $surchargeMultiplier = 0.0;
 
         if ($partner) {
-            // Unificamos la lógica de fecha de ingreso con getAccountStatement
-            $fechaIngreso = $partner->fecha_ingreso ?? $partner->fecha_ingreso_validada ?? $partner->ingreso;
+            // Misma validación estricta de fecha de ingreso que getAccountStatement
+            $fechaIngreso = $partner->fecha_ingreso ?? $partner->fecha_ingreso_validada;
             $fechaLimite = Carbon::create(2019, 1, 1);
 
             if ($fechaIngreso) {
                 try {
                     $ingresoCarbon = Carbon::parse($fechaIngreso);
-                    if ($ingresoCarbon->gte($fechaLimite)) {
+                    if ($ingresoCarbon->lt($fechaLimite)) {
+                        $startMonth = '2019-01';
+                    } else {
                         $startMonth = $ingresoCarbon->format('Y-m');
                     }
                 } catch (Exception) {
-                    // Mantiene 2019-01 si falla el parseo
+                    $startMonth = '2019-01';
                 }
             }
 
-            // EXTRAEMOS EL MULTIPLICADOR DE HIJOS MAYORES
+            // Multiplicador de hijos
             $childrenData = $this->getAdultChildrenData($partner);
             $surchargeMultiplier = $childrenData['multiplier'] ?? 0.0;
         }
 
-        // 2. Construir el lookup de cuota por mes incluyendo RECARGOS
-        $currentMonthKey = now()->format('Y-m');
-        $allFees = Fee::all()->sortBy('mes')->keyBy('mes');
-        $months = $this->generateMonthRange($startMonth, $currentMonthKey);
+        $allFeesLookup = Fee::all()->sortBy('mes')->keyBy('mes');
 
-        $currentFeeValue = 0.0;
-        $cumFees = [];
-        $cumulativeFee = 0.0;
-
-        foreach ($months as $month) {
-            if ($allFees->has($month)) {
-                $currentFeeValue = (float) $allFees->get($month)->total;
-            }
-
-            // APLICAMOS EL MULTIPLICADOR DE LA MISMA FORMA QUE EN getAccountStatement
-            $nominalTotal = $currentFeeValue * (1 + $surchargeMultiplier);
-
-            $cumulativeFee += $nominalTotal;
-            $cumFees[$month] = round($cumulativeFee, 2);
-        }
-
-        // 3. Obtener todos los registros de pago en orden cronológico
+        // 2. Obtener todos los registros de pago en orden cronológico
         $payments = HistoryPay::where('acc', $acc)
             ->orderBy('fecha', 'asc')
             ->orderBy('ind', 'asc')
             ->get();
 
-        // 4. Calcular la deuda acumulada tras cada pago
         $result = [];
-        $cumulativePaid = 0.0;
+
+        // Mantendremos el estado de los pagos organizados por mes
+        $paymentsByMonth = [];
+        $firstPaymentDateByMonth = [];
 
         foreach ($payments as $payment) {
-            $cumulativePaid += (float) $payment->monto;
+            $mesPagado = $payment->mes;
+            $fechaPago = $payment->fecha ? Carbon::parse($payment->fecha)->format('Y-m') : $mesPagado;
 
-            // Mes base para acumular cuotas
-            $fechaMonth = $payment->fecha
-                ? Carbon::parse($payment->fecha)->format('Y-m')
-                : $payment->mes;
+            // Registrar el pago en su mes correspondiente (simulando el GROUP BY de getAccountStatement)
+            if (!isset($paymentsByMonth[$mesPagado])) {
+                $paymentsByMonth[$mesPagado] = 0.0;
+                $firstPaymentDateByMonth[$mesPagado] = $fechaPago; // MIN(fecha)
+            }
+            $paymentsByMonth[$mesPagado] += (float) $payment->monto;
 
-            $totalFeesThrough = $cumFees[$fechaMonth] ?? 0.0;
-            $result[(int) $payment->ind] = round($totalFeesThrough - $cumulativePaid, 2);
+            // El rango evaluado al momento del pago es desde el inicio hasta el mes en que se realiza el pago
+            $monthsToEvaluate = $this->generateMonthRange($startMonth, $fechaPago);
+
+            $totalDebtAtThisMoment = 0.0;
+            $currentFeeAtThisMoment = $allFeesLookup->filter(fn ($f, $k) => $k <= $fechaPago)->last();
+
+            // Simulamos el "estado de cuenta" a la fecha de este pago específico
+            foreach ($monthsToEvaluate as $m) {
+                $totalPaidForM = $paymentsByMonth[$m] ?? 0.0;
+
+                if ($totalPaidForM == 0) {
+                    // Mes sin pagos: Se valora a la cuota "actual" (la del momento de este pago)
+                    $applicableFee = $currentFeeAtThisMoment;
+                } else {
+                    // Mes con pagos: Se bloquea el precio a la fecha en que se hizo su PRIMER pago
+                    $fechaPrimerPagoM = $firstPaymentDateByMonth[$m];
+                    $applicableFee = $allFeesLookup->filter(fn ($f, $k) => $k <= $fechaPrimerPagoM)->last() ?? $currentFeeAtThisMoment;
+                }
+
+                if (! $applicableFee) {
+                    continue;
+                }
+
+                $nominalTotal = $applicableFee->total * (1 + $surchargeMultiplier);
+                $deudaMes = $nominalTotal - $totalPaidForM;
+
+                // getAccountStatement suma solo las deudas positivas y omite si está pagado o hay saldo a favor
+                if (round($deudaMes, 2) > 0.009) {
+                    $totalDebtAtThisMoment += $deudaMes;
+                }
+            }
+
+            $result[(int) $payment->ind] = round($totalDebtAtThisMoment, 2);
         }
 
         return $result;
     }
-
 
     private function getAdultChildrenData(Partner $partner): array
     {
