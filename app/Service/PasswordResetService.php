@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Mail;
 
 class PasswordResetService
 {
-    private const CODE_TTL_SECONDS    = 120;  // 2 minutes
+    private const CODE_TTL_SECONDS = 120;  // 2 minutes
+
     private const VERIFIED_TTL_SECONDS = 600; // 10 minutes
 
     private function codeKey(int $acc): string
@@ -35,7 +36,7 @@ class PasswordResetService
             ->where('cedula', $cedula)
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             throw new \Exception('No existe una cuenta registrada para los datos proporcionados.', 404);
         }
 
@@ -64,7 +65,7 @@ class PasswordResetService
             throw new \Exception('El código ha expirado. Por favor solicita uno nuevo.', 422);
         }
 
-        if (!hash_equals($stored, $code)) {
+        if (! hash_equals($stored, $code)) {
             throw new \Exception('El código ingresado no es válido.', 422);
         }
 
@@ -81,13 +82,13 @@ class PasswordResetService
      */
     public function resetPassword(int $acc, string $password): void
     {
-        if (!Cache::get($this->verifiedKey($acc))) {
+        if (! Cache::get($this->verifiedKey($acc))) {
             throw new \Exception('La verificación del código ha expirado o no se completó. Inicia el proceso nuevamente.', 422);
         }
 
         $user = User::where('acc', $acc)->first();
 
-        if (!$user) {
+        if (! $user) {
             throw new \Exception('No existe una cuenta para esta acción.', 404);
         }
 
@@ -96,12 +97,71 @@ class PasswordResetService
         Cache::forget($this->verifiedKey($acc));
     }
 
+    // -------------------------------------------------------------------------
+    // Direct password reset flow (no external service / no email required)
+    // -------------------------------------------------------------------------
+
+    private function directTokenKey(int $acc): string
+    {
+        return "password_direct_token:{$acc}";
+    }
+
+    /**
+     * Validates acc + cedula + correo against the User record.
+     * On success generates a short-lived token and returns it so the
+     * frontend can use it directly in the reset step.
+     *
+     * @throws \Exception 404 if no account matches the given data
+     */
+    public function directValidate(int $acc, string $cedula, string $correo): string
+    {
+        $user = User::where('acc', $acc)
+            ->where('cedula', $cedula)
+            ->where('correo', $correo)
+            ->first();
+
+        if (! $user) {
+            throw new \Exception('No existe una cuenta registrada para los datos proporcionados.', 404);
+        }
+
+        $token = bin2hex(random_bytes(32));
+
+        Cache::put($this->directTokenKey($acc), hash('sha256', $token), self::VERIFIED_TTL_SECONDS);
+
+        return $token;
+    }
+
+    /**
+     * Resets the password using the token issued by directValidate().
+     *
+     * @throws \Exception 422 if token is invalid or expired
+     * @throws \Exception 404 if the user account no longer exists
+     */
+    public function directReset(int $acc, string $token, string $password): void
+    {
+        $stored = Cache::get($this->directTokenKey($acc));
+
+        if ($stored === null || ! hash_equals($stored, hash('sha256', $token))) {
+            throw new \Exception('El token es inválido o ha expirado. Inicia el proceso nuevamente.', 422);
+        }
+
+        $user = User::where('acc', $acc)->first();
+
+        if (! $user) {
+            throw new \Exception('No existe una cuenta para esta acción.', 404);
+        }
+
+        $user->update(['password' => Hash::make($password)]);
+
+        Cache::forget($this->directTokenKey($acc));
+    }
+
     private function obfuscateEmail(string $email): string
     {
         [$local, $domain] = explode('@', $email, 2);
 
         $visible = substr($local, 0, min(2, strlen($local)));
-        $masked   = str_repeat('*', max(0, strlen($local) - 2));
+        $masked = str_repeat('*', max(0, strlen($local) - 2));
 
         return "{$visible}{$masked}@{$domain}";
     }

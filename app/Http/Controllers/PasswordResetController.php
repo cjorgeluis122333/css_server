@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DirectPasswordResetRequest;
+use App\Http\Requests\DirectPasswordValidateRequest;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Requests\VerifyResetCodeRequest;
@@ -23,7 +25,7 @@ class PasswordResetController extends Controller
     public function request(ForgotPasswordRequest $request): JsonResponse
     {
         try {
-            $data           = $request->validated();
+            $data = $request->validated();
             $obfuscatedEmail = $this->passwordResetService->requestReset(
                 (int) $data['acc'],
                 (string) $data['cedula']
@@ -35,6 +37,7 @@ class PasswordResetController extends Controller
             );
         } catch (\Exception $e) {
             $code = $e->getCode() ?: 500;
+
             return $this->errorResponse($e->getMessage(), $code);
         }
     }
@@ -57,6 +60,7 @@ class PasswordResetController extends Controller
             );
         } catch (\Exception $e) {
             $code = $e->getCode() ?: 500;
+
             return $this->errorResponse($e->getMessage(), $code);
         }
     }
@@ -79,6 +83,59 @@ class PasswordResetController extends Controller
             );
         } catch (\Exception $e) {
             $code = $e->getCode() ?: 500;
+
+            return $this->errorResponse($e->getMessage(), $code);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Direct password reset flow (no external service / no email required)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Step 1 — Validate acc + cedula + correo. Returns a short-lived token on success.
+     */
+    public function directValidate(DirectPasswordValidateRequest $request): JsonResponse
+    {
+        try {
+            $data = $request->validated();
+            $token = $this->passwordResetService->directValidate(
+                (int) $data['acc'],
+                (string) $data['cedula'],
+                (string) $data['correo']
+            );
+
+            return $this->successResponse(
+                ['token' => $token],
+                'Identidad verificada. Usa el token para establecer tu nueva contraseña.'
+            );
+        } catch (\Exception $e) {
+            $code = $e->getCode() ?: 500;
+
+            return $this->errorResponse($e->getMessage(), $code);
+        }
+    }
+
+    /**
+     * Step 2 — Set the new password using the token issued in directValidate().
+     */
+    public function directReset(DirectPasswordResetRequest $request): JsonResponse
+    {
+        try {
+            $data = $request->validated();
+            $this->passwordResetService->directReset(
+                (int) $data['acc'],
+                (string) $data['token'],
+                (string) $data['password']
+            );
+
+            return $this->successResponse(
+                null,
+                'Contraseña actualizada exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.'
+            );
+        } catch (\Exception $e) {
+            $code = $e->getCode() ?: 500;
+
             return $this->errorResponse($e->getMessage(), $code);
         }
     }

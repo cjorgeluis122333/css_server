@@ -28,6 +28,10 @@ Route::post('/forgot-password/request', [PasswordResetController::class, 'reques
 Route::post('/forgot-password/verify', [PasswordResetController::class, 'verify'])->name('forgot-password.verify');
 Route::post('/forgot-password/reset', [PasswordResetController::class, 'reset'])->name('forgot-password.reset');
 
+// --- Password recovery without external service (acc + cedula + correo) ---
+Route::post('/forgot-password/direct/validate', [PasswordResetController::class, 'directValidate'])->name('forgot-password.direct.validate');
+Route::post('/forgot-password/direct/reset', [PasswordResetController::class, 'directReset'])->name('forgot-password.direct.reset');
+
 // --- Authenticated routes ---
 Route::middleware('auth:sanctum')->group(function () {
 
