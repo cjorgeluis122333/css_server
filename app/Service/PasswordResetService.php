@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Mail\PasswordResetMail;
+use App\Models\Partner;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -107,21 +108,30 @@ class PasswordResetService
     }
 
     /**
-     * Validates acc + cedula + correo against the User record.
+     * Validates acc + cedula + correo against the Partner (0cc_socios) record.
+     * Then verifies that the partner has a registered user account.
      * On success generates a short-lived token and returns it so the
      * frontend can use it directly in the reset step.
      *
-     * @throws \Exception 404 if no account matches the given data
+     * @throws \Exception 404 if no titular partner matches the given data
+     * @throws \Exception 404 if the partner has no user account registered
      */
     public function directValidate(int $acc, string $cedula, string $correo): string
     {
-        $user = User::where('acc', $acc)
+        $partner = Partner::holders()
+            ->where('acc', $acc)
             ->where('cedula', $cedula)
             ->where('correo', $correo)
             ->first();
 
+        if (! $partner) {
+            throw new \Exception('No se encontró un socio titular con los datos proporcionados.', 404);
+        }
+
+        $user = User::where('acc', $acc)->first();
+
         if (! $user) {
-            throw new \Exception('No existe una cuenta registrada para los datos proporcionados.', 404);
+            throw new \Exception('El socio no cuenta con una cuenta de usuario registrada. Por favor comunícate con la administración.', 404);
         }
 
         $token = bin2hex(random_bytes(32));
