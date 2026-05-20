@@ -37,104 +37,145 @@ class HistoryPayService
     /**
      * Calcula la deuda acumulada del socio al momento de cada pago registrado.
      *
-     * Para cada registro de HistoryPay (ordenado cronológicamente), la deuda
-     * se define como:
-     *   deuda = (cuotas acumuladas desde el inicio del socio hasta el mes del pago)
-     *           - (suma de todos los pagos realizados hasta ese registro, inclusive)
+     * Para cada registro de HistoryPay, la deuda se define como:
+     *   deuda = (cuotas acumuladas desde el inicio del socio hasta el mes pagado)
+     *           − (total pagado hasta la fecha en que se realizó ese pago, inclusive)
+     *
+     * Una deuda negativa indica crédito a favor del socio (pagó más de lo adeudado
+     * hasta ese mes). Esto permite visualizar correctamente los pagos adelantados:
+     * si el socio pagó hasta 2027-01 en enero de 2026, el registro de 2026-01 mostrará
+     * un saldo negativo que representa el crédito por los meses futuros ya cancelados.
+     *
+     * Importante: todos los pagos realizados el mismo día se agrupan antes de calcular
+     * la deuda de cualquier registro de esa fecha, reflejando que son una sola operación.
      *
      * @return array<int, float> Mapa de ind -> deuda
      */
     public function computeRunningDebtMap(int $acc): array
     {
-        // 1. Determinar el socio
+        // 1. Determinar el mes de inicio del socio titular
         $partner = Partner::where('acc', $acc)
             ->where('categoria', PartnerCategory::TITULAR->value)
+            ->with('dependents')
             ->first();
 
         $startMonth = '2019-01';
         $surchargeMultiplier = 0.0;
 
         if ($partner) {
-            // Misma validación estricta de fecha de ingreso que getAccountStatement
-            $fechaIngreso = $partner->fecha_ingreso ?? $partner->fecha_ingreso_validada;
-            $fechaLimite = Carbon::create(2019, 1, 1);
+            $rawIngreso = trim((string) ($partner->ingreso ?? ''));
 
-            if ($fechaIngreso) {
+            if ($rawIngreso !== '' && $rawIngreso !== '-') {
                 try {
-                    $ingresoCarbon = Carbon::parse($fechaIngreso);
-                    if ($ingresoCarbon->lt($fechaLimite)) {
-                        $startMonth = '2019-01';
-                    } else {
+                    $ingresoCarbon = Carbon::parse($rawIngreso);
+
+                    if ($ingresoCarbon->year >= 2019) {
                         $startMonth = $ingresoCarbon->format('Y-m');
                     }
                 } catch (Exception) {
-                    $startMonth = '2019-01';
+                    // Usar el mes de inicio por defecto si la fecha no es parseable
                 }
             }
 
-            // Multiplicador de hijos
             $childrenData = $this->getAdultChildrenData($partner);
             $surchargeMultiplier = $childrenData['multiplier'] ?? 0.0;
         }
 
-        $allFeesLookup = Fee::all()->sortBy('mes')->keyBy('mes');
+        // 2. Determinar el mes final: extender hasta el mes pagado más lejano para cubrir
+        // pagos adelantados que superen el mes actual (p. ej. pagos hasta 2027-01).
+        $maxMesPaid = HistoryPay::where('acc', $acc)->max('mes') ?? now()->format('Y-m');
+        $endMonth = $maxMesPaid > now()->format('Y-m') ? $maxMesPaid : now()->format('Y-m');
 
-        // 2. Obtener todos los registros de pago en orden cronológico
+        // 3. Construir el lookup de cuota acumulada por mes (con arrastre del último valor conocido)
+        $allFees = Fee::all()->sortBy('mes')->keyBy('mes');
+        $months = $this->generateMonthRange($startMonth, $endMonth);
+
+        $currentFeeValue = 0.0;
+        $cumFees = [];
+        $cumulativeFee = 0.0;
+
+        foreach ($months as $month) {
+            if ($allFees->has($month)) {
+                $currentFeeValue = (float) $allFees->get($month)->total * (1 + $surchargeMultiplier);
+            }
+
+            $cumulativeFee += $currentFeeValue;
+            $cumFees[$month] = round($cumulativeFee, 2);
+        }
+
+        // 4. Obtener todos los registros de pago
+        $payments = HistoryPay::where('acc', $acc)->get(['ind', 'fecha', 'mes', 'monto']);
+
+        // 5. Agrupar el total pagado por fecha de pago (todos los pagos del mismo día se suman juntos).
+        // Esto garantiza que si el socio paga varios meses adelantados en una sola visita,
+        // el saldo de cada registro de ese día ya refleja el total completo de esa operación.
+        $fechaTotals = [];
+        foreach ($payments as $payment) {
+            $key = $payment->fecha ?? $payment->mes; // Fallback a mes si fecha es null
+            $fechaTotals[$key] = ($fechaTotals[$key] ?? 0.0) + (float) $payment->monto;
+        }
+
+        ksort($fechaTotals); // Las fechas YYYY-MM-DD ordenan cronológicamente con ksort
+
+        $cumulativeByFecha = [];
+        $runningTotal = 0.0;
+        foreach ($fechaTotals as $key => $amount) {
+            $runningTotal += $amount;
+            $cumulativeByFecha[$key] = round($runningTotal, 2);
+        }
+
+        // 6. Calcular la deuda de cada registro:
+        // deuda = cuotas acumuladas hasta el mes pagado (mes) − total pagado hasta esa fecha (fecha).
+        $result = [];
+        foreach ($payments as $payment) {
+            $key = $payment->fecha ?? $payment->mes;
+            $totalPaidThroughFecha = $cumulativeByFecha[$key] ?? 0.0;
+            $totalFeesThrough = $cumFees[$payment->mes] ?? 0.0;
+            $result[(int) $payment->ind] = round($totalFeesThrough - $totalPaidThroughFecha, 2);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Calcula, para cada registro de pago, el total acumulado pagado para ese mes
+     * y la cantidad de abonos registrados para ese mes hasta ese registro.
+     *
+     * Los registros se procesan en orden cronológico (fecha asc, ind asc), de modo que
+     * el primero en haber sido registrado para un mes tiene abono_count=1 y pago=su monto,
+     * el segundo acumula sobre el primero, y así sucesivamente.
+     *
+     * Ejemplo para mes=2026-12 con tres pagos de $2, $6 y $2:
+     *   ind=X1 → pago=2,  abono_count=1
+     *   ind=X2 → pago=8,  abono_count=2
+     *   ind=X3 → pago=10, abono_count=3
+     *
+     * @return array<int, array{pago: float, abono_count: int}> Mapa de ind -> [pago, abono_count]
+     */
+    public function computeMonthlyPaymentMap(int $acc): array
+    {
         $payments = HistoryPay::where('acc', $acc)
             ->orderBy('fecha', 'asc')
             ->orderBy('ind', 'asc')
-            ->get();
+            ->get(['ind', 'fecha', 'mes', 'monto']);
 
+        $accumulatedByMes = []; // mes -> ['total' => float, 'count' => int]
         $result = [];
 
-        // Mantendremos el estado de los pagos organizados por mes
-        $paymentsByMonth = [];
-        $firstPaymentDateByMonth = [];
-
         foreach ($payments as $payment) {
-            $mesPagado = $payment->mes;
-            $fechaPago = $payment->fecha ? Carbon::parse($payment->fecha)->format('Y-m') : $mesPagado;
+            $mes = $payment->mes;
 
-            // Registrar el pago en su mes correspondiente (simulando el GROUP BY de getAccountStatement)
-            if (!isset($paymentsByMonth[$mesPagado])) {
-                $paymentsByMonth[$mesPagado] = 0.0;
-                $firstPaymentDateByMonth[$mesPagado] = $fechaPago; // MIN(fecha)
-            }
-            $paymentsByMonth[$mesPagado] += (float) $payment->monto;
-
-            // El rango evaluado al momento del pago es desde el inicio hasta el mes en que se realiza el pago
-            $monthsToEvaluate = $this->generateMonthRange($startMonth, $fechaPago);
-
-            $totalDebtAtThisMoment = 0.0;
-            $currentFeeAtThisMoment = $allFeesLookup->filter(fn ($f, $k) => $k <= $fechaPago)->last();
-
-            // Simulamos el "estado de cuenta" a la fecha de este pago específico
-            foreach ($monthsToEvaluate as $m) {
-                $totalPaidForM = $paymentsByMonth[$m] ?? 0.0;
-
-                if ($totalPaidForM == 0) {
-                    // Mes sin pagos: Se valora a la cuota "actual" (la del momento de este pago)
-                    $applicableFee = $currentFeeAtThisMoment;
-                } else {
-                    // Mes con pagos: Se bloquea el precio a la fecha en que se hizo su PRIMER pago
-                    $fechaPrimerPagoM = $firstPaymentDateByMonth[$m];
-                    $applicableFee = $allFeesLookup->filter(fn ($f, $k) => $k <= $fechaPrimerPagoM)->last() ?? $currentFeeAtThisMoment;
-                }
-
-                if (! $applicableFee) {
-                    continue;
-                }
-
-                $nominalTotal = $applicableFee->total * (1 + $surchargeMultiplier);
-                $deudaMes = $nominalTotal - $totalPaidForM;
-
-                // getAccountStatement suma solo las deudas positivas y omite si está pagado o hay saldo a favor
-                if (round($deudaMes, 2) > 0.009) {
-                    $totalDebtAtThisMoment += $deudaMes;
-                }
+            if (! isset($accumulatedByMes[$mes])) {
+                $accumulatedByMes[$mes] = ['total' => 0.0, 'count' => 0];
             }
 
-            $result[(int) $payment->ind] = round($totalDebtAtThisMoment, 2);
+            $accumulatedByMes[$mes]['total'] += (float) $payment->monto;
+            $accumulatedByMes[$mes]['count']++;
+
+            $result[(int) $payment->ind] = [
+                'pago'        => round($accumulatedByMes[$mes]['total'], 2),
+                'abono_count' => $accumulatedByMes[$mes]['count'],
+            ];
         }
 
         return $result;

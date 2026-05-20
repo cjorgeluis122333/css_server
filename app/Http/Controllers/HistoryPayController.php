@@ -103,16 +103,21 @@ class HistoryPayController extends Controller
         }
 
         try {
-            // Calcula la deuda acumulada para cada registro (necesita todos los pagos)
-            $deudaMap = $this->historyService->computeRunningDebtMap((int) $acc);
+            // Calcula la deuda acumulada y el acumulado de pagos por mes para cada registro
+            $deudaMap   = $this->historyService->computeRunningDebtMap((int) $acc);
+            $paymentMap = $this->historyService->computeMonthlyPaymentMap((int) $acc);
 
             $history = HistoryPay::where('acc', $acc)
                 ->orderBy('fecha', 'desc')
                 ->paginate(15);
 
-            // Inyecta el campo deuda en cada registro de la página actual
-            $history->getCollection()->transform(function (HistoryPay $record) use ($deudaMap) {
+            // Inyecta deuda, pago acumulado del mes y cantidad de abonos en cada registro
+            $history->getCollection()->transform(function (HistoryPay $record) use ($deudaMap, $paymentMap) {
                 $record->deuda = $deudaMap[(int) $record->ind] ?? null;
+
+                $paymentData        = $paymentMap[(int) $record->ind] ?? null;
+                $record->pago       = $paymentData['pago'] ?? null;
+                $record->abono_count = $paymentData['abono_count'] ?? null;
 
                 return $record;
             });
