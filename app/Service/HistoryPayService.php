@@ -9,6 +9,8 @@ use App\Models\Partner;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class HistoryPayService
@@ -27,16 +29,16 @@ class HistoryPayService
     }
 
     /**
-     * Obtener el historial de un socio específico por su cuenta (acc)
+     * Obtener el historial de un socio especifico por su cuenta (acc).
      */
-    public function getHistoryByAccount(int $acc)
+    public function getHistoryByAccount(int $acc): EloquentCollection
     {
         return HistoryPay::where('acc', $acc)->orderBy('ind', 'desc')->get();
     }
 
     /**
-     * Obtener el historial paginado de un socio, ordenado cronológicamente descendente.
-     * Usa doble ordenación para desempatar registros con la misma fecha.
+     * Obtener el historial paginado de un socio, ordenado cronologicamente descendente.
+     * Usa doble ordenacion para desempatar registros con la misma fecha.
      */
     public function getHistoryByAccountPaginated(int $acc, int $perPage): LengthAwarePaginator
     {
@@ -49,25 +51,10 @@ class HistoryPayService
     /**
      * Calcula la deuda acumulada del socio al momento de cada pago registrado.
      *
-     * Para cada registro de HistoryPay, la deuda se define como:
-     *   deuda = (cuotas acumuladas desde el inicio del socio hasta el mes pagado)
-     *           − (total pagado hasta la fecha en que se realizó ese pago, inclusive)
-     *
-     * Una deuda negativa indica crédito a favor del socio (pagó más de lo adeudado
-     * hasta ese mes). Esto permite visualizar correctamente los pagos adelantados:
-     * si el socio pagó hasta 2027-01 en enero de 2026, el registro de 2026-01 mostrará
-     * un saldo negativo que representa el crédito por los meses futuros ya cancelados.
-     *
-     * Importante: todos los pagos realizados el mismo día se agrupan antes de calcular
-     * la deuda de cualquier registro de esa fecha, reflejando que son una sola operación.
-
-     * Calcula la deuda acumulada del socio al momento de cada pago registrado.
-     *
      * @return array<int, float> Mapa de ind -> deuda
      */
     public function computeRunningDebtMap(int $acc): array
     {
-        // 1. Determinar el mes de inicio del socio titular
         $partner = Partner::where('acc', $acc)
             ->where('categoria', PartnerCategory::TITULAR->value)
             ->with('dependents')
@@ -86,8 +73,8 @@ class HistoryPayService
                     if ($ingresoCarbon->year >= 2019) {
                         $startMonth = $ingresoCarbon->format('Y-m');
                     }
-                } catch (Exception $e) {
-                    // Usar el mes de inicio por defecto
+                } catch (Exception) {
+                    // Mantener el inicio por defecto cuando la fecha historica no es parseable.
                 }
             }
 
@@ -95,50 +82,80 @@ class HistoryPayService
             $surchargeMultiplier = $childrenData['multiplier'] ?? 0.0;
         }
 
-        // 2. Determinar el mes final
-        $maxMesPaid = HistoryPay::where('acc', $acc)->max('mes') ?? now()->format('Y-m');
-        $endMonth = $maxMesPaid > now()->format('Y-m') ? $maxMesPaid : now()->format('Y-m');
-
-        // 3. Construir el lookup de cuota acumulada por mes
-        $allFees = Fee::all()->sortBy('mes')->keyBy('mes');
-        $months = $this->generateMonthRange($startMonth, $endMonth);
-
-        $currentFeeValue = 0.0;
-        $cumFees = [];
-        $cumulativeFee = 0.0;
-
-        foreach ($months as $month) {
-            if ($allFees->has($month)) {
-                $currentFeeValue = (float) $allFees->get($month)->total * (1 + $surchargeMultiplier);
-            }
-
-            $cumulativeFee += $currentFeeValue;
-            $cumFees[$month] = round($cumulativeFee, 2);
-        }
-
-        // 4. Obtener todos los registros de pago en ORDEN CRONOLÓGICO ESTRICTO
-        // Esto es vital para que la reducción de la deuda sea paso a paso.
         $payments = HistoryPay::where('acc', $acc)
             ->orderBy('fecha', 'asc')
             ->orderBy('ind', 'asc')
             ->get(['ind', 'fecha', 'mes', 'monto']);
 
-        // 5. Calcular la deuda de cada registro secuencialmente
-        $result = [];
-        $runningPaid = 0.0;
+        if ($payments->isEmpty()) {
+            return [];
+        }
+
+        $maxMesPaid = $payments->max('mes') ?? now()->format('Y-m');
+        $maxPaymentDateMonth = $payments
+            ->map(fn (HistoryPay $payment): string => Carbon::parse(
+                $this->normalizeLedgerDate($payment->fecha, $payment->mes)
+            )->format('Y-m'))
+            ->max();
+        $endMonth = max($maxMesPaid, $maxPaymentDateMonth, now()->format('Y-m'));
+
+        $allFees = Fee::query()
+            ->select(['mes', 'cuota', 'impuesto'])
+            ->orderBy('mes')
+            ->get()
+            ->keyBy('mes');
+
+        $firstPaymentDateByMonth = [];
 
         foreach ($payments as $payment) {
-            // Acumulamos el pago actual
-            $runningPaid += (float) $payment->monto;
+            if (! isset($firstPaymentDateByMonth[$payment->mes])) {
+                $firstPaymentDateByMonth[$payment->mes] = $this->normalizeLedgerDate($payment->fecha, $payment->mes);
+            }
+        }
 
-            // EXTRAEMOS EL MES DE LA FECHA DE PAGO (El "Cuándo" físico de la transacción)
-            $paymentDateMonth = Carbon::parse($payment->fecha ?? $payment->mes)->format('Y-m');
+        $ledgerEntries = [];
 
-            // Solo cobramos las cuotas que se habían generado hasta el momento en que fue a pagar
-            $totalFeesThrough = $cumFees[$paymentDateMonth] ?? 0.0;
+        foreach ($this->generateMonthRange($startMonth, $endMonth) as $month) {
+            $referenceMonth = isset($firstPaymentDateByMonth[$month])
+                ? Carbon::parse($firstPaymentDateByMonth[$month])->format('Y-m')
+                : $month;
 
-            // Deuda en este punto específico de la historia
-            $result[(int) $payment->ind] = round($totalFeesThrough - $runningPaid, 2);
+            $ledgerEntries[] = [
+                'date' => "{$month}-01",
+                'type' => 'charge',
+                'priority' => 0,
+                'ind' => 0,
+                'amount' => $this->resolveMonthlyFee($allFees, $referenceMonth) * (1 + $surchargeMultiplier),
+            ];
+        }
+
+        foreach ($payments as $payment) {
+            $ledgerEntries[] = [
+                'date' => $this->normalizeLedgerDate($payment->fecha, $payment->mes),
+                'type' => 'payment',
+                'priority' => 1,
+                'ind' => (int) $payment->ind,
+                'amount' => (float) $payment->monto,
+            ];
+        }
+
+        usort($ledgerEntries, function (array $left, array $right): int {
+            return [$left['date'], $left['priority'], $left['ind']]
+                <=> [$right['date'], $right['priority'], $right['ind']];
+        });
+
+        $result = [];
+        $runningDebt = 0.0;
+
+        foreach ($ledgerEntries as $entry) {
+            if ($entry['type'] === 'charge') {
+                $runningDebt += (float) $entry['amount'];
+
+                continue;
+            }
+
+            $runningDebt -= (float) $entry['amount'];
+            $result[(int) $entry['ind']] = round($runningDebt, 2);
         }
 
         return $result;
@@ -147,15 +164,6 @@ class HistoryPayService
     /**
      * Calcula, para cada registro de pago, el total acumulado pagado para ese mes
      * y la cantidad de abonos registrados para ese mes hasta ese registro.
-     *
-     * Los registros se procesan en orden cronológico (fecha asc, ind asc), de modo que
-     * el primero en haber sido registrado para un mes tiene abono_count=1 y pago=su monto,
-     * el segundo acumula sobre el primero, y así sucesivamente.
-     *
-     * Ejemplo para mes=2026-12 con tres pagos de $2, $6 y $2:
-     *   ind=X1 → pago=2,  abono_count=1
-     *   ind=X2 → pago=8,  abono_count=2
-     *   ind=X3 → pago=10, abono_count=3
      *
      * @return array<int, array{pago: float, abono_count: int}> Mapa de ind -> [pago, abono_count]
      */
@@ -166,7 +174,7 @@ class HistoryPayService
             ->orderBy('ind', 'asc')
             ->get(['ind', 'fecha', 'mes', 'monto']);
 
-        $accumulatedByMes = []; // mes -> ['total' => float, 'count' => int]
+        $accumulatedByMes = [];
         $result = [];
 
         foreach ($payments as $payment) {
@@ -190,7 +198,6 @@ class HistoryPayService
 
     private function getAdultChildrenData(Partner $partner): array
     {
-        // Filtramos para obtener la colección completa de hijos que cumplen la condición
         $adultChildren = $partner->dependents->filter(function ($dependent) {
             return strtolower(trim($dependent->direccion)) === 'hijo'
                 && $dependent->age !== null
@@ -198,11 +205,7 @@ class HistoryPayService
         });
 
         return [
-            // Multiplicamos 0.25 por la cantidad exacta de hijos encontrados
             'multiplier' => $adultChildren->count() * 0.25,
-
-            // Extraemos solo los nombres (asumiendo que el campo en BD se llama 'nombre')
-            // Si tu campo se llama 'name' u otra cosa, cámbialo aquí dentro del pluck()
             'names' => $adultChildren->pluck('nombre')->toArray(),
         ];
     }
@@ -219,5 +222,23 @@ class HistoryPayService
         }
 
         return $dates;
+    }
+
+    private function normalizeLedgerDate(?string $date, ?string $month): string
+    {
+        try {
+            return Carbon::parse($date ?: "{$month}-01")->format('Y-m-d');
+        } catch (Exception) {
+            return Carbon::parse(($month ?: now()->format('Y-m')).'-01')->format('Y-m-d');
+        }
+    }
+
+    private function resolveMonthlyFee(Collection $fees, string $referenceMonth): float
+    {
+        $fee = $fees
+            ->filter(fn (Fee $fee, string $month): bool => $month <= $referenceMonth)
+            ->last();
+
+        return $fee ? round((float) $fee->total, 2) : 0.0;
     }
 }

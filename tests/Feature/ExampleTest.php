@@ -1,7 +1,7 @@
 <?php
 
-test('the application returns a successful response', function () {
+test('the web root is not exposed in the api-only backend', function (): void {
     $response = $this->get('/');
 
-    $response->assertStatus(200);
+    $response->assertNotFound();
 });
