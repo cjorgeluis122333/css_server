@@ -141,4 +141,25 @@ class HistoryPayController extends Controller
 
         return response()->json();
     }
+
+    /**
+     * Retorna todos los pagos de un socio cuyo mes de aplicacion sea <= al mes indicado.
+     *
+     * Misma politica de acceso que show(): todos los autenticados pueden consultar,
+     * pero un PARTNER solo puede ver su propio acc.
+     */
+    public function showPaymentsUntilMonth(Request $request, int $acc, string $mes): JsonResponse
+    {
+        if ($request->user()->isPartner() && $request->user()->acc != $acc) {
+            return $this->errorResponse('No tienes permiso para ver esta información.', 403);
+        }
+
+        try {
+            $payments = $this->historyService->getPaymentsUpToMonth($acc, $mes);
+
+            return $this->successResponse($payments, 'Historial de pagos hasta '.$mes);
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al obtener el historial de pagos.', 500);
+        }
+    }
 }

@@ -3,7 +3,6 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExcelController;
 use App\Http\Controllers\FamilyController;
-use App\Http\Controllers\PartnerPhotoController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\HallControlController;
@@ -12,6 +11,7 @@ use App\Http\Controllers\HistoryPayController;
 use App\Http\Controllers\ManagerBoardsController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\PartnerController;
+use App\Http\Controllers\PartnerPhotoController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\RegisteredGuestController;
 use App\Http\Controllers\UserAdminController;
@@ -50,6 +50,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/partners/debs/{id}', [PartnerController::class, 'showDebts'])->name('showDebts');
         Route::get('/partners/debs/advance/{id}', [PartnerController::class, 'getAdvanceQuotes'])->name('partners.advanceQuotes');
         Route::get('/history/{history}', [HistoryPayController::class, 'show'])->name('history.show');
+        Route::get('/history/{acc}/until/{mes}', [HistoryPayController::class, 'showPaymentsUntilMonth'])
+            ->where('mes', '\d{4}-\d{2}')
+            ->name('history.until');
     });
 
     // === Finanzas: pagos, historial, Excel, métricas (SUPER_ADMIN + ADMIN) ===

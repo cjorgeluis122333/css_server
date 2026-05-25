@@ -49,6 +49,34 @@ class HistoryPayService
     }
 
     /**
+     * Obtener todos los pagos realizados por un socio hasta un mes determinado (inclusive).
+     *
+     * Filtra los registros cuyo campo `mes` sea menor o igual al mes indicado,
+     * ordenados cronologicamente ascendente.
+     *
+     * @param  int  $acc  Numero de accion del socio.
+     * @param  string  $mes  Mes limite en formato Y-m (ej: 2026-05).
+     * @return Collection<int, array{fecha: string|null, descripcion: string|null, recibo: string|null, operador: string|null, monto: string}>
+     */
+    public function getPaymentsUpToMonth(int $acc, string $mes): Collection
+    {
+        return HistoryPay::query()
+            ->where('acc', $acc)
+            ->where('mes', '<=', $mes)
+            ->orderBy('mes')
+            ->orderBy('ind')
+            ->select(['fecha', 'descript', 'resibo', 'operador', 'monto'])
+            ->get()
+            ->map(fn (HistoryPay $record) => [
+                'fecha' => $record->fecha,
+                'descripcion' => $record->descript,
+                'recibo' => $record->resibo,
+                'operador' => $record->operador,
+                'monto' => $record->monto,
+            ]);
+    }
+
+    /**
      * Calcula la deuda acumulada del socio al momento de cada pago registrado.
      *
      * @return array<int, float> Mapa de ind -> deuda

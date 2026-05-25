@@ -326,6 +326,7 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | `view-own-debt`           | `GET /partners/debs/advance/{id}`         | `PartnerController`        | + Policy: PARTNER solo su acc           |
 | `access-finanzas`         | `GET /history`, `POST /history`, `PUT/DELETE /history/{id}` | `HistoryPayController`     | SUPER_ADMIN + ADMIN                     |
 | `view-own-debt`           | `GET /history/{acc}`                      | `HistoryPayController`     | + ownership: PARTNER solo su acc        |
+| `view-own-debt`           | `GET /history/{acc}/until/{mes}`          | `HistoryPayController`     | Pagos hasta mes dado (YYYY-MM); ownership igual que show |
 | `access-finanzas`         | `GET /partners/solvencia/metrics`         | `PartnerController`        | Métricas globales de morosidad          |
 | `access-finanzas`         | `GET /generate/exel/solvencia/{year}`     | `ExcelController`          | Exportar deuda a Excel                  |
 | `access-solvencia`        | `GET /partners/solvencia/{year}`          | `PartnerController`        | + OPERATOR + SUPERVISOR                 |
