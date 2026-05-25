@@ -8,11 +8,11 @@ use App\Models\HistoryPay;
 use App\Models\Partner;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 
 class HistoryPayService
 {
-
     /**
      * Crea un nuevo registro de historial.
      */
@@ -32,6 +32,18 @@ class HistoryPayService
     public function getHistoryByAccount(int $acc)
     {
         return HistoryPay::where('acc', $acc)->orderBy('ind', 'desc')->get();
+    }
+
+    /**
+     * Obtener el historial paginado de un socio, ordenado cronológicamente descendente.
+     * Usa doble ordenación para desempatar registros con la misma fecha.
+     */
+    public function getHistoryByAccountPaginated(int $acc, int $perPage): LengthAwarePaginator
+    {
+        return HistoryPay::where('acc', $acc)
+            ->orderBy('fecha', 'desc')
+            ->orderBy('ind', 'desc')
+            ->paginate($perPage);
     }
 
     /**
@@ -131,6 +143,7 @@ class HistoryPayService
 
         return $result;
     }
+
     /**
      * Calcula, para cada registro de pago, el total acumulado pagado para ese mes
      * y la cantidad de abonos registrados para ese mes hasta ese registro.
@@ -167,7 +180,7 @@ class HistoryPayService
             $accumulatedByMes[$mes]['count']++;
 
             $result[(int) $payment->ind] = [
-                'pago'        => round($accumulatedByMes[$mes]['total'], 2),
+                'pago' => round($accumulatedByMes[$mes]['total'], 2),
                 'abono_count' => $accumulatedByMes[$mes]['count'],
             ];
         }
@@ -193,6 +206,7 @@ class HistoryPayService
             'names' => $adultChildren->pluck('nombre')->toArray(),
         ];
     }
+
     private function generateMonthRange(string $start, string $end): array
     {
         $dates = [];
