@@ -99,7 +99,7 @@ app/
 ├── Enum/                  # PHP 8.1 Backed Enums (PartnerCategory, UserRole, DebtMetricType)
 ├── Exports/               # Clases de exportación Excel (Maatwebsite)
 ├── Http/
-│   ├── Controllers/       # 15 controllers (thin, delegan a Services)
+│   ├── Controllers/       # 16 controllers (thin, delegan a Services)
 │   ├── Middleware/         # Middleware personalizado
 │   ├── Requests/          # FormRequest validation classes
 │   └── Resources/         # API Resource transformations (con display condicional RBAC)
@@ -341,12 +341,14 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | `manage-salones-precios`  | `POST/PUT/DELETE /halls-pay`              | `HallController`           | SUPER_ADMIN + ADMIN                     |
 | `access-invitados`        | `apiResource /guest`, `/register-guest`   | `Guest*Controller`         | + Policy ownership para PARTNER/HONORARY|
 | `manage-users`            | `/user-admin`                             | `UserAdminController`      | SUPER_ADMIN + ADMIN                     |
+| *(todos autenticados)*    | `GET /partners/photo/{cedula}`            | `PartnerPhotoController`   | Retorna URL pública de la foto del socio|
 
 **Rutas adicionales destacadas:**
 - `GET /partners/debs/{id}` — Estado de cuenta (con Policy de propiedad)
 - `GET /partners/debs/advance/{id}` — Cuotas adelantadas
 - `GET /partners/solvencia/metrics` — Métricas globales de morosidad
 - `GET /partners/solvencia/metrics/{metric}` — Socios por métrica de deuda
+- `GET /partners/photo/{cedula}` — URL pública de foto del socio (imágenes en `public/assets/acc/`)
 - `POST /logout` — Cierre de sesión
 - `GET /generate/exel/solvencia/{year}` — Exportar deuda a Excel
 - `GET /user-admin` — Listar usuarios (CRUD admin)

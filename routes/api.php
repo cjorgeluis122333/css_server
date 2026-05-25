@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExcelController;
 use App\Http\Controllers\FamilyController;
+use App\Http\Controllers\PartnerPhotoController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\HallControlController;
@@ -42,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::get('/halls-pay', [HallController::class, 'index'])->name('halls-pay.index');
     Route::get('/halls-pay/{halls_pay}', [HallController::class, 'show'])->name('halls-pay.show');
+    Route::get('/partners/photo/{cedula}', [PartnerPhotoController::class, 'show'])->name('partners.photo');
 
     // === Solvencia propia (PARTNER ve su deuda, HONORARY exonerado) ===
     Route::middleware('can:view-own-debt')->group(function () {
