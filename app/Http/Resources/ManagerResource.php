@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Manager;
+use App\Service\PhotoService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,9 +13,11 @@ class ManagerResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'ind' => $this->ind,
+            'cedula' => $this->cedula,
+            'nombre' => $this->nombre,
+            'acc' => $this->acc,
+            'url' => app(PhotoService::class)->getUrl($this->cedula),
         ];
     }
 }
