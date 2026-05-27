@@ -33,8 +33,8 @@ COPY . .
 # Ahora esto no fallará porque ext-zip ya está en el sistema
 RUN composer install --no-dev --optimize-autoloader
 
-# Ajustar permisos (Crucial para logs y caché)
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Ajustar permisos (Crucial para logs, caché y fotos de socios)
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public/assets
 
 # Configurar Apache para servir desde /public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
