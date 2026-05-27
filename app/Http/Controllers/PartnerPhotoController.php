@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PartnerPhotoRequest;
+use App\Service\PhotoService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
 class PartnerPhotoController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(
+        protected PhotoService $photoService
+    ) {}
 
     /**
      * Retorna la URL pública de la foto del socio titular identificado por su cédula.
@@ -30,5 +36,19 @@ class PartnerPhotoController extends Controller
         }
 
         return $this->errorResponse('Foto no encontrada.', 404);
+    }
+
+    /**
+     * Sube o reemplaza la foto del socio titular identificado por su número de acción.
+     */
+    public function store(PartnerPhotoRequest $request, int $acc): JsonResponse
+    {
+        try {
+            $result = $this->photoService->uploadPhoto($acc, $request->file('image'));
+
+            return $this->successResponse($result, 'Foto actualizada correctamente.');
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), $e->getCode() ?: 500);
+        }
     }
 }

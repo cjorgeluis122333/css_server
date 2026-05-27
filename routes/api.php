@@ -44,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/halls-pay', [HallController::class, 'index'])->name('halls-pay.index');
     Route::get('/halls-pay/{halls_pay}', [HallController::class, 'show'])->name('halls-pay.show');
     Route::get('/partners/photo/{cedula}', [PartnerPhotoController::class, 'show'])->name('partners.photo');
+    Route::post('/partners/photo/{acc}', [PartnerPhotoController::class, 'store'])->name('partners.photo.store');
 
     // === Solvencia propia (PARTNER ve su deuda, HONORARY exonerado) ===
     Route::middleware('can:view-own-debt')->group(function () {
