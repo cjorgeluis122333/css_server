@@ -62,7 +62,7 @@ class HistoryPayService
     {
         return HistoryPay::query()
             ->where('acc', $acc)
-            ->where('mes', '<=', $mes)
+            ->where('mes', $mes)
             ->orderBy('mes')
             ->orderBy('ind')
             ->select(['fecha', 'descript', 'resibo', 'operador', 'monto'])

@@ -52,7 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/history/{history}', [HistoryPayController::class, 'show'])->name('history.show');
         Route::get('/history/{acc}/until/{mes}', [HistoryPayController::class, 'showPaymentsUntilMonth'])
             ->where('mes', '\d{4}-\d{2}')
-            ->name('history.until');
+            ->name('history.byMonth');
     });
 
     // === Finanzas: pagos, historial, Excel, métricas (SUPER_ADMIN + ADMIN) ===
