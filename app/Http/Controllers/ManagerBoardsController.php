@@ -4,101 +4,89 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ManagerBoardsRequest;
 use App\Http\Resources\ManagerBoardsResource;
-use App\Models\ManagerBoards;
-use App\Service\BoardsService;
+use App\Service\ManagerBoardsService;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 
 class ManagerBoardsController extends Controller
 {
     use ApiResponse;
 
-    protected BoardsService $boardService;
+    protected ManagerBoardsService $managerBoardsService;
 
-    public function __construct(BoardsService $boardService)
+    public function __construct(ManagerBoardsService $managerBoardsService)
     {
-        $this->boardService = $boardService;
+        $this->managerBoardsService = $managerBoardsService;
     }
 
-    public function index()
-    {
-        $boards = ManagerBoards::with([
-            'rel_presidente', 'rel_vicepresidente', 'rel_secretario',
-            'rel_vicesecretario', 'rel_tesorero', 'rel_vicetesorero',
-            'rel_bibliotecario', 'rel_actas', 'rel_viceactas',
-            'rel_actos', 'rel_deportes', 'rel_vocal1', 'rel_vocal2'
-        ])->get();
-
-
-         return $this->successResponse(ManagerBoardsResource::collection($boards), 'Juntas obtenidas con éxito');
-    }
-
-    public function store(ManagerBoardsRequest $request)
-    {
-        $data = $request->validated();
-
-        if ($this->boardService->findByYear($data['year'])) {
-            return $this->errorResponse("Ya existe una junta registrada para el año {$data['year']}", 409);
-        }
-
-        $board = $this->boardService->saveBoard($data);
-
-        return $this->successResponse(
-            new ManagerBoardsResource($board),
-            "Junta del año {$data['year']} guardada exitosamente",
-            201
-        );
-    }
-    public function show(int $year)
+    public function index(): JsonResponse
     {
         try {
-            $board = ManagerBoards::where("year", $year)->firstOrFail();
-            return $this->successResponse($board);
-        } catch (ModelNotFoundException) {
-            return $this->errorResponse("Reunion de directivos no encontrada", 404);
+            $boards = $this->managerBoardsService->getAll();
+
+            return $this->successResponse(ManagerBoardsResource::collection($boards), 'Juntas obtenidas con éxito');
         } catch (Exception $e) {
-            return $this->errorResponse("Error al procesar la junta: " . $e->getMessage(), 500);
+            return $this->errorResponse('Error al obtener las juntas: '.$e->getMessage(), 500);
         }
-
     }
 
-
-    public function update(ManagerBoardsRequest $request, $year)
+    public function store(ManagerBoardsRequest $request): JsonResponse
     {
         try {
-            $board = $this->boardService->findByYear($year);
+            $board = $this->managerBoardsService->upsertBoard($request->validated());
 
-            if (!$board) {
-                return $this->errorResponse("Reunión de directivos no encontrada", 404);
-            }
+            return $this->successResponse(
+                new ManagerBoardsResource($board),
+                "Junta del año {$board->year} guardada exitosamente",
+                200
+            );
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al procesar la junta: '.$e->getMessage(), 500);
+        }
+    }
 
-            // Actualizamos usando el servicio
-            $updatedBoard = $this->boardService->updateBoard($board, $request->validated());
+    public function show(int $year): JsonResponse
+    {
+        try {
+            $board = $this->managerBoardsService->getByYear($year);
+
+            return $this->successResponse($board);
+        } catch (Exception $e) {
+            return $this->errorResponse('Error al obtener la junta: '.$e->getMessage(), 500);
+        }
+    }
+
+    public function update(ManagerBoardsRequest $request, int $year): JsonResponse
+    {
+        try {
+            $data = $request->validated();
+            $data['year'] = $year;
+
+            $updatedBoard = $this->managerBoardsService->upsertBoard($data);
 
             return $this->successResponse(
                 new ManagerBoardsResource($updatedBoard),
-                "Reunión de directivos actualizada exitosamente"
+                'Reunión de directivos actualizada exitosamente'
             );
 
         } catch (Exception $e) {
-            return $this->errorResponse("Error al procesar la actualización: " . $e->getMessage(), 500);
+            return $this->errorResponse('Error al procesar la actualización: '.$e->getMessage(), 500);
         }
     }
 
-    function destroy(int $year)
+    public function destroy(int $year): JsonResponse
     {
         try {
-            $board = managerBoards::findOrFail($year);
-            $board->delete();
-            return $this->successResponse("Reunion de directivos eliminada exitosamente");
+            $this->managerBoardsService->delete($year);
+
+            return $this->successResponse(null, 'Reunion de directivos eliminada exitosamente');
 
         } catch (ModelNotFoundException) {
-            return $this->errorResponse("Reunion de directivos no encontrada", 404);
-
+            return $this->errorResponse('Reunion de directivos no encontrada', 404);
         } catch (Exception $e) {
-            return $this->errorResponse("Error al procesar la junta: " . $e->getMessage(), 500);
+            return $this->errorResponse('Error al procesar la eliminación: '.$e->getMessage(), 500);
         }
-
     }
 }
