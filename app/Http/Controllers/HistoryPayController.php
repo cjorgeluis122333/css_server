@@ -94,7 +94,7 @@ class HistoryPayController extends Controller
     }
 
     /**
-     * Listar historial por socio con deuda restante del mes en cada registro.
+     * Listar historial por socio con deuda del rango aplicado en cada registro.
      */
     public function show(Request $request, $acc): JsonResponse
     {
@@ -105,13 +105,13 @@ class HistoryPayController extends Controller
         try {
             $perPage = $request->input('per_page', 15);
 
-            // Calcula la deuda restante y el acumulado de pagos por mes para cada registro
+            // Calcula la deuda del rango y el acumulado de pagos por mes para cada registro
             $deudaMap = $this->historyService->computeRunningDebtMap((int) $acc);
             $paymentMap = $this->historyService->computeMonthlyPaymentMap((int) $acc);
 
             $history = $this->historyService->getHistoryByAccountPaginated((int) $acc, (int) $perPage);
 
-            // Inyecta deuda restante, pago acumulado del mes y cantidad de abonos en cada registro
+            // Inyecta deuda del rango, pago acumulado del mes y cantidad de abonos en cada registro
             $history->getCollection()->transform(function (HistoryPay $record) use ($deudaMap, $paymentMap) {
                 $record->deuda = $deudaMap[(int) $record->ind] ?? null;
 

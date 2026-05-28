@@ -77,7 +77,7 @@ class HistoryPayService
     }
 
     /**
-     * Calcula la deuda restante del mes aplicado en cada pago.
+     * Calcula la deuda del rango asociado a cada pago registrado.
      *
      * @return array<int, float> Mapa de ind -> deuda
      */
@@ -120,6 +120,12 @@ class HistoryPayService
         foreach ($payments as $payment) {
             $paymentMonth = (string) $payment->mes;
 
+            if (! $this->isValidMonthKey($paymentMonth)) {
+                $result[(int) $payment->ind] = 0.0;
+
+                continue;
+            }
+
             if (! isset($firstPaymentDateByMonth[$paymentMonth])) {
                 $firstPaymentDateByMonth[$paymentMonth] = $this->normalizeLedgerDate($payment->fecha, $paymentMonth);
             }
@@ -127,23 +133,28 @@ class HistoryPayService
             $accumulatedByMonth[$paymentMonth] = ($accumulatedByMonth[$paymentMonth] ?? 0.0) + (float) $payment->monto;
 
             if ($paymentMonth > $currentMonth) {
-                $result[(int) $payment->ind] = round($accumulatedByMonth[$paymentMonth] * -1, 2);
+                $result[(int) $payment->ind] = $this->calculateAdvanceBalance(
+                    $paymentMonth,
+                    $currentMonth,
+                    $accumulatedByMonth,
+                    $firstPaymentDateByMonth,
+                    $allFees,
+                    $surchargeMultiplier
+                );
 
                 continue;
             }
 
-            if ($paymentMonth < $startMonth) {
-                $result[(int) $payment->ind] = 0.0;
+            $rangeStartMonth = max($paymentMonth, $startMonth);
 
-                continue;
-            }
-
-            $referenceMonth = Carbon::parse($firstPaymentDateByMonth[$paymentMonth])->format('Y-m');
-            $monthlyFee = $this->resolveMonthlyFee($allFees, $referenceMonth);
-            $nominalTotal = $monthlyFee * (1 + $surchargeMultiplier);
-            $remainingDebt = $nominalTotal - $accumulatedByMonth[$paymentMonth];
-
-            $result[(int) $payment->ind] = round(max(0.0, $remainingDebt), 2);
+            $result[(int) $payment->ind] = $this->calculatePendingDebtForRange(
+                $rangeStartMonth,
+                $currentMonth,
+                $accumulatedByMonth,
+                $firstPaymentDateByMonth,
+                $allFees,
+                $surchargeMultiplier
+            );
         }
 
         return $result;
@@ -214,6 +225,110 @@ class HistoryPayService
             ->last();
 
         return $fee ? round((float) $fee->total, 2) : 0.0;
+    }
+
+    private function calculatePendingDebtForRange(
+        string $startMonth,
+        string $endMonth,
+        array $paymentsByMonth,
+        array $firstPaymentDateByMonth,
+        Collection $fees,
+        float $surchargeMultiplier
+    ): float {
+        if ($startMonth > $endMonth) {
+            return 0.0;
+        }
+
+        $debt = 0.0;
+
+        foreach ($this->generateMonthRange($startMonth, $endMonth) as $month) {
+            $monthlyDebt = $this->resolveMonthlyDebt(
+                $month,
+                $paymentsByMonth,
+                $firstPaymentDateByMonth,
+                $fees,
+                $endMonth,
+                $surchargeMultiplier
+            );
+
+            if ($monthlyDebt > 0.009) {
+                $debt += $monthlyDebt;
+            }
+        }
+
+        return round($debt, 2);
+    }
+
+    private function calculateAdvanceBalance(
+        string $targetMonth,
+        string $currentMonth,
+        array $paymentsByMonth,
+        array $firstPaymentDateByMonth,
+        Collection $fees,
+        float $surchargeMultiplier
+    ): float {
+        $advanceBalance = 0.0;
+
+        foreach ($this->generateMonthRange($currentMonth, $targetMonth) as $month) {
+            if ($month === $currentMonth) {
+                $currentMonthDebt = $this->resolveMonthlyDebt(
+                    $month,
+                    $paymentsByMonth,
+                    $firstPaymentDateByMonth,
+                    $fees,
+                    $currentMonth,
+                    $surchargeMultiplier
+                );
+
+                $advanceBalance += max(0.0, $currentMonthDebt * -1);
+
+                continue;
+            }
+
+            $advanceBalance += (float) ($paymentsByMonth[$month] ?? 0.0);
+        }
+
+        return round($advanceBalance * -1, 2);
+    }
+
+    private function resolveMonthlyDebt(
+        string $month,
+        array $paymentsByMonth,
+        array $firstPaymentDateByMonth,
+        Collection $fees,
+        string $currentMonth,
+        float $surchargeMultiplier
+    ): float {
+        $totalPaid = (float) ($paymentsByMonth[$month] ?? 0.0);
+        $referenceMonth = $currentMonth;
+
+        if ($totalPaid > 0 && isset($firstPaymentDateByMonth[$month])) {
+            $referenceMonth = Carbon::parse($firstPaymentDateByMonth[$month])->format('Y-m');
+        }
+
+        $monthlyFee = $this->resolveMonthlyFee($fees, $referenceMonth);
+        $nominalTotal = $monthlyFee * (1 + $surchargeMultiplier);
+
+        return round($nominalTotal - $totalPaid, 2);
+    }
+
+    private function generateMonthRange(string $start, string $end): array
+    {
+        $dates = [];
+        $current = Carbon::parse($start.'-01');
+        $last = Carbon::parse($end.'-01');
+
+        while ($current->lte($last)) {
+            $dates[] = $current->format('Y-m');
+            $current->addMonth();
+        }
+
+        return $dates;
+    }
+
+    private function isValidMonthKey(string $month): bool
+    {
+        return preg_match('/^\d{4}-\d{2}$/', $month) === 1;
     }
 
     private function resolveMembershipStartMonth(?string $ingreso, string $defaultStartMonth): string
