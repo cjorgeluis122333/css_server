@@ -104,8 +104,6 @@ class HistoryPayService
             return [];
         }
 
-        $currentMonth = now()->format('Y-m');
-
         $allFees = Fee::query()
             ->select(['mes', 'cuota', 'impuesto'])
             ->orderBy('mes')
@@ -126,16 +124,18 @@ class HistoryPayService
                 continue;
             }
 
+            $paymentDateMonth = $this->resolvePaymentDateMonth($payment->fecha, $paymentMonth);
+
             if (! isset($firstPaymentDateByMonth[$paymentMonth])) {
                 $firstPaymentDateByMonth[$paymentMonth] = $this->normalizeLedgerDate($payment->fecha, $paymentMonth);
             }
 
             $accumulatedByMonth[$paymentMonth] = ($accumulatedByMonth[$paymentMonth] ?? 0.0) + (float) $payment->monto;
 
-            if ($paymentMonth > $currentMonth) {
+            if ($paymentMonth > $paymentDateMonth) {
                 $result[(int) $payment->ind] = $this->calculateAdvanceBalance(
                     $paymentMonth,
-                    $currentMonth,
+                    $paymentDateMonth,
                     $accumulatedByMonth,
                     $firstPaymentDateByMonth,
                     $allFees,
@@ -149,7 +149,7 @@ class HistoryPayService
 
             $result[(int) $payment->ind] = $this->calculatePendingDebtForRange(
                 $rangeStartMonth,
-                $currentMonth,
+                $paymentDateMonth,
                 $accumulatedByMonth,
                 $firstPaymentDateByMonth,
                 $allFees,
@@ -216,6 +216,11 @@ class HistoryPayService
         } catch (Exception) {
             return Carbon::parse(($month ?: now()->format('Y-m')).'-01')->format('Y-m-d');
         }
+    }
+
+    private function resolvePaymentDateMonth(?string $date, string $fallbackMonth): string
+    {
+        return Carbon::parse($this->normalizeLedgerDate($date, $fallbackMonth))->format('Y-m');
     }
 
     private function resolveMonthlyFee(Collection $fees, string $referenceMonth): float
