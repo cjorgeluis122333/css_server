@@ -77,7 +77,7 @@ class HistoryPayService
     }
 
     /**
-     * Calcula la deuda acumulada del socio al momento de cada pago registrado.
+     * Calcula la deuda restante del mes aplicado en cada pago.
      *
      * @return array<int, float> Mapa de ind -> deuda
      */
@@ -88,27 +88,12 @@ class HistoryPayService
             ->with('dependents')
             ->first();
 
-        $startMonth = '2019-01';
-        $surchargeMultiplier = 0.0;
+        $startMonth = $partner
+            ? $this->resolveMembershipStartMonth($partner->ingreso, '2019-01')
+            : '2019-01';
 
-        if ($partner) {
-            $rawIngreso = trim((string) ($partner->ingreso ?? ''));
-
-            if ($rawIngreso !== '' && $rawIngreso !== '-') {
-                try {
-                    $ingresoCarbon = Carbon::parse($rawIngreso);
-
-                    if ($ingresoCarbon->year >= 2019) {
-                        $startMonth = $ingresoCarbon->format('Y-m');
-                    }
-                } catch (Exception) {
-                    // Mantener el inicio por defecto cuando la fecha historica no es parseable.
-                }
-            }
-
-            $childrenData = $this->getAdultChildrenData($partner);
-            $surchargeMultiplier = $childrenData['multiplier'] ?? 0.0;
-        }
+        $childrenData = $partner ? $this->getAdultChildrenData($partner) : ['multiplier' => 0.0];
+        $surchargeMultiplier = $childrenData['multiplier'] ?? 0.0;
 
         $payments = HistoryPay::where('acc', $acc)
             ->orderBy('fecha', 'asc')
@@ -119,71 +104,46 @@ class HistoryPayService
             return [];
         }
 
-        $maxMesPaid = $payments->max('mes') ?? now()->format('Y-m');
-        $maxPaymentDateMonth = $payments
-            ->map(fn (HistoryPay $payment): string => Carbon::parse(
-                $this->normalizeLedgerDate($payment->fecha, $payment->mes)
-            )->format('Y-m'))
-            ->max();
-        $endMonth = max($maxMesPaid, $maxPaymentDateMonth, now()->format('Y-m'));
+        $currentMonth = now()->format('Y-m');
 
         $allFees = Fee::query()
             ->select(['mes', 'cuota', 'impuesto'])
             ->orderBy('mes')
             ->get()
-            ->keyBy('mes');
+            ->keyBy('mes')
+            ->sortKeys();
 
         $firstPaymentDateByMonth = [];
-
-        foreach ($payments as $payment) {
-            if (! isset($firstPaymentDateByMonth[$payment->mes])) {
-                $firstPaymentDateByMonth[$payment->mes] = $this->normalizeLedgerDate($payment->fecha, $payment->mes);
-            }
-        }
-
-        $ledgerEntries = [];
-
-        foreach ($this->generateMonthRange($startMonth, $endMonth) as $month) {
-            $referenceMonth = isset($firstPaymentDateByMonth[$month])
-                ? Carbon::parse($firstPaymentDateByMonth[$month])->format('Y-m')
-                : $month;
-
-            $ledgerEntries[] = [
-                'date' => "{$month}-01",
-                'type' => 'charge',
-                'priority' => 0,
-                'ind' => 0,
-                'amount' => $this->resolveMonthlyFee($allFees, $referenceMonth) * (1 + $surchargeMultiplier),
-            ];
-        }
-
-        foreach ($payments as $payment) {
-            $ledgerEntries[] = [
-                'date' => $this->normalizeLedgerDate($payment->fecha, $payment->mes),
-                'type' => 'payment',
-                'priority' => 1,
-                'ind' => (int) $payment->ind,
-                'amount' => (float) $payment->monto,
-            ];
-        }
-
-        usort($ledgerEntries, function (array $left, array $right): int {
-            return [$left['date'], $left['priority'], $left['ind']]
-                <=> [$right['date'], $right['priority'], $right['ind']];
-        });
-
+        $accumulatedByMonth = [];
         $result = [];
-        $runningDebt = 0.0;
 
-        foreach ($ledgerEntries as $entry) {
-            if ($entry['type'] === 'charge') {
-                $runningDebt += (float) $entry['amount'];
+        foreach ($payments as $payment) {
+            $paymentMonth = (string) $payment->mes;
+
+            if (! isset($firstPaymentDateByMonth[$paymentMonth])) {
+                $firstPaymentDateByMonth[$paymentMonth] = $this->normalizeLedgerDate($payment->fecha, $paymentMonth);
+            }
+
+            $accumulatedByMonth[$paymentMonth] = ($accumulatedByMonth[$paymentMonth] ?? 0.0) + (float) $payment->monto;
+
+            if ($paymentMonth > $currentMonth) {
+                $result[(int) $payment->ind] = round($accumulatedByMonth[$paymentMonth] * -1, 2);
 
                 continue;
             }
 
-            $runningDebt -= (float) $entry['amount'];
-            $result[(int) $entry['ind']] = round($runningDebt, 2);
+            if ($paymentMonth < $startMonth) {
+                $result[(int) $payment->ind] = 0.0;
+
+                continue;
+            }
+
+            $referenceMonth = Carbon::parse($firstPaymentDateByMonth[$paymentMonth])->format('Y-m');
+            $monthlyFee = $this->resolveMonthlyFee($allFees, $referenceMonth);
+            $nominalTotal = $monthlyFee * (1 + $surchargeMultiplier);
+            $remainingDebt = $nominalTotal - $accumulatedByMonth[$paymentMonth];
+
+            $result[(int) $payment->ind] = round(max(0.0, $remainingDebt), 2);
         }
 
         return $result;
@@ -238,20 +198,6 @@ class HistoryPayService
         ];
     }
 
-    private function generateMonthRange(string $start, string $end): array
-    {
-        $dates = [];
-        $current = Carbon::parse($start.'-01');
-        $last = Carbon::parse($end.'-01');
-
-        while ($current->lte($last)) {
-            $dates[] = $current->format('Y-m');
-            $current->addMonth();
-        }
-
-        return $dates;
-    }
-
     private function normalizeLedgerDate(?string $date, ?string $month): string
     {
         try {
@@ -268,5 +214,22 @@ class HistoryPayService
             ->last();
 
         return $fee ? round((float) $fee->total, 2) : 0.0;
+    }
+
+    private function resolveMembershipStartMonth(?string $ingreso, string $defaultStartMonth): string
+    {
+        $rawIngreso = is_string($ingreso) ? trim($ingreso) : '';
+
+        if ($rawIngreso === '' || $rawIngreso === '-') {
+            return $defaultStartMonth;
+        }
+
+        try {
+            $parsedMonth = Carbon::parse($rawIngreso)->format('Y-m');
+        } catch (Exception) {
+            return $defaultStartMonth;
+        }
+
+        return $parsedMonth < $defaultStartMonth ? $defaultStartMonth : $parsedMonth;
     }
 }

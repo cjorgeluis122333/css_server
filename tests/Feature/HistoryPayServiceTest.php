@@ -5,13 +5,20 @@ use App\Models\Fee;
 use App\Models\HistoryPay;
 use App\Models\Partner;
 use App\Service\HistoryPayService;
+use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
 
-it('locks an advanced paid month to the fee active on the first payment date', function (): void {
+afterEach(function (): void {
+    Carbon::setTestNow();
+});
+
+it('keeps past advance payments at zero once their month is due', function (): void {
+    Carbon::setTestNow('2025-04-10');
+
     Schema::table('0cc_socios', function (Blueprint $table): void {
         $table->unique('acc');
     });
@@ -51,11 +58,13 @@ it('locks an advanced paid month to the fee active on the first payment date', f
 
     $debtMap = app(HistoryPayService::class)->computeRunningDebtMap(123);
 
-    expect($debtMap[(int) $marchPayment->ind])->toBe(-40.00)
+    expect($debtMap[(int) $marchPayment->ind])->toBe(0.00)
         ->and($debtMap[(int) $aprilPayment->ind])->toBe(0.00);
 });
 
-it('reconstructs running debt with monthly charges and advance payments', function (): void {
+it('only shows negative debt for payments applied after the current month', function (): void {
+    Carbon::setTestNow('2025-08-05');
+
     Schema::table('0cc_socios', function (Blueprint $table): void {
         $table->unique('acc');
     });
@@ -103,7 +112,7 @@ it('reconstructs running debt with monthly charges and advance payments', functi
 
     $debtMap = app(HistoryPayService::class)->computeRunningDebtMap(456);
 
-    expect($debtMap[(int) $julyPayment->ind])->toBe(40.02)
+    expect($debtMap[(int) $julyPayment->ind])->toBe(0.00)
         ->and($debtMap[(int) $augustPayment->ind])->toBe(8.00)
         ->and($debtMap[(int) $augustDiscount->ind])->toBe(0.00)
         ->and($debtMap[(int) $septemberPayment->ind])->toBe(-32.02);
