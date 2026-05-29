@@ -3,23 +3,35 @@
 namespace App\Service;
 
 use App\Models\ManagerBoards;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ManagerBoardsService
 {
-    public function getAll()
+    private const RELATIONS = [
+        'rel_presidente',
+        'rel_vicepresidente',
+        'rel_secretario',
+        'rel_vicesecretario',
+        'rel_tesorero',
+        'rel_vicetesorero',
+        'rel_bibliotecario',
+        'rel_actas',
+        'rel_viceactas',
+        'rel_actos',
+        'rel_deportes',
+        'rel_vocal1',
+        'rel_vocal2',
+    ];
+
+    public function getAll(): Collection
     {
-        return ManagerBoards::with([
-            'rel_presidente', 'rel_vicepresidente', 'rel_secretario',
-            'rel_vicesecretario', 'rel_tesorero', 'rel_vicetesorero',
-            'rel_bibliotecario', 'rel_actas', 'rel_viceactas',
-            'rel_actos', 'rel_deportes', 'rel_vocal1', 'rel_vocal2',
-        ])->get();
+        return ManagerBoards::with(self::RELATIONS)->get();
     }
 
-    public function getByYear(int $year)
+    public function getByYear(int $year): ManagerBoards|array
     {
-        $board = ManagerBoards::find($year);
+        $board = ManagerBoards::with(self::RELATIONS)->find($year);
 
         if (! $board) {
             return [
@@ -46,10 +58,12 @@ class ManagerBoardsService
     public function upsertBoard(array $data): ManagerBoards
     {
         return DB::transaction(function () use ($data) {
-            return ManagerBoards::updateOrCreate(
+            $board = ManagerBoards::updateOrCreate(
                 ['year' => $data['year']],
                 $data
             );
+
+            return $board->load(self::RELATIONS);
         });
     }
 
