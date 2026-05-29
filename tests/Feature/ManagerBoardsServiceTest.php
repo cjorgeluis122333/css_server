@@ -2,7 +2,6 @@
 
 use App\Enum\PartnerCategory;
 use App\Http\Requests\ManagerBoardsRequest;
-use App\Models\Manager;
 use App\Models\ManagerBoards;
 use App\Models\Partner;
 use App\Service\ManagerBoardsService;
@@ -12,22 +11,25 @@ use Illuminate\Support\Facades\Validator;
 uses(RefreshDatabase::class);
 
 it('persists board roles and returns the related managers', function (): void {
-    Manager::create([
+    Partner::create([
         'acc' => 101,
         'cedula' => 15979176,
         'nombre' => 'Presidente de prueba',
+        'categoria' => PartnerCategory::TITULAR->value,
     ]);
 
-    Manager::create([
+    Partner::create([
         'acc' => 102,
         'cedula' => 1366427,
         'nombre' => 'Vicepresidente de prueba',
+        'categoria' => PartnerCategory::TITULAR->value,
     ]);
 
-    Manager::create([
+    Partner::create([
         'acc' => 103,
         'cedula' => 17031196,
         'nombre' => 'Secretario de prueba',
+        'categoria' => PartnerCategory::TITULAR->value,
     ]);
 
     $board = app(ManagerBoardsService::class)->upsertBoard([
@@ -59,12 +61,13 @@ it('persists board roles and returns the related managers', function (): void {
         ->and($persistedBoard->secretario)->toBe(17031196);
 });
 
-it('rejects board role cedulas that are socios but not registered managers', function (): void {
+it('rejects board role cedulas that are not registered titular partners', function (): void {
+    // A familiar partner should be rejected
     Partner::create([
         'acc' => 500,
         'cedula' => 15979176,
-        'nombre' => 'Socio titular sin directivo',
-        'categoria' => PartnerCategory::TITULAR->value,
+        'nombre' => 'Socio familiar sin directivo',
+        'categoria' => PartnerCategory::FAMILIAR->value,
     ]);
 
     $validator = Validator::make(
