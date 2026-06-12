@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\photo;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\PartnerPhotoRequest;
+use App\Http\Requests\photo\PartnerPhotoRequest;
 use App\Service\photo\PhotoService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;

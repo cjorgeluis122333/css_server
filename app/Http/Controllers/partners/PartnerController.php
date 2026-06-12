@@ -5,7 +5,7 @@ namespace App\Http\Controllers\partners;
 use App\Enum\DebtMetricType;
 use App\Enum\UserRole;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\PartnerRequest;
+use App\Http\Requests\partner\PartnerRequest;
 use App\Models\partners\Partner;
 use App\Service\partner\PartnerDebtService;
 use App\Service\partner\PartnerService;

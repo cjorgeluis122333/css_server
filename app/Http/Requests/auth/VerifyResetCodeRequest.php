@@ -1,29 +1,29 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\auth;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class ResetPasswordRequest extends FormRequest
+class VerifyResetCodeRequest extends FormRequest
 {
     public function rules(): array
     {
         return [
-            'acc'      => 'required|integer',
-            'password' => 'required|string|min:6|confirmed',
+            'acc'  => 'required|integer',
+            'code' => 'required|string|size:6',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'acc.required'           => 'El número de acción es obligatorio.',
-            'acc.integer'            => 'El número de acción debe ser un número entero.',
-            'password.required'      => 'La nueva contraseña es obligatoria.',
-            'password.min'           => 'La contraseña debe tener al menos 6 caracteres.',
-            'password.confirmed'     => 'La confirmación de la contraseña no coincide.',
+            'acc.required'  => 'El número de acción es obligatorio.',
+            'acc.integer'   => 'El número de acción debe ser un número entero.',
+            'code.required' => 'El código de verificación es obligatorio.',
+            'code.string'   => 'El código de verificación debe ser una cadena de texto.',
+            'code.size'     => 'El código de verificación debe tener exactamente 6 dígitos.',
         ];
     }
 

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\domino;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class GameRequest extends FormRequest
+class SubstitutionRequest extends FormRequest
 {
     public function rules(): array
     {

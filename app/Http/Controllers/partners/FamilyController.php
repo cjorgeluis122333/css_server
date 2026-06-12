@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\partners;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\FamilyRequest;
+use App\Http\Requests\partner\FamilyRequest;
 use App\Models\partners\Partner;
 use App\Service\partner\PartnerService;
 use App\Traits\ApiResponse;

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\partners;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\FeeRequest;
+use App\Http\Requests\partner\FeeRequest;
 use App\Service\partner\FeeService;
 use App\Traits\ApiResponse;
 use Carbon\Carbon;

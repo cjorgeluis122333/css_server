@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\partners;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ManagerRequest;
+use App\Http\Requests\partner\ManagerRequest;
 use App\Models\partners\Manager;
 use App\Service\partner\ManagerService;
 use App\Traits\ApiResponse;

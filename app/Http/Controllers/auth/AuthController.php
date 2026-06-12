@@ -4,7 +4,7 @@ namespace App\Http\Controllers\auth;
 
 use App\Enum\UserRole;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\UserRequest;
+use App\Http\Requests\auth\UserRequest;
 use App\Models\partners\Partner;
 use App\Models\User;
 use Exception;

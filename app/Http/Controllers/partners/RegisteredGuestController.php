@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\partners;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\RegisteredGuestRequest;
+use App\Http\Requests\partner\RegisteredGuestRequest;
 use App\Models\partners\RegisteredGuest;
 use App\Service\partner\RegisteredGuestService;
 use App\Traits\ApiResponse;

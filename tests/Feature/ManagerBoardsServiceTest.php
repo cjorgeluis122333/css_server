@@ -1,7 +1,7 @@
 <?php
 
 use App\Enum\PartnerCategory;
-use App\Http\Requests\ManagerBoardsRequest;
+use App\Http\Requests\partner\ManagerBoardsRequest;
 use App\Models\partners\ManagerBoards;
 use App\Models\partners\Partner;
 use App\Service\partner\ManagerBoardsService;

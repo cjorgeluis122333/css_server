@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\partners;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\HallControlRequest;
+use App\Http\Requests\partner\HallControlRequest;
 use App\Http\Resources\HallControlResource;
 use App\Service\partner\HallControlService;
 use App\Traits\ApiResponse;

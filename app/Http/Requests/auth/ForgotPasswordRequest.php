@@ -1,29 +1,28 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\auth;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class VerifyResetCodeRequest extends FormRequest
+class ForgotPasswordRequest extends FormRequest
 {
     public function rules(): array
     {
         return [
-            'acc'  => 'required|integer',
-            'code' => 'required|string|size:6',
+            'acc'    => 'required|integer',
+            'cedula' => 'required|integer',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'acc.required'  => 'El número de acción es obligatorio.',
-            'acc.integer'   => 'El número de acción debe ser un número entero.',
-            'code.required' => 'El código de verificación es obligatorio.',
-            'code.string'   => 'El código de verificación debe ser una cadena de texto.',
-            'code.size'     => 'El código de verificación debe tener exactamente 6 dígitos.',
+            'acc.required'    => 'El número de acción es obligatorio.',
+            'acc.integer'     => 'El número de acción debe ser un número entero.',
+            'cedula.required' => 'La cédula es obligatoria.',
+            'cedula.integer'  => 'La cédula debe ser un número entero.',
         ];
     }
 

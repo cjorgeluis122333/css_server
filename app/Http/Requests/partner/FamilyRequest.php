@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\partner;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Enum\PartnerCategory;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class FamilyRequest extends FormRequest

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\partner;
 
 use App\Models\partners\Partner;
 use App\Service\partner\PartnerDebtService;

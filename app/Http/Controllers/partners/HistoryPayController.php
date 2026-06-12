@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\partners;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\HistoryPayRequest;
+use App\Http\Requests\partner\HistoryPayRequest;
 use App\Http\Resources\HistoryPayResource;
 use App\Models\partners\HistoryPay;
 use App\Models\partners\Partner;

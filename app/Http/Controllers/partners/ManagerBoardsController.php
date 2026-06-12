@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\partners;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ManagerBoardsRequest;
+use App\Http\Requests\partner\ManagerBoardsRequest;
 use App\Http\Resources\ManagerBoardsResource;
 use App\Service\partner\ManagerBoardsService;
 use App\Traits\ApiResponse;

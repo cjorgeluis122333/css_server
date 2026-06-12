@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\DirectPasswordResetRequest;
-use App\Http\Requests\DirectPasswordValidateRequest;
-use App\Http\Requests\ForgotPasswordRequest;
-use App\Http\Requests\ResetPasswordRequest;
-use App\Http\Requests\VerifyResetCodeRequest;
+use App\Http\Requests\auth\DirectPasswordResetRequest;
+use App\Http\Requests\auth\DirectPasswordValidateRequest;
+use App\Http\Requests\auth\ForgotPasswordRequest;
+use App\Http\Requests\auth\ResetPasswordRequest;
+use App\Http\Requests\auth\VerifyResetCodeRequest;
 use App\Service\auth\PasswordResetService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;

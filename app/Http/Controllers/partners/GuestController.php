@@ -4,7 +4,7 @@ namespace App\Http\Controllers\partners;
 
 use App\Enum\UserRole;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\GuestRequest;
+use App\Http\Requests\partner\GuestRequest;
 use App\Http\Resources\GuestResource;
 use App\Models\partners\Guest;
 use App\Service\partner\GuestService;
