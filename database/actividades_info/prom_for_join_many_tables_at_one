@@ -1,0 +1,7 @@
+En mi base de datos 1090024db2 tengo una tabla que esta creada una por año lo cual considero un error grabe.
+Mi objetivo es tomar la informacion de todas esas tablas y unificarlas en una sola tabla que se encontrara
+ en mi base de datos 1090024db3.  Para hacer esto primero tendras  que analizar la parte del backup que te
+ pasare  para que con esa informacion crees la tabla que las unificara a todas. Debes de aplicar modificacion
+ que  mejoren la velocidad para hacer las consultas atravez de indices en caso de ser nesesario. Tu objetivo
+ sera darme el sql de la nueva tabla  y la consulta para hacer la insercion masiva de las antiguas tablas a la
+ nueva.  {CONTEXTO_REAL}
