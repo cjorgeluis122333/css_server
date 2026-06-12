@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Couple;
+use App\Models\domino\Couple;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

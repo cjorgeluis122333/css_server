@@ -2,9 +2,9 @@
 
 use App\Enum\PartnerCategory;
 use App\Http\Requests\ManagerBoardsRequest;
-use App\Models\ManagerBoards;
-use App\Models\Partner;
-use App\Service\ManagerBoardsService;
+use App\Models\partners\ManagerBoards;
+use App\Models\partners\Partner;
+use App\Service\partner\ManagerBoardsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Validator;
 

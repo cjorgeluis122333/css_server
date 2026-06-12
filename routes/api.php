@@ -1,20 +1,20 @@
 <?php
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ExcelController;
-use App\Http\Controllers\FamilyController;
-use App\Http\Controllers\FeeController;
-use App\Http\Controllers\GuestController;
-use App\Http\Controllers\HallControlController;
-use App\Http\Controllers\HallController;
-use App\Http\Controllers\HistoryPayController;
-use App\Http\Controllers\ManagerBoardsController;
-use App\Http\Controllers\ManagerController;
-use App\Http\Controllers\PartnerController;
-use App\Http\Controllers\PartnerPhotoController;
-use App\Http\Controllers\PasswordResetController;
-use App\Http\Controllers\RegisteredGuestController;
-use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\auth\AuthController;
+use App\Http\Controllers\auth\PasswordResetController;
+use App\Http\Controllers\auth\UserAdminController;
+use App\Http\Controllers\exel\ExcelController;
+use App\Http\Controllers\partners\FamilyController;
+use App\Http\Controllers\partners\FeeController;
+use App\Http\Controllers\partners\GuestController;
+use App\Http\Controllers\partners\HallControlController;
+use App\Http\Controllers\partners\HallController;
+use App\Http\Controllers\partners\HistoryPayController;
+use App\Http\Controllers\partners\ManagerBoardsController;
+use App\Http\Controllers\partners\ManagerController;
+use App\Http\Controllers\partners\PartnerController;
+use App\Http\Controllers\partners\RegisteredGuestController;
+use App\Http\Controllers\photo\PartnerPhotoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

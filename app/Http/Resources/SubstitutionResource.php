@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Substitution;
+use App\Models\domino\Substitution;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

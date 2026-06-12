@@ -3,13 +3,12 @@
 namespace App\Providers;
 
 use App\Enum\UserRole;
-use App\Models\Guest;
-use App\Models\HallControl;
-use App\Models\Partner;
+use App\Models\partners\Guest;
+use App\Models\partners\HallControl;
+use App\Models\partners\Partner;
 use App\Models\User;
 use App\Policies\GuestPolicy;
 use App\Policies\HallControlPolicy;
-use App\Policies\HistoryPayPolicy;
 use App\Policies\PartnerPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;

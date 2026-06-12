@@ -2,10 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Partner;
-use App\Service\PartnerDebtService;
+use App\Models\partners\Partner;
+use App\Service\partner\PartnerDebtService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+
 class HistoryPayRequest extends FormRequest
 {
     public function rules(): array

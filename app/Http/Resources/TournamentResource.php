@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Tournament;
+use App\Models\domino\Tournament;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

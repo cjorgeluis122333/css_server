@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Enum\UserRole;
-use App\Models\Partner;
+use App\Models\partners\Partner;
 use App\Models\User;
 
 class PartnerPolicy

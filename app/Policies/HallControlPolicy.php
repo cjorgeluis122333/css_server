@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Enum\UserRole;
-use App\Models\HallControl;
+use App\Models\partners\HallControl;
 use App\Models\User;
 
 class HallControlPolicy

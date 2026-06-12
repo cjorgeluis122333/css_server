@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Player;
+use App\Models\domino\Player;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

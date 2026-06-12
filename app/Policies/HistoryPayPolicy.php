@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Enum\UserRole;
-use App\Models\HistoryPay;
+use App\Models\partners\HistoryPay;
 use App\Models\User;
 
 class HistoryPayPolicy

@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Manager;
-use App\Service\PhotoService;
+use App\Models\partners\Manager;
+use App\Service\photo\PhotoService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

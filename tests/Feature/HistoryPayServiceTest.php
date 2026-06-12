@@ -1,10 +1,10 @@
 <?php
 
 use App\Enum\PartnerCategory;
-use App\Models\Fee;
-use App\Models\HistoryPay;
-use App\Models\Partner;
-use App\Service\HistoryPayService;
+use App\Models\partners\Fee;
+use App\Models\partners\HistoryPay;
+use App\Models\partners\Partner;
+use App\Service\partner\HistoryPayService;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Enum\UserRole;
-use App\Models\Guest;
+use App\Models\partners\Guest;
 use App\Models\User;
 
 class GuestPolicy

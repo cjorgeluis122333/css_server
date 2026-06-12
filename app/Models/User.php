@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enum\UserRole;
+use App\Models\partners\Partner;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;

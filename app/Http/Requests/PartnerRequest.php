@@ -3,9 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Enum\PartnerCategory;
+use App\Models\partners\Partner;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Models\Partner;
 
 class PartnerRequest extends FormRequest
 {
