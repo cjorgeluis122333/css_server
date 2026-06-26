@@ -1,0 +1,30 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # If request is already targeting /public/ directly, serve as-is
+    RewriteCond %{REQUEST_URI} ^/public/
+    RewriteRule ^ - [L]
+
+    # If the requested file exists inside public/, serve it directly (static assets)
+    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
+    RewriteRule ^ public%{REQUEST_URI} [L]
+
+    # If the requested directory exists inside public/, serve it directly
+    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -d
+    RewriteRule ^ public%{REQUEST_URI} [L]
+
+    # Everything else: route through Laravel's front controller
+    RewriteRule ^ public/index.php [L]
+</IfModule>
+
+# Block direct access to the .env file (and variants)
+<FilesMatch "^\.env">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Block access to sensitive root-level files
+<FilesMatch "^(artisan|composer\.(json|lock)|phpunit\.xml|package\.json|package-lock\.json|vite\.config\.js|docker-compose\.yml|Dockerfile|docker-entrypoint\.sh|boost\.json|opencode\.json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

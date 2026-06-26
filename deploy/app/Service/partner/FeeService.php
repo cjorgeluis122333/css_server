@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Service\partner;
+
+use App\Models\partners\Fee;
+use Illuminate\Database\Eloquent\Collection;
+
+class FeeService
+{
+    public function getAll(): Collection
+    {
+        return Fee::orderBy('mes', 'desc')->get();
+    }
+
+    public function getByMonth(?string $mes = null): ?Fee
+    {
+        // Si $mes es null o una cadena vacía, usamos el mes actual
+        $mesBusqueda = $mes ?: now()->format('Y-m');
+
+        return Fee::where('mes', $mesBusqueda)->first();
+    }
+
+    public function store(array $data): Fee
+    {
+        return Fee::create($data);
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        $Fee = Fee::findOrFail($id);
+        return $Fee->update($data);
+    }
+
+    public function delete(int $id): bool
+    {
+        $Fee = Fee::findOrFail($id);
+        return $Fee->delete();
+    }
+
+    public function getLastRegistered(): Fee
+    {
+        return Fee::orderBy('mes', 'desc')->first();
+    }
+}
