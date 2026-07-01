@@ -1,46 +1,22 @@
 #!/bin/bash
 set -e
 
-# Espera activa a MySQL para evitar que las migraciones fallen al iniciar.
-echo "Esperando a la base de datos en ${DB_HOST}:${DB_PORT}..."
+# Ejecutar migraciones con reintentos usando la configuración SSL de Laravel
+echo "Ejecutando migraciones (${DB_HOST}:${DB_PORT})..."
 
-max_retries=30
+max_retries=10
 retry=0
-db_connected=false
+migrated=false
 
-until php -r "
-try {
-		new PDO(
-				'mysql:host=' . getenv('DB_HOST') . ';port=' . getenv('DB_PORT') . ';dbname=' . getenv('DB_DATABASE'),
-				getenv('DB_USERNAME'),
-				getenv('DB_PASSWORD')
-		);
-		exit(0);
-} catch (Throwable $e) {
-		exit(1);
-}
-"; do
+until php artisan migrate --force; do
 	retry=$((retry + 1))
 	if [ "$retry" -ge "$max_retries" ]; then
-		echo "Advertencia: No se pudo conectar a la base de datos tras ${max_retries} intentos. Continuando de todas formas..."
-		db_connected=false
+		echo "Advertencia: Las migraciones no pudieron ejecutarse tras ${max_retries} intentos. El servidor continuará iniciándose."
 		break
 	fi
-	sleep 1
+	echo "Reintentando migraciones en 3 segundos (intento ${retry}/${max_retries})..."
+	sleep 3
 done
-
-if [ "$retry" -lt "$max_retries" ]; then
-	echo "Base de datos disponible."
-	db_connected=true
-fi
-
-# Ejecutar migraciones solo si la base de datos está disponible
-if [ "$db_connected" = true ]; then
-	echo "Ejecutando migraciones..."
-	php artisan migrate --force || echo "Advertencia: Las migraciones no pudieron ejecutarse. El servidor continuará iniciándose."
-else
-	echo "Omitiendo migraciones: base de datos no disponible."
-fi
 
 # Iniciar Apache en primer plano
 echo "Iniciando servidor en puerto 80..."
