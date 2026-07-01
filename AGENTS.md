@@ -15,7 +15,6 @@
 - **Invitados** con validación de límites (24 invitaciones/mes por socio, 4 visitas/mes por invitado).
 - **Salones** (precios, reservas y control de ocupación).
 - **Junta Directiva** con cargos anuales (presidente, vicepresidente, secretario, etc.).
-- **Torneos de Dominó** (módulo en desarrollo: torneos, rondas, partidas, equipos, jugadores).
 - **Exportación a Excel** de reportes de deuda.
 - **Administración de usuarios** con roles jerárquicos basados en número de acción.
 
@@ -104,7 +103,7 @@ app/
 │   ├── Requests/          # FormRequest validation classes
 │   └── Resources/         # API Resource transformations (con display condicional RBAC)
 ├── Mail/                  # Mailables (PasswordResetMail)
-├── Models/                # 16 modelos Eloquent
+├── Models/                # 9 modelos Eloquent
 ├── Policies/              # 4 Policies: Partner, HallControl, Guest, HistoryPay
 ├── Providers/             # Service Providers (AppServiceProvider)
 ├── Service/               # ⚠️ SINGULAR — 12 services de lógica de negocio
@@ -144,7 +143,7 @@ tests/                     # Tests con Pest (Feature/ y Unit/)
 | Enums         | PascalCase          | `PartnerCategory`, `UserRole`                |
 | Métodos       | camelCase           | `getAdvanceQuotes()`, `titularDebtSummary()`  |
 | Propiedades   | camelCase + tipo    | `protected PartnerService $partnerService`   |
-| Tablas DB     | Legacy: `0cc_*` / `domino_*` / Laravel estándar                  |
+| Tablas DB     | Legacy: `0cc_*` / Laravel estándar                                |
 
 ### 2. Tipado
 
@@ -250,18 +249,6 @@ return DB::transaction(function () use ($data) {
 | `Manager`         | `0cc_directivos_datos`       | `ind` | No         | Datos de directivos                            |
 | `ManagerBoards`   | `0cc_directivos_juntas`      | `year`| No         | Juntas anuales. PK no auto-incrementable       |
 
-### Modelos del Módulo de Torneos (En Desarrollo)
-
-| Modelo         | Tabla                        | PK   | Timestamps        |
-| -------------- | ---------------------------- | ---- | ------------------ |
-| `Tournament`   | `domino_2025_torneos`        | `id` | `fecha_creacion`   |
-| `Round`        | `domino_2025_rondas`         | `id` | `created_at`       |
-| `Game`         | `domino_2025_partidas`       | `id` | `fecha_actualizacion` |
-| `Couple`       | `domino_2025_parejas`        | `id` | Sí                 |
-| `Team`         | `domino_2025_equipos`        | `id` | Sí                 |
-| `Player`       | `domino_2025_jugadores`      | `id` | Sí                 |
-| `Substitution` | `domino_2025_sustituciones`  | `id` | Sí                 |
-
 ### Modelos del Módulo de Actividades
 
 > Todos en `app/Models/activities/`. Todos tienen `$timestamps = false`.
@@ -294,10 +281,6 @@ Guest ──belongsTo──▶ Partner (titular)
 RegisteredGuest ──belongsTo──▶ Partner (titular)
 
 ManagerBoards ──belongsTo (x13)──▶ Manager (one per cargo)
-
-Tournament ──hasMany──▶ Round ──hasMany──▶ Game
-Tournament ──hasMany──▶ Couple
-Tournament ──hasMany──▶ Substitution
 ```
 
 ### Enums
@@ -554,7 +537,6 @@ Estas son desviaciones del patrón estándar detectadas en el código actual. Al
 | `ExcelController`      | No usa el trait `ApiResponse`. Respuestas JSON manuales.                       |
 | `access_controller()`  | Método en `PartnerController` que rompe la convención camelCase.               |
 | Resources (6 de 10)    | Solo retornan `id`, `created_at`, `updated_at` — son scaffolding sin transformación real. |
-| FormRequests (6)       | Clases vacías sin reglas: `GameRequest`, `PlayerRequest`, `RoundRequest`, `SubstitutionRequest`, `TeamRequest`, `TournamentRequest`. |
 | `UserAdminService`     | `updateUser()` tiene tipo de retorno `Manager` en vez de `User` (bug).         |
 | Proyecto completo      | No se usa `declare(strict_types=1)` en ningún archivo.                         |
 
