@@ -1,5 +1,16 @@
 <?php
 
+use App\Http\Controllers\activity\AlmaflamencoaPagoController;
+use App\Http\Controllers\activity\BasquetPagoController;
+use App\Http\Controllers\activity\BattingPagoController;
+use App\Http\Controllers\activity\InglesPagoController;
+use App\Http\Controllers\activity\KaratePagoController;
+use App\Http\Controllers\activity\LeverPagoController;
+use App\Http\Controllers\activity\NatacionPagoController;
+use App\Http\Controllers\activity\OnboxPagoController;
+use App\Http\Controllers\activity\PinponPagoController;
+use App\Http\Controllers\activity\StrongPagoController;
+use App\Http\Controllers\activity\VoleibolPagoController;
 use App\Http\Controllers\auth\AuthController;
 use App\Http\Controllers\auth\PasswordResetController;
 use App\Http\Controllers\auth\UserAdminController;
@@ -209,5 +220,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user-admin', [UserAdminController::class, 'index']);
         Route::put('/user-admin/{acc}', [UserAdminController::class, 'update']);
         Route::delete('/user-admin/{acc}', [UserAdminController::class, 'destroy']);
+    });
+
+    // === Actividades: pagos (todos los usuarios autenticados) ===
+    Route::prefix('activity')->group(function () {
+        Route::get('/natacion', [NatacionPagoController::class, 'index'])->name('activity.natacion.index');
+        Route::get('/onbox', [OnboxPagoController::class, 'index'])->name('activity.onbox.index');
+        Route::get('/lever', [LeverPagoController::class, 'index'])->name('activity.lever.index');
+        Route::get('/pinpon', [PinponPagoController::class, 'index'])->name('activity.pinpon.index');
+        Route::get('/basquet', [BasquetPagoController::class, 'index'])->name('activity.basquet.index');
+        Route::get('/strong', [StrongPagoController::class, 'index'])->name('activity.strong.index');
+        Route::get('/karate', [KaratePagoController::class, 'index'])->name('activity.karate.index');
+        Route::get('/ingles', [InglesPagoController::class, 'index'])->name('activity.ingles.index');
+        Route::get('/voleibol', [VoleibolPagoController::class, 'index'])->name('activity.voleibol.index');
+        Route::get('/batting', [BattingPagoController::class, 'index'])->name('activity.batting.index');
+        Route::get('/almaflamenca', [AlmaflamencoaPagoController::class, 'index'])->name('activity.almaflamenca.index');
     });
 });

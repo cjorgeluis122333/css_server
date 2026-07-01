@@ -1,6 +1,6 @@
 # 🤖 Project Context & Agent Rules
 
-> **Última actualización:** 30 de abril de 2026
+> **Última actualización:** 1 de julio de 2026
 > Este archivo es la guía definitiva para cualquier agente IA que trabaje en este repositorio. Léelo **completo** antes de escribir una sola línea de código.
 
 ---
@@ -75,7 +75,7 @@ Models (Eloquent directo — sin Repository)
 
 | Patrón                        | Implementación                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------ |
-| **Service Layer**             | `app/Service/` — 12 services con lógica de negocio                             |
+| **Service Layer**             | `app/Service/` — 12 services (partner) + 11 services (activity) con lógica de negocio |
 | **Mailables**                 | `app/Mail/` — `PasswordResetMail` para OTP de recuperación de contraseña       |
 | **FormRequest Validation**    | `app/Http/Requests/` — validación desacoplada de controllers                   |
 | **API Response Trait**        | `app/Traits/ApiResponse.php` — formato estándar JSON                           |
@@ -262,6 +262,24 @@ return DB::transaction(function () use ($data) {
 | `Player`       | `domino_2025_jugadores`      | `id` | Sí                 |
 | `Substitution` | `domino_2025_sustituciones`  | `id` | Sí                 |
 
+### Modelos del Módulo de Actividades
+
+> Todos en `app/Models/activities/`. Todos tienen `$timestamps = false`.
+
+| Modelo               | Tabla                              | PK                            | Notas                              |
+| -------------------- | ---------------------------------- | ----------------------------- | ---------------------------------- |
+| `NatacionPago`       | `0cc_natacion_pagos`               | `ind` (auto)                  | Columna `anio` como discriminador  |
+| `OnboxPago`          | `0cc_onbox_pagos_all`              | `ind` (auto)                  | `mes` YYYY-MM, `d`, montos DECIMAL |
+| `LeverPago`          | `0cc_lever_pagos_unificado`        | `id_pago` (auto)              | `mes` YYYY-MM, `d`, montos DECIMAL |
+| `PinponPago`         | `0cc_pinpon_pagos_unificada`       | **Compuesta** (`anio_origen`, `ind_original`) | `$primaryKey = null` |
+| `BasquetPago`        | `0cc_basquet_pagos`                | `ind` (auto)                  | `mes`, `d`, montos INT             |
+| `StrongPago`         | `0cc_strong_pagos_unificada`       | `id_global` (auto)            | `ind_original`, `ano`, sin col `d` |
+| `KaratePago`         | `0cc_karate_pagos`                 | `ind` (auto)                  | Sin col `d`, defaults 0 en montos  |
+| `InglesPago`         | `0cc_ingles_pagos_unificado`       | **Compuesta** (`ano_tabla`, `ind`) | `$primaryKey = null`          |
+| `VoleibolPago`       | `0cc_voleibol_pagos_unificado`     | `ind` (auto)                  | `ano_origen`, sin col `d`          |
+| `BattingPago`        | `0cc_batting_pagos_unificada`      | `ind` (auto)                  | `mes`, `d`, montos INT             |
+| `AlmaflamencoaPago`  | `0cc_almaflamenca_pagos_unificada` | `id_pago` (auto)              | `ind_original` nullable, sin `d`   |
+
 ### Relaciones Principales
 
 ```
@@ -343,6 +361,7 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | `access-invitados`        | `apiResource /guest`, `/register-guest`   | `Guest*Controller`         | + Policy ownership para PARTNER/HONORARY|
 | `manage-users`            | `/user-admin`                             | `UserAdminController`      | SUPER_ADMIN + ADMIN                     |
 | *(todos autenticados)*    | `GET /partners/photo/{cedula}`            | `PartnerPhotoController`   | Retorna URL pública de la foto del socio|
+| *(todos autenticados)*    | `GET /activity/{actividad}`               | `*PagoController`@index    | 11 endpoints de pagos por actividad     |
 
 **Rutas adicionales destacadas:**
 - `GET /partners/debs/{id}` — Estado de cuenta (con Policy de propiedad)
@@ -353,6 +372,17 @@ PartnerCategory::FAMILIAR  // 'familiar'
 - `POST /logout` — Cierre de sesión
 - `GET /generate/exel/solvencia/{year}` — Exportar deuda a Excel
 - `GET /user-admin` — Listar usuarios (CRUD admin)
+- `GET /activity/natacion` — Pagos de natación (paginado, `per_page` default 50)
+- `GET /activity/onbox` — Pagos de Onbox
+- `GET /activity/lever` — Pagos de Lever
+- `GET /activity/pinpon` — Pagos de Pin Pon
+- `GET /activity/basquet` — Pagos de Básquet
+- `GET /activity/strong` — Pagos de Strong
+- `GET /activity/karate` — Pagos de Karate
+- `GET /activity/ingles` — Pagos de Inglés
+- `GET /activity/voleibol` — Pagos de Voleibol
+- `GET /activity/batting` — Pagos de Batting
+- `GET /activity/almaflamenca` — Pagos de Alma Flamenca
 
 ---
 

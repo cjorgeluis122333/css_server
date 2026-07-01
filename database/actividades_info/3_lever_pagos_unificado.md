@@ -1,4 +1,4 @@
-
+## Table
 
 ```mysql
 CREATE TABLE `1090024db3`.`0cc_lever_pagos_unificado` (
@@ -22,7 +22,7 @@ CREATE TABLE `1090024db3`.`0cc_lever_pagos_unificado` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 ```
 
-
+## Insert
 
 ```mysql
 INSERT INTO `1090024db3`.`0cc_lever_pagos_unificado` 

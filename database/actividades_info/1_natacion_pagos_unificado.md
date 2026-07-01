@@ -1,4 +1,4 @@
-## Tabla
+## Table
 ```mysql
 CREATE TABLE 1090024db3.`0cc_natacion_pagos` (
   `ind` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -20,7 +20,7 @@ CREATE TABLE 1090024db3.`0cc_natacion_pagos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 ```
 
-## Get data of refactor tables
+## Insert
 ```mysql
 INSERT INTO 1090024db3.`0cc_natacion_pagos` 
 (`cedula`, `anio`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`)
