@@ -37,7 +37,7 @@ fi
 # Ejecutar migraciones solo si la base de datos está disponible
 if [ "$db_connected" = true ]; then
 	echo "Ejecutando migraciones..."
-	php artisan migrate --force 2>/dev/null || echo "Advertencia: Las migraciones no pudieron ejecutarse. El servidor continuará iniciándose."
+	php artisan migrate --force || echo "Advertencia: Las migraciones no pudieron ejecutarse. El servidor continuará iniciándose."
 else
 	echo "Omitiendo migraciones: base de datos no disponible."
 fi
