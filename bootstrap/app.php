@@ -8,6 +8,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 return Application::configure(basePath: dirname(__DIR__))
@@ -64,6 +65,14 @@ return Application::configure(basePath: dirname(__DIR__))
                         'message' => 'El recurso solicitado no existe.',
                         'code'    => 404
                     ], 404);
+                }
+
+                if ($e instanceof MethodNotAllowedHttpException) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Método HTTP no permitido para esta ruta.',
+                        'code'    => 405
+                    ], 405);
                 }
 
                 if ($e instanceof QueryException) {
