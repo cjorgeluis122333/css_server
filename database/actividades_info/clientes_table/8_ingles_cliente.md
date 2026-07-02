@@ -4,57 +4,64 @@
 CREATE DATABASE IF NOT EXISTS `1090024db3`;
 USE `1090024db3`;
 
-CREATE TABLE `0cc_ingles_pagos_unificado` (
-  `ano_tabla` int(4) NOT NULL COMMENT 'Año de la tabla original para evitar colisiones de ID',
-  `ind` int(10) UNSIGNED NOT NULL,
-  `cedula` int(11) DEFAULT NULL,
-  `mes` tinytext DEFAULT NULL,
-  `plan` tinytext DEFAULT NULL,
-  `monto` int(11) NOT NULL,
-  `dolares` int(11) NOT NULL,
-  `zelle` int(11) NOT NULL,
-  `recibo` int(11) NOT NULL,
-  `fecha` int(11) NOT NULL COMMENT 'Timestamp de la transacción',
-  `observacion` tinytext DEFAULT NULL,
+CREATE TABLE `0cc_ingles_clientes` (
+  `ind` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `cedula` int(11) NOT NULL,
+  `nombre` tinytext DEFAULT NULL,
+  `nacimiento` tinytext DEFAULT NULL,
+  `sexo` tinytext DEFAULT NULL,
+  `socio` tinytext DEFAULT 'No Socio',
+  `padres` text DEFAULT NULL,
+  `last_pay` tinytext DEFAULT NULL,
+  `last_pay_mont` tinytext DEFAULT NULL,
+  `d` tinytext DEFAULT NULL,
   `operador` tinytext DEFAULT NULL,
-  -- Clave primaria compuesta para asegurar unicidad absoluta
-  PRIMARY KEY (`ano_tabla`, `ind`),
-  -- Índices estratégicos para acelerar las consultas frecuentes
-  INDEX `idx_cedula` (`cedula`),
-  INDEX `idx_mes_fecha` (`mes`(7), `fecha`)
+  PRIMARY KEY (`ind`),
+  UNIQUE KEY `idx_cedula_unico` (`cedula`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 ```
 
 ## Insert
 
 ```mysql
-USE `1090024db3`;
 
-START TRANSACTION;
 
--- Migración Año 2023
-INSERT INTO `0cc_ingles_pagos_unificado` 
-(`ano_tabla`, `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`)
-SELECT 2023, `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador` 
-FROM `1090024db2`.`0cc_ingles_pagos_2023`;
+INSERT INTO `1090024db3`.`0cc_ingles_clientes` (
+    `cedula`, `nombre`, `nacimiento`, `sexo`, `socio`, `padres`, `operador`,
+    `last_pay`, `last_pay_mont`, `d`
+)
+SELECT 
+    old.`cedula`,
+    old.`nombre`,
+    old.`nacimiento`,
+    old.`sexo`,
+    old.`socio`,
+    old.`padres`,
+    old.`operador`,
+    -- 1. Extraer lo que está antes del primer '|'
+    NULLIF(SUBSTRING_INDEX(old.`last_pay`, '|', 1), '') AS `last_pay`,
+    
+    -- 2. Extraer lo que está entre el primer y segundo '|'
+    CASE 
+        WHEN LENGTH(old.`last_pay`) - LENGTH(REPLACE(old.`last_pay`, '|', '')) >= 1 
+        THEN NULLIF(SUBSTRING_INDEX(SUBSTRING_INDEX(old.`last_pay`, '|', 2), '|', -1), '')
+        ELSE NULL 
+    END AS `last_pay_mont`,
+    
+    -- 3. Extraer lo que está después del segundo '|' (Columna d)
+    CASE 
+        WHEN LENGTH(old.`last_pay`) - LENGTH(REPLACE(old.`last_pay`, '|', '')) >= 2 
+        THEN NULLIF(SUBSTRING_INDEX(old.`last_pay`, '|', -1), '')
+        ELSE NULL 
+    END AS `d`
+FROM `1090024db2`.`0cc_ingles_clientes` old
+-- Unirse a sí mismo para asegurar que si hay cédulas repetidas, se tome el ID más alto (último ingresado)
+WHERE old.`ind` IN (
+    SELECT MAX(`ind`) 
+    FROM `1090024db2`.`0cc_ingles_clientes`
+    WHERE `cedula` IS NOT NULL
+    GROUP BY `cedula`
+);
 
--- Migración Año 2024
-INSERT INTO `0cc_ingles_pagos_unificado` 
-(`ano_tabla`, `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`)
-SELECT 2024, `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador` 
-FROM `1090024db2`.`0cc_ingles_pagos_2024`;
-
--- Migración Año 2025
-INSERT INTO `0cc_ingles_pagos_unificado` 
-(`ano_tabla`, `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`)
-SELECT 2025, `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador` 
-FROM `1090024db2`.`0cc_ingles_pagos_2025`;
-
--- Migración Año 2026
-INSERT INTO `0cc_ingles_pagos_unificado` 
-(`ano_tabla`, `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`)
-SELECT 2026, `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador` 
-FROM `1090024db2`.`0cc_ingles_pagos_2026`;
-
-COMMIT;
 ```

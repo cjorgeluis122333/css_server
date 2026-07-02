@@ -1,70 +1,59 @@
 ## Table
+
 ```mysql
-CREATE TABLE `1090024db3`.`0cc_basquet_pagos` (
-  `ind` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `cedula` INT(11) DEFAULT NULL,
-  `mes` VARCHAR(7) DEFAULT NULL COMMENT 'Almacena estrictamente YYYY-MM',
-  `d` VARCHAR(10) DEFAULT NULL COMMENT 'Almacena el código (D7, D4, S1) o NULL si no existe',
-  `plan` VARCHAR(50) DEFAULT NULL,
-  `monto` INT(11) NOT NULL,
-  `dolares` INT(11) NOT NULL,
-  `zelle` INT(11) NOT NULL,
-  `recibo` INT(11) NOT NULL,
-  `fecha` INT(11) NOT NULL COMMENT 'Unix Timestamp de la transaccion',
-  `observacion` VARCHAR(255) DEFAULT NULL,
-  `operador` VARCHAR(50) DEFAULT NULL,
+CREATE TABLE `1090024db3`.`0cc_basquet_clientes` (
+  `ind` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `cedula` int(11) NOT NULL,
+  `nombre` tinytext DEFAULT NULL,
+  `nacimiento` tinytext DEFAULT NULL,
+  `sexo` tinytext DEFAULT NULL,
+  `socio` tinytext DEFAULT 'No Socio',
+  `padres` text NOT NULL,
+  `last_pay` tinytext DEFAULT NULL,
+  `last_pay_mont` tinytext DEFAULT NULL,
+  `d` tinytext DEFAULT NULL,
+  `operador` tinytext DEFAULT NULL,
   PRIMARY KEY (`ind`),
-  INDEX `idx_cedula_mes` (`cedula`, `mes`),
-  INDEX `idx_fecha` (`fecha`)
+  UNIQUE KEY `idx_cedula_unico` (`cedula`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 ```
 
 ## Insert
 
 ```mysql
-INSERT INTO `1090024db3`.`0cc_basquet_pagos` 
-(cedula, mes, d, plan, monto, dolares, zelle, recibo, fecha, observacion, operador)
-
+INSERT INTO `1090024db3`.`0cc_basquet_clientes` (
+    `cedula`, `nombre`, `nacimiento`, `sexo`, `socio`, `padres`, `operador`, `last_pay`, `last_pay_mont`, `d`
+)
 SELECT 
-    cedula, 
-    SUBSTRING_INDEX(mes, '|', 1) AS mes,
-    IF(mes LIKE '%|%', SUBSTRING_INDEX(mes, '|', -1), NULL) AS d,
-    plan, monto, dolares, zelle, recibo, fecha, observacion, operador
-FROM `1090024db2`.`0cc_basquet_pagos_2022`
-
-UNION ALL
-
-SELECT 
-    cedula, 
-    SUBSTRING_INDEX(mes, '|', 1) AS mes,
-    IF(mes LIKE '%|%', SUBSTRING_INDEX(mes, '|', -1), NULL) AS d,
-    plan, monto, dolares, zelle, recibo, fecha, observacion, operador
-FROM `1090024db2`.`0cc_basquet_pagos_2023`
-
-UNION ALL
-
-SELECT 
-    cedula, 
-    SUBSTRING_INDEX(mes, '|', 1) AS mes,
-    IF(mes LIKE '%|%', SUBSTRING_INDEX(mes, '|', -1), NULL) AS d,
-    plan, monto, dolares, zelle, recibo, fecha, observacion, operador
-FROM `1090024db2`.`0cc_basquet_pagos_2024`
-
-UNION ALL
-
-SELECT 
-    cedula, 
-    SUBSTRING_INDEX(mes, '|', 1) AS mes,
-    IF(mes LIKE '%|%', SUBSTRING_INDEX(mes, '|', -1), NULL) AS d,
-    plan, monto, dolares, zelle, recibo, fecha, observacion, operador
-FROM `1090024db2`.`0cc_basquet_pagos_2025`
-
-UNION ALL
-
-SELECT 
-    cedula, 
-    SUBSTRING_INDEX(mes, '|', 1) AS mes,
-    IF(mes LIKE '%|%', SUBSTRING_INDEX(mes, '|', -1), NULL) AS d,
-    plan, monto, dolares, zelle, recibo, fecha, observacion, operador
-FROM `1090024db2`.`0cc_basquet_pagos_2026`;
+    `cedula`,
+    MAX(`nombre`) AS `nombre`,
+    MAX(`nacimiento`) AS `nacimiento`,
+    MAX(`sexo`) AS `sexo`,
+    MAX(`socio`) AS `socio`,
+    MAX(`padres`) AS `padres`,
+    MAX(`operador`) AS `operador`,
+    -- 1. Extrae lo que está antes del primer '|'
+    NULLIF(SUBSTRING_INDEX(`last_pay`, '|', 1), '') AS `last_pay`,
+    
+    -- 2. Extrae lo que está entre el primer y segundo '|'
+    NULLIF(
+        IF(
+            LENGTH(`last_pay`) - LENGTH(REPLACE(`last_pay`, '|', '')) >= 1,
+            SUBSTRING_INDEX(SUBSTRING_INDEX(`last_pay`, '|', 2), '|', -1),
+            NULL
+        ), ''
+    ) AS `last_pay_mont`,
+    
+    -- 3. Extrae lo que está después del segundo '|' (columna d). Si no hay o está vacío, devuelve NULL.
+    NULLIF(
+        IF(
+            LENGTH(`last_pay`) - LENGTH(REPLACE(`last_pay`, '|', '')) >= 2,
+            SUBSTRING_INDEX(`last_pay`, '|', -1),
+            NULL
+        ), ''
+    ) AS `d`
+FROM `1090024db2`.`0cc_basquet_clientes`
+WHERE `cedula` IS NOT NULL
+GROUP BY `cedula`;
 ```

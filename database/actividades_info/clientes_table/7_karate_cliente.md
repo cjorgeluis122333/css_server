@@ -1,55 +1,57 @@
 ## Table
 
 ```mysql
-USE `1090024db3`;
 
-CREATE TABLE `0cc_karate_pagos` (
-                                    `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-                                    `ind_original` INT(10) UNSIGNED NOT NULL COMMENT 'ID que tenía en la tabla anual',
-                                    `cedula` INT(11) DEFAULT NULL,
-                                    `mes` VARCHAR(7) DEFAULT NULL COMMENT 'Formato YYYY-MM',
-                                    `plan` VARCHAR(50) DEFAULT NULL,
-                                    `monto` INT(11) NOT NULL DEFAULT 0,
-                                    `dolares` INT(11) NOT NULL DEFAULT 0,
-                                    `zelle` INT(11) NOT NULL DEFAULT 0,
-                                    `recibo` INT(11) NOT NULL DEFAULT 0,
-                                    `fecha` INT(11) NOT NULL COMMENT 'Timestamp Unix',
-                                    `observacion` VARCHAR(255) DEFAULT NULL,
-                                    `operador` VARCHAR(50) DEFAULT NULL,
-                                    `anio_origen` INT(4) NOT NULL COMMENT 'Año de la tabla de donde vino el dato',
-                                    PRIMARY KEY (`id`),
-    -- Índices estratégicos para acelerar consultas futuras
-                                    KEY `idx_cedula` (`cedula`),
-                                    KEY `idx_mes` (`mes`),
-                                    KEY `idx_fecha` (`fecha`)
+CREATE TABLE `1090024db3`.`0cc_karate_clientes` (
+  `ind` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `cedula` int(11) NOT NULL,
+  `nombre` tinytext DEFAULT NULL,
+  `nacimiento` tinytext DEFAULT NULL,
+  `sexo` tinytext DEFAULT NULL,
+  `socio` tinytext DEFAULT 'No Socio',
+  `padres` text DEFAULT NULL,
+  `last_pay` tinytext DEFAULT NULL,
+  `last_pay_mont` tinytext DEFAULT NULL,
+  `d` tinytext DEFAULT NULL,
+  `operador` tinytext DEFAULT NULL,
+  PRIMARY KEY (`ind`),
+  UNIQUE KEY `idx_cedula_unique` (`cedula`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 ```
 
 ## Inserts
 ```mysql
-USE `1090024db3`;
 
--- Migración del año 2023
-INSERT INTO `0cc_karate_pagos` 
-(`ind_original`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, `anio_origen`)
-SELECT `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, 2023
-FROM `1090024db2`.`0cc_karate_pagos_2023`;
+INSERT INTO `1090024db3`.`0cc_karate_clientes` (
+    `cedula`, `nombre`, `nacimiento`, `sexo`, `socio`, `padres`, `last_pay`, `last_pay_mont`, `d`, `operador`
+)
+SELECT 
+    `cedula`,
+    MAX(`nombre`) AS `nombre`,
+    MAX(`nacimiento`) AS `nacimiento`,
+    MAX(`sexo`) AS `sexo`,
+    MAX(`socio`) AS `socio`,
+    MAX(`padres`) AS `padres`,
+    -- 1. Lo que va antes del primer '|'
+    NULLIF(SUBSTRING_INDEX(`last_pay`, '|', 1), '') AS `last_pay`,
+    
+    -- 2. Lo que va entre el primer y el segundo '|'
+    CASE 
+        WHEN `last_pay` LIKE '%|%|%' THEN NULLIF(SUBSTRING_INDEX(SUBSTRING_INDEX(`last_pay`, '|', 2), '|', -1), '')
+        WHEN `last_pay` LIKE '%|%' THEN NULLIF(SUBSTRING_INDEX(`last_pay`, '|', -1), '')
+        ELSE NULL
+    END AS `last_pay_mont`,
+    
+    -- 3. Lo que va después del segundo '|' (columna d)
+    CASE 
+        WHEN `last_pay` LIKE '%|%|%' THEN NULLIF(SUBSTRING_INDEX(`last_pay`, '|', -1), '')
+        ELSE NULL
+    END AS `d`,
+    
+    MAX(`operador`) AS `operador`
+FROM `1090024db2`.`0cc_karate_clientes`
+WHERE `cedula` IS NOT NULL
+GROUP BY `cedula`;
 
--- Migración del año 2024
-INSERT INTO `0cc_karate_pagos` 
-(`ind_original`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, `anio_origen`)
-SELECT `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, 2024
-FROM `1090024db2`.`0cc_karate_pagos_2024`;
-
--- Migración del año 2025
-INSERT INTO `0cc_karate_pagos` 
-(`ind_original`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, `anio_origen`)
-SELECT `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, 2025
-FROM `1090024db2`.`0cc_karate_pagos_2025`;
-
--- Migración del año 2026
-INSERT INTO `0cc_karate_pagos` 
-(`ind_original`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, `anio_origen`)
-SELECT `ind`, `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, 2026
-FROM `1090024db2`.`0cc_karate_pagos_2026`;
 ```

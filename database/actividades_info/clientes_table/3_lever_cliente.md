@@ -1,53 +1,69 @@
 
+## Table
 
 ```mysql
-CREATE TABLE `1090024db3`.`0cc_lever_pagos_unificado` (
-  `id_pago` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `cedula` INT(11) DEFAULT NULL,
-  `mes` VARCHAR(7) DEFAULT NULL COMMENT 'Almacena estrictamente YYYY-MM',
-  `d` VARCHAR(10) DEFAULT NULL COMMENT 'Almacena el código (D7, D4, S1) o NULL si no existe',
-  `plan` VARCHAR(100) DEFAULT NULL,
-  `monto` DECIMAL(11,2) NOT NULL DEFAULT 0.00,
-  `dolares` DECIMAL(11,2) NOT NULL DEFAULT 0.00,
-  `zelle` DECIMAL(11,2) NOT NULL DEFAULT 0.00,
-  `recibo` INT(11) NOT NULL,
-  `fecha` INT(11) NOT NULL COMMENT 'Almacena fecha en formato Unix Timestamp',
-  `observacion` VARCHAR(255) DEFAULT NULL,
-  `operador` VARCHAR(50) DEFAULT NULL,
-  PRIMARY KEY (`id_pago`),
-  -- Índices de Rendimiento
-  INDEX `idx_cedula` (`cedula`),
-  INDEX `idx_mes_d` (`mes`, `d`),
-  INDEX `idx_fecha` (`fecha`)
+
+USE `1090024db3`;
+
+CREATE TABLE `0cc_lever_clientes` (
+  `ind` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `cedula` BIGINT(20) NOT NULL,
+  `nombre` tinytext DEFAULT NULL,
+  `nacimiento` tinytext DEFAULT NULL,
+  `sexo` tinytext DEFAULT NULL,
+  `socio` tinytext DEFAULT 'No Socio',
+  `padres` text NOT NULL,
+  `last_pay` tinytext DEFAULT NULL,
+  `last_pay_mont` tinytext DEFAULT NULL,
+  `d` tinytext DEFAULT NULL,
+  `operador` tinytext DEFAULT NULL,
+  PRIMARY KEY (`ind`),
+  UNIQUE KEY `idx_cedula_unica` (`cedula`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 ```
 
-
+## Insert
 
 ```mysql
-INSERT INTO `1090024db3`.`0cc_lever_pagos_unificado` 
-(cedula, mes, d, plan, monto, dolares, zelle, recibo, fecha, observacion, operador)
+
+INSERT IGNORE INTO `1090024db3`.`0cc_lever_clientes` (
+    `cedula`, 
+    `nombre`, 
+    `nacimiento`, 
+    `sexo`, 
+    `socio`, 
+    `padres`, 
+    `last_pay`, 
+    `last_pay_mont`, 
+    `d`, 
+    `operador`
+)
 SELECT 
-    cedula,
-    SUBSTRING_INDEX(mes, '|', 1) AS mes,
-    IF(mes LIKE '%|%', SUBSTRING_INDEX(mes, '|', -1), NULL) AS d,
-    plan,
-    monto,
-    dolares,
-    zelle,
-    recibo,
-    fecha,
-    observacion,
-    operador
-FROM (
-    SELECT * FROM `1090024db2`.`0cc_lever_pagos_2022`
-    UNION ALL
-    SELECT * FROM `1090024db2`.`0cc_lever_pagos_2023`
-    UNION ALL
-    SELECT * FROM `1090024db2`.`0cc_lever_pagos_2024`
-    UNION ALL
-    SELECT * FROM `1090024db2`.`0cc_lever_pagos_2025`
-    UNION ALL
-    SELECT * FROM `1090024db2`.`0cc_lever_pagos_2026`
-) AS tablas_anuales;
+    `cedula`,
+    `nombre`,
+    `nacimiento`,
+    `sexo`,
+    `socio`,
+    `padres`,
+    -- 1. Extrae todo lo que está antes del primer '|'
+    SUBSTRING_INDEX(`last_pay`, '|', 1) AS `last_pay`,
+    
+    -- 2. Extrae lo que está entre el primer y el segundo '|'
+    CASE 
+        WHEN LENGTH(`last_pay`) - LENGTH(REPLACE(`last_pay`, '|', '')) >= 1 
+        THEN SUBSTRING_INDEX(SUBSTRING_INDEX(`last_pay`, '|', 2), '|', -1)
+        ELSE NULL 
+    END AS `last_pay_mont`,
+    
+    -- 3. Extrae lo que va estrictamente después del segundo '|'
+    CASE 
+        WHEN LENGTH(`last_pay`) - LENGTH(REPLACE(`last_pay`, '|', '')) >= 2 
+        THEN IF(TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(`last_pay`, '|', 3), '|', -1)) = '', NULL, TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(`last_pay`, '|', 3), '|', -1)))
+        ELSE NULL 
+    END AS `d`,
+    
+    `operador`
+FROM `1090024db2`.`0cc_lever_clientes`
+WHERE `cedula` IS NOT NULL AND `cedula` > 0;
+
 ```

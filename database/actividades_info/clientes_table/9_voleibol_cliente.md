@@ -1,56 +1,69 @@
 ## TABLE
 
 ```mysql
--- Crear la tabla unificada en la base de datos de destino
-CREATE TABLE `1090024db3`.`0cc_voleibol_pagos_unificado` (
-  `ind` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `cedula` INT(11) DEFAULT NULL,
-  `mes` VARCHAR(10) DEFAULT NULL,         -- Optimizado de tinytext a varchar
-  `plan` VARCHAR(50) DEFAULT NULL,        -- Optimizado de tinytext a varchar
-  `monto` INT(11) NOT NULL,
-  `dolares` INT(11) NOT NULL,
-  `zelle` INT(11) NOT NULL,
-  `recibo` INT(11) NOT NULL,
-  `fecha` INT(11) NOT NULL,               -- Almacena timestamp unix
-  `observacion` VARCHAR(255) DEFAULT NULL, -- Optimizado de tinytext a varchar
-  `operador` VARCHAR(50) DEFAULT NULL,    -- Optimizado de tinytext a varchar
-  `ano_origen` INT(4) NOT NULL,           -- Columna de control para identificar el año de la tabla origen
+
+USE `1090024db3`;
+
+CREATE TABLE `0cc_voleibol_clientes` (
+  `ind` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `cedula` int(11) NOT NULL,
+  `nombre` tinytext DEFAULT NULL,
+  `nacimiento` tinytext DEFAULT NULL,
+  `sexo` tinytext DEFAULT NULL,
+  `socio` tinytext DEFAULT 'No Socio',
+  `padres` text DEFAULT NULL,
+  `last_pay` tinytext DEFAULT NULL,
+  `last_pay_mont` tinytext DEFAULT NULL,
+  `d` tinytext DEFAULT NULL,
+  `operador` tinytext DEFAULT NULL,
   PRIMARY KEY (`ind`),
-  -- ÍNDICES DE VELOCIDAD OPTIMIZADOS
-  KEY `idx_cedula_mes` (`cedula`, `mes`), -- Agiliza búsquedas de estados de cuenta de clientes
-  KEY `idx_fecha` (`fecha`),              -- Agiliza búsquedas por rangos de fechas/años
-  KEY `idx_mes` (`mes`)                   -- Agiliza reportes financieros mensuales generales
+  UNIQUE KEY `idx_cedula_unico` (`cedula`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 ```
 
-
 ## INSERT
+
 ```mysql
-START TRANSACTION;
+INSERT INTO `1090024db3`.`0cc_voleibol_clientes` (
+    `cedula`, 
+    `nombre`, 
+    `nacimiento`, 
+    `sexo`, 
+    `socio`, 
+    `padres`, 
+    `last_pay`, 
+    `last_pay_mont`, 
+    `d`, 
+    `operador`
+)
+SELECT 
+    c.`cedula`,
+    c.`nombre`,
+    c.`nacimiento`,
+    c.`sexo`,
+    c.`socio`,
+    c.`padres`,
+    -- 1. Lo que está antes del primer '|'
+    SUBSTRING_INDEX(c.`last_pay`, '|', 1) AS last_pay,
+    
+    -- 2. Lo que está entre el primer y segundo '|'
+    NULLIF(SUBSTRING_INDEX(SUBSTRING_INDEX(c.`last_pay`, '|', 2), '|', -1), '') AS last_pay_mont,
+    
+    -- 3. Lo que está después del segundo '|' (si no existe o está vacío, será NULL)
+    CASE 
+        WHEN LENGTH(c.`last_pay`) - LENGTH(REPLACE(c.`last_pay`, '|', '')) >= 2 THEN 
+            NULLIF(SUBSTRING_INDEX(c.`last_pay`, '|', -1), '')
+        ELSE NULL 
+    END AS d,
+    
+    c.`operador`
+FROM `1090024db2`.`0cc_voleibol_clientes` c
+WHERE c.`cedula` IS NOT NULL
+  -- Filtramos para quedarnos con el registro más reciente ('ind' más alto) de cada cédula repetida
+  AND c.`ind` = (
+      SELECT MAX(orig.`ind`) 
+      FROM `1090024db2`.`0cc_voleibol_clientes` orig 
+      WHERE orig.`cedula` = c.`cedula`
+  );
 
--- Migración del año 2023
-INSERT INTO `1090024db3`.`0cc_voleibol_pagos_unificado` 
-(`cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, `ano_origen`)
-SELECT `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, 2023
-FROM `1090024db2`.`0cc_voleibol_pagos_2023`;
-
--- Migración del año 2024
-INSERT INTO `1090024db3`.`0cc_voleibol_pagos_unificado` 
-(`cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, `ano_origen`)
-SELECT `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, 2024
-FROM `1090024db2`.`0cc_voleibol_pagos_2024`;
-
--- Migración del año 2025
-INSERT INTO `1090024db3`.`0cc_voleibol_pagos_unificado` 
-(`cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, `ano_origen`)
-SELECT `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, 2025
-FROM `1090024db2`.`0cc_voleibol_pagos_2025`;
-
--- Migración del año 2026
-INSERT INTO `1090024db3`.`0cc_voleibol_pagos_unificado` 
-(`cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, `ano_origen`)
-SELECT `cedula`, `mes`, `plan`, `monto`, `dolares`, `zelle`, `recibo`, `fecha`, `observacion`, `operador`, 2026
-FROM `1090024db2`.`0cc_voleibol_pagos_2026`;
-
-COMMIT;
 ```
