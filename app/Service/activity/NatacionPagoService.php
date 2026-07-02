@@ -4,11 +4,29 @@ namespace App\Service\activity;
 
 use App\Models\activities\NatacionPago;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class NatacionPagoService
 {
     public function paginated(int $perPage): LengthAwarePaginator
     {
-        return NatacionPago::query()->paginate($perPage);
+        return NatacionPago::query()
+            ->orderBy('anio', 'desc')
+            ->orderBy('mes', 'desc')
+            ->paginate($perPage);
+    }
+
+    public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
+    {
+        return NatacionPago::query()
+            ->where('mes', $mes)
+            ->orderBy('anio', 'desc')
+            ->orderBy('mes', 'desc')
+            ->paginate($perPage);
+    }
+
+    public function create(array $data): NatacionPago
+    {
+        return DB::transaction(fn () => NatacionPago::create($data));
     }
 }

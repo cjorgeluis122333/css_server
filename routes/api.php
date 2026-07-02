@@ -225,15 +225,41 @@ Route::middleware('auth:sanctum')->group(function () {
     // === Actividades: pagos (todos los usuarios autenticados) ===
     Route::prefix('activity')->group(function () {
         Route::get('/natacion', [NatacionPagoController::class, 'index'])->name('activity.natacion.index');
+        Route::get('/natacion/{mes}', [NatacionPagoController::class, 'showByMes'])->name('activity.natacion.showByMes');
         Route::get('/onbox', [OnboxPagoController::class, 'index'])->name('activity.onbox.index');
+        Route::get('/onbox/{mes}', [OnboxPagoController::class, 'showByMes'])->name('activity.onbox.showByMes');
         Route::get('/lever', [LeverPagoController::class, 'index'])->name('activity.lever.index');
+        Route::get('/lever/{mes}', [LeverPagoController::class, 'showByMes'])->name('activity.lever.showByMes');
         Route::get('/pinpon', [PinponPagoController::class, 'index'])->name('activity.pinpon.index');
+        Route::get('/pinpon/{mes}', [PinponPagoController::class, 'showByMes'])->name('activity.pinpon.showByMes');
         Route::get('/basquet', [BasquetPagoController::class, 'index'])->name('activity.basquet.index');
+        Route::get('/basquet/{mes}', [BasquetPagoController::class, 'showByMes'])->name('activity.basquet.showByMes');
         Route::get('/strong', [StrongPagoController::class, 'index'])->name('activity.strong.index');
+        Route::get('/strong/{mes}', [StrongPagoController::class, 'showByMes'])->name('activity.strong.showByMes');
         Route::get('/karate', [KaratePagoController::class, 'index'])->name('activity.karate.index');
+        Route::get('/karate/{mes}', [KaratePagoController::class, 'showByMes'])->name('activity.karate.showByMes');
         Route::get('/ingles', [InglesPagoController::class, 'index'])->name('activity.ingles.index');
+        Route::get('/ingles/{mes}', [InglesPagoController::class, 'showByMes'])->name('activity.ingles.showByMes');
         Route::get('/voleibol', [VoleibolPagoController::class, 'index'])->name('activity.voleibol.index');
+        Route::get('/voleibol/{mes}', [VoleibolPagoController::class, 'showByMes'])->name('activity.voleibol.showByMes');
         Route::get('/batting', [BattingPagoController::class, 'index'])->name('activity.batting.index');
+        Route::get('/batting/{mes}', [BattingPagoController::class, 'showByMes'])->name('activity.batting.showByMes');
         Route::get('/almaflamenca', [AlmaflamencoaPagoController::class, 'index'])->name('activity.almaflamenca.index');
+        Route::get('/almaflamenca/{mes}', [AlmaflamencoaPagoController::class, 'showByMes'])->name('activity.almaflamenca.showByMes');
+    });
+
+    // === Actividades: registro de pagos (access-finanzas) ===
+    Route::middleware('can:access-finanzas')->prefix('activity')->group(function () {
+        Route::post('/natacion', [NatacionPagoController::class, 'store'])->name('activity.natacion.store');
+        Route::post('/onbox', [OnboxPagoController::class, 'store'])->name('activity.onbox.store');
+        Route::post('/lever', [LeverPagoController::class, 'store'])->name('activity.lever.store');
+        Route::post('/pinpon', [PinponPagoController::class, 'store'])->name('activity.pinpon.store');
+        Route::post('/basquet', [BasquetPagoController::class, 'store'])->name('activity.basquet.store');
+        Route::post('/strong', [StrongPagoController::class, 'store'])->name('activity.strong.store');
+        Route::post('/karate', [KaratePagoController::class, 'store'])->name('activity.karate.store');
+        Route::post('/ingles', [InglesPagoController::class, 'store'])->name('activity.ingles.store');
+        Route::post('/voleibol', [VoleibolPagoController::class, 'store'])->name('activity.voleibol.store');
+        Route::post('/batting', [BattingPagoController::class, 'store'])->name('activity.batting.store');
+        Route::post('/almaflamenca', [AlmaflamencoaPagoController::class, 'store'])->name('activity.almaflamenca.store');
     });
 });

@@ -1,6 +1,6 @@
 # 🤖 Project Context & Agent Rules
 
-> **Última actualización:** 1 de julio de 2026
+> **Última actualización:** 2 de julio de 2026
 > Este archivo es la guía definitiva para cualquier agente IA que trabaje en este repositorio. Léelo **completo** antes de escribir una sola línea de código.
 
 ---
@@ -344,7 +344,9 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | `access-invitados`        | `apiResource /guest`, `/register-guest`   | `Guest*Controller`         | + Policy ownership para PARTNER/HONORARY|
 | `manage-users`            | `/user-admin`                             | `UserAdminController`      | SUPER_ADMIN + ADMIN                     |
 | *(todos autenticados)*    | `GET /partners/photo/{cedula}`            | `PartnerPhotoController`   | Retorna URL pública de la foto del socio|
-| *(todos autenticados)*    | `GET /activity/{actividad}`               | `*PagoController`@index    | 11 endpoints de pagos por actividad     |
+| *(todos autenticados)*    | `GET /activity/{actividad}`               | `*PagoController`@index    | 11 endpoints de pagos por actividad, orden desc por mes     |
+| *(todos autenticados)*    | `GET /activity/{actividad}/{mes}`         | `*PagoController`@showByMes | Filtro por mes YYYY-MM; natacion/strong/ingles/voleibol usan sort compuesto |
+| `access-finanzas`         | `POST /activity/{actividad}`              | `*PagoController`@store    | SUPER_ADMIN + ADMIN; validación con `Store*PagoRequest`     |
 
 **Rutas adicionales destacadas:**
 - `GET /partners/debs/{id}` — Estado de cuenta (con Policy de propiedad)
@@ -355,17 +357,39 @@ PartnerCategory::FAMILIAR  // 'familiar'
 - `POST /logout` — Cierre de sesión
 - `GET /generate/exel/solvencia/{year}` — Exportar deuda a Excel
 - `GET /user-admin` — Listar usuarios (CRUD admin)
-- `GET /activity/natacion` — Pagos de natación (paginado, `per_page` default 50)
-- `GET /activity/onbox` — Pagos de Onbox
-- `GET /activity/lever` — Pagos de Lever
-- `GET /activity/pinpon` — Pagos de Pin Pon
-- `GET /activity/basquet` — Pagos de Básquet
-- `GET /activity/strong` — Pagos de Strong
-- `GET /activity/karate` — Pagos de Karate
-- `GET /activity/ingles` — Pagos de Inglés
-- `GET /activity/voleibol` — Pagos de Voleibol
-- `GET /activity/batting` — Pagos de Batting
-- `GET /activity/almaflamenca` — Pagos de Alma Flamenca
+- `GET /activity/natacion` — Pagos de natación (paginado, `per_page` default 50), orden descendente por año y mes
+- `GET /activity/natacion/{mes}` — Pagos de natación filtrados por mes (formato YYYY-MM)
+- `POST /activity/natacion` — Registrar pago de natación (`access-finanzas`)
+- `GET /activity/onbox` — Pagos de Onbox, orden descendente por mes
+- `GET /activity/onbox/{mes}` — Pagos de Onbox filtrados por mes (YYYY-MM)
+- `POST /activity/onbox` — Registrar pago de Onbox (`access-finanzas`)
+- `GET /activity/lever` — Pagos de Lever, orden descendente por mes
+- `GET /activity/lever/{mes}` — Pagos de Lever filtrados por mes (YYYY-MM)
+- `POST /activity/lever` — Registrar pago de Lever (`access-finanzas`)
+- `GET /activity/pinpon` — Pagos de Pin Pon, orden descendente por mes
+- `GET /activity/pinpon/{mes}` — Pagos de Pin Pon filtrados por mes (YYYY-MM)
+- `POST /activity/pinpon` — Registrar pago de Pin Pon (`access-finanzas`)
+- `GET /activity/basquet` — Pagos de Básquet, orden descendente por mes
+- `GET /activity/basquet/{mes}` — Pagos de Básquet filtrados por mes (YYYY-MM)
+- `POST /activity/basquet` — Registrar pago de Básquet (`access-finanzas`)
+- `GET /activity/strong` — Pagos de Strong, orden descendente por año y mes
+- `GET /activity/strong/{mes}` — Pagos de Strong filtrados por mes
+- `POST /activity/strong` — Registrar pago de Strong (`access-finanzas`)
+- `GET /activity/karate` — Pagos de Karate, orden descendente por mes
+- `GET /activity/karate/{mes}` — Pagos de Karate filtrados por mes
+- `POST /activity/karate` — Registrar pago de Karate (`access-finanzas`)
+- `GET /activity/ingles` — Pagos de Inglés, orden descendente por año tabla y mes
+- `GET /activity/ingles/{mes}` — Pagos de Inglés filtrados por mes
+- `POST /activity/ingles` — Registrar pago de Inglés (`access-finanzas`)
+- `GET /activity/voleibol` — Pagos de Voleibol, orden descendente por año origen y mes
+- `GET /activity/voleibol/{mes}` — Pagos de Voleibol filtrados por mes
+- `POST /activity/voleibol` — Registrar pago de Voleibol (`access-finanzas`)
+- `GET /activity/batting` — Pagos de Batting, orden descendente por mes
+- `GET /activity/batting/{mes}` — Pagos de Batting filtrados por mes (YYYY-MM)
+- `POST /activity/batting` — Registrar pago de Batting (`access-finanzas`)
+- `GET /activity/almaflamenca` — Pagos de Alma Flamenca, orden descendente por mes
+- `GET /activity/almaflamenca/{mes}` — Pagos de Alma Flamenca filtrados por mes
+- `POST /activity/almaflamenca` — Registrar pago de Alma Flamenca (`access-finanzas`)
 
 ---
 
