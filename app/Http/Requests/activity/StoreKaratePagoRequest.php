@@ -21,7 +21,7 @@ class StoreKaratePagoRequest extends FormRequest
             'dolares'     => ['nullable', 'integer', 'min:0'],
             'zelle'       => ['nullable', 'integer', 'min:0'],
             'recibo'      => ['nullable', 'integer', 'min:0'],
-            'fecha'       => ['required', 'integer'],
+            'fecha'       => ['nullable', 'integer'],
             'observacion' => ['nullable', 'string', 'max:255'],
             'operador'    => ['nullable', 'string', 'max:50'],
         ];
@@ -42,7 +42,6 @@ class StoreKaratePagoRequest extends FormRequest
             'zelle.min'        => 'El monto de Zelle no puede ser negativo.',
             'recibo.integer'   => 'El número de recibo debe ser un número entero.',
             'recibo.min'       => 'El número de recibo no puede ser negativo.',
-            'fecha.required'   => 'La fecha es obligatoria.',
             'fecha.integer'    => 'La fecha debe ser un timestamp Unix válido.',
         ];
     }

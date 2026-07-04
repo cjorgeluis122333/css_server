@@ -30,7 +30,13 @@ class VoleibolPagoService
 
     public function create(array $data): VoleibolPago
     {
-        return DB::transaction(fn () => VoleibolPago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => VoleibolPago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(VoleibolPago $pago): VoleibolPago

@@ -28,7 +28,13 @@ class LeverPagoService
 
     public function create(array $data): LeverPago
     {
-        return DB::transaction(fn () => LeverPago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => LeverPago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(LeverPago $pago): LeverPago

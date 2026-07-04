@@ -28,7 +28,13 @@ class KaratePagoService
 
     public function create(array $data): KaratePago
     {
-        return DB::transaction(fn () => KaratePago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => KaratePago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(KaratePago $pago): KaratePago

@@ -30,7 +30,13 @@ class StrongPagoService
 
     public function create(array $data): StrongPago
     {
-        return DB::transaction(fn () => StrongPago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => StrongPago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(StrongPago $pago): StrongPago

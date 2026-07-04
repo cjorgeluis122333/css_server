@@ -28,7 +28,13 @@ class PinponPagoService
 
     public function create(array $data): PinponPago
     {
-        return DB::transaction(fn () => PinponPago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => PinponPago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(PinponPago $pago): PinponPago

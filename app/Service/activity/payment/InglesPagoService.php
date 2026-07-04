@@ -30,7 +30,13 @@ class InglesPagoService
 
     public function create(array $data): InglesPago
     {
-        return DB::transaction(fn () => InglesPago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => InglesPago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(InglesPago $pago): InglesPago

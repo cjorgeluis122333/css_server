@@ -28,7 +28,13 @@ class BasquetPagoService
 
     public function create(array $data): BasquetPago
     {
-        return DB::transaction(fn () => BasquetPago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => BasquetPago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(BasquetPago $pago): BasquetPago

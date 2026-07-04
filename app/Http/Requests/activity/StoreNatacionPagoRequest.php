@@ -22,7 +22,7 @@ class StoreNatacionPagoRequest extends FormRequest
             'dolares'     => ['required', 'integer', 'min:0'],
             'zelle'       => ['required', 'integer', 'min:0'],
             'recibo'      => ['required', 'integer', 'min:0'],
-            'fecha'       => ['required', 'integer'],
+            'fecha'       => ['nullable', 'integer'],
             'observacion' => ['nullable', 'string', 'max:255'],
             'operador'    => ['nullable', 'string', 'max:255'],
         ];
@@ -50,7 +50,6 @@ class StoreNatacionPagoRequest extends FormRequest
             'recibo.required'  => 'El número de recibo es obligatorio.',
             'recibo.integer'   => 'El número de recibo debe ser un número entero.',
             'recibo.min'       => 'El número de recibo no puede ser negativo.',
-            'fecha.required'   => 'La fecha es obligatoria.',
             'fecha.integer'    => 'La fecha debe ser un timestamp Unix válido.',
         ];
     }

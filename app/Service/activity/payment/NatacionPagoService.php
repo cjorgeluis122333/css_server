@@ -30,7 +30,13 @@ class NatacionPagoService
 
     public function create(array $data): NatacionPago
     {
-        return DB::transaction(fn () => NatacionPago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => NatacionPago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(NatacionPago $pago): NatacionPago

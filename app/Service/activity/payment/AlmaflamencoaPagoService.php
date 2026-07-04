@@ -28,7 +28,13 @@ class AlmaflamencoaPagoService
 
     public function create(array $data): AlmaflamencoaPago
     {
-        return DB::transaction(fn () => AlmaflamencoaPago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => AlmaflamencoaPago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(AlmaflamencoaPago $pago): AlmaflamencoaPago

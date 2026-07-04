@@ -28,7 +28,13 @@ class OnboxPagoService
 
     public function create(array $data): OnboxPago
     {
-        return DB::transaction(fn () => OnboxPago::create($data));
+        if (empty($data['fecha'])) {
+            $data['fecha'] = time();
+        }
+
+        $pago = DB::transaction(fn () => OnboxPago::create($data));
+
+        return $this->formatFecha($pago);
     }
 
     private function formatFecha(OnboxPago $pago): OnboxPago

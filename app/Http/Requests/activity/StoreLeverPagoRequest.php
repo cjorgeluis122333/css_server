@@ -22,7 +22,7 @@ class StoreLeverPagoRequest extends FormRequest
             'dolares'     => ['required', 'numeric', 'min:0'],
             'zelle'       => ['required', 'numeric', 'min:0'],
             'recibo'      => ['required', 'integer'],
-            'fecha'       => ['required', 'integer'],
+            'fecha'       => ['nullable', 'integer'],
             'observacion' => ['nullable', 'string', 'max:255'],
             'operador'    => ['nullable', 'string', 'max:50'],
         ];
@@ -46,7 +46,6 @@ class StoreLeverPagoRequest extends FormRequest
             'zelle.min'        => 'El monto de Zelle no puede ser negativo.',
             'recibo.required'  => 'El número de recibo es obligatorio.',
             'recibo.integer'   => 'El número de recibo debe ser un número entero.',
-            'fecha.required'   => 'La fecha es obligatoria.',
             'fecha.integer'    => 'La fecha debe ser un timestamp Unix válido.',
         ];
     }
