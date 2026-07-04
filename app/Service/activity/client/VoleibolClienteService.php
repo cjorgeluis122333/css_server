@@ -4,6 +4,7 @@ namespace App\Service\activity\client;
 
 use App\Models\activities\client\VoleibolCliente;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class VoleibolClienteService
 {
@@ -12,5 +13,10 @@ class VoleibolClienteService
         return VoleibolCliente::query()
             ->orderBy('ind')
             ->get();
+    }
+
+    public function create(array $data): VoleibolCliente
+    {
+        return DB::transaction(fn () => VoleibolCliente::create($data));
     }
 }

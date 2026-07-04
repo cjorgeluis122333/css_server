@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\activity\client;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\activity\StoreOnboxClienteRequest;
+use App\Http\Resources\activity\client\OnboxClienteResource;
 use App\Service\activity\client\OnboxClienteService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +25,17 @@ class OnboxClienteController extends Controller
             return $this->successResponse($clientes, 'Listado de clientes de Onbox.');
         } catch (\Exception $e) {
             return $this->errorResponse('Error al obtener los clientes de Onbox.', 500);
+        }
+    }
+
+    public function store(StoreOnboxClienteRequest $request): JsonResponse
+    {
+        try {
+            $cliente = $this->onboxClienteService->create($request->validated());
+
+            return $this->successResponse(new OnboxClienteResource($cliente), 'Cliente de Onbox registrado exitosamente.', 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 500);
         }
     }
 }

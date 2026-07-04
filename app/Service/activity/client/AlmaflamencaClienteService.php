@@ -4,6 +4,7 @@ namespace App\Service\activity\client;
 
 use App\Models\activities\client\AlmaflamencaCliente;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class AlmaflamencaClienteService
 {
@@ -12,5 +13,10 @@ class AlmaflamencaClienteService
         return AlmaflamencaCliente::query()
             ->orderBy('ind')
             ->get();
+    }
+
+    public function create(array $data): AlmaflamencaCliente
+    {
+        return DB::transaction(fn () => AlmaflamencaCliente::create($data));
     }
 }

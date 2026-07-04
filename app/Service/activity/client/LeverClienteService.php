@@ -4,6 +4,7 @@ namespace App\Service\activity\client;
 
 use App\Models\activities\client\LeverCliente;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class LeverClienteService
 {
@@ -12,5 +13,12 @@ class LeverClienteService
         return LeverCliente::query()
             ->orderBy('ind')
             ->get();
+    }
+
+    public function create(array $data): LeverCliente
+    {
+        $data['padres'] = $data['padres'] ?? '';
+
+        return DB::transaction(fn () => LeverCliente::create($data));
     }
 }

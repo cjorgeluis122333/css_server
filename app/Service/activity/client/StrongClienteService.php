@@ -4,6 +4,7 @@ namespace App\Service\activity\client;
 
 use App\Models\activities\client\StrongCliente;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class StrongClienteService
 {
@@ -12,5 +13,10 @@ class StrongClienteService
         return StrongCliente::query()
             ->orderBy('cedula')
             ->get();
+    }
+
+    public function create(array $data): StrongCliente
+    {
+        return DB::transaction(fn () => StrongCliente::create($data));
     }
 }

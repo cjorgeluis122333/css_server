@@ -274,6 +274,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/almaflamenca', [AlmaflamencaClienteController::class, 'index'])->name('activity.client.almaflamenca.index');
     });
 
+    // === Actividades: registro de clientes (access-finanzas) ===
+    Route::middleware('can:access-finanzas')->prefix('activity/client')->group(function () {
+        Route::post('/natacion', [NatacionClienteController::class, 'store'])->name('activity.client.natacion.store');
+        Route::post('/onbox', [OnboxClienteController::class, 'store'])->name('activity.client.onbox.store');
+        Route::post('/lever', [LeverClienteController::class, 'store'])->name('activity.client.lever.store');
+        Route::post('/pinpon', [PinponClienteController::class, 'store'])->name('activity.client.pinpon.store');
+        Route::post('/basquet', [BasquetClienteController::class, 'store'])->name('activity.client.basquet.store');
+        Route::post('/strong', [StrongClienteController::class, 'store'])->name('activity.client.strong.store');
+        Route::post('/karate', [KarateClienteController::class, 'store'])->name('activity.client.karate.store');
+        Route::post('/ingles', [InglesClienteController::class, 'store'])->name('activity.client.ingles.store');
+        Route::post('/voleibol', [VoleibolClienteController::class, 'store'])->name('activity.client.voleibol.store');
+        Route::post('/batting', [BattingClienteController::class, 'store'])->name('activity.client.batting.store');
+        Route::post('/almaflamenca', [AlmaflamencaClienteController::class, 'store'])->name('activity.client.almaflamenca.store');
+    });
+
     // === Actividades: registro de pagos (access-finanzas) ===
     Route::middleware('can:access-finanzas')->prefix('activity')->group(function () {
         Route::post('/natacion', [NatacionPagoController::class, 'store'])->name('activity.natacion.store');

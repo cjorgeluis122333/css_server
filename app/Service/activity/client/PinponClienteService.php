@@ -4,6 +4,7 @@ namespace App\Service\activity\client;
 
 use App\Models\activities\client\PinponCliente;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class PinponClienteService
 {
@@ -12,5 +13,10 @@ class PinponClienteService
         return PinponCliente::query()
             ->orderBy('ind')
             ->get();
+    }
+
+    public function create(array $data): PinponCliente
+    {
+        return DB::transaction(fn () => PinponCliente::create($data));
     }
 }

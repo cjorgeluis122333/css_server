@@ -78,7 +78,7 @@ Models (Eloquent directo — sin Repository)
 | **Mailables**                 | `app/Mail/` — `PasswordResetMail` para OTP de recuperación de contraseña       |
 | **FormRequest Validation**    | `app/Http/Requests/` — validación desacoplada de controllers                   |
 | **API Response Trait**        | `app/Traits/ApiResponse.php` — formato estándar JSON                           |
-| **API Resources**             | `app/Http/Resources/` — transformación de modelos + display condicional RBAC   |
+| **API Resources**             | `app/Http/Resources/` — transformación de modelos + display condicional RBAC; `activity/client/` para los 11 resources de clientes de actividades |
 | **Backed Enums (PHP 8.1)**    | `app/Enum/` — `PartnerCategory`, `UserRole`, `DebtMetricType`                 |
 | **Eloquent Scopes**           | Filtros reutilizables en modelos (`scopeHolders()`, `scopeCurrentMonth()`)     |
 | **Constructor DI**            | Controllers inyectan Services; Services pueden inyectar otros Services         |
@@ -361,6 +361,7 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | *(todos autenticados)*    | `GET /activity/{actividad}/{mes}`         | `*PagoController`@showByMes | Filtro por mes YYYY-MM; natacion/strong/ingles/voleibol usan sort compuesto |
 | *(todos autenticados)*    | `GET /activity/client/{actividad}`        | `*ClienteController`@index | 11 endpoints de clientes por actividad, sin paginación       |
 | `access-finanzas`         | `POST /activity/{actividad}`              | `*PagoController`@store    | SUPER_ADMIN + ADMIN; validación con `Store*PagoRequest`     |
+| `access-finanzas`         | `POST /activity/client/{actividad}`       | `*ClienteController`@store | SUPER_ADMIN + ADMIN; validación con `Store*ClienteRequest`; unicidad de cédula por tabla |
 
 **Rutas adicionales destacadas:**
 - `GET /partners/debs/{id}` — Estado de cuenta (con Policy de propiedad)
@@ -415,6 +416,17 @@ PartnerCategory::FAMILIAR  // 'familiar'
 - `GET /activity/client/voleibol` — Clientes de Voleibol, sin paginación
 - `GET /activity/client/batting` — Clientes de Batting, sin paginación
 - `GET /activity/client/almaflamenca` — Clientes de Alma Flamenca, sin paginación
+- `POST /activity/client/natacion` — Registrar cliente de natación (`access-finanzas`); campos: cedula, nombre, socio, nacimiento, sexo; valida unicidad de cédula
+- `POST /activity/client/onbox` — Registrar cliente de Onbox (`access-finanzas`)
+- `POST /activity/client/lever` — Registrar cliente de Lever (`access-finanzas`); padres nullable (default '')
+- `POST /activity/client/pinpon` — Registrar cliente de Pin Pon (`access-finanzas`)
+- `POST /activity/client/basquet` — Registrar cliente de Básquet (`access-finanzas`)
+- `POST /activity/client/strong` — Registrar cliente de Strong (`access-finanzas`); PK = cedula
+- `POST /activity/client/karate` — Registrar cliente de Karate (`access-finanzas`)
+- `POST /activity/client/ingles` — Registrar cliente de Inglés (`access-finanzas`)
+- `POST /activity/client/voleibol` — Registrar cliente de Voleibol (`access-finanzas`)
+- `POST /activity/client/batting` — Registrar cliente de Batting (`access-finanzas`)
+- `POST /activity/client/almaflamenca` — Registrar cliente de Alma Flamenca (`access-finanzas`)
 
 ---
 
