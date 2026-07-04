@@ -3,6 +3,7 @@
 namespace App\Service\activity\payment;
 
 use App\Models\activities\payment\BasquetPago;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -12,7 +13,8 @@ class BasquetPagoService
     {
         return BasquetPago::query()
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (BasquetPago $pago) => $this->formatFecha($pago));
     }
 
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
@@ -20,11 +22,22 @@ class BasquetPagoService
         return BasquetPago::query()
             ->where('mes', $mes)
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (BasquetPago $pago) => $this->formatFecha($pago));
     }
 
     public function create(array $data): BasquetPago
     {
         return DB::transaction(fn () => BasquetPago::create($data));
     }
+
+    private function formatFecha(BasquetPago $pago): BasquetPago
+    {
+        if ($pago->fecha) {
+            $pago->fecha = Carbon::createFromTimestamp($pago->fecha)->format('d-m-Y');
+        }
+
+        return $pago;
+    }
 }
+

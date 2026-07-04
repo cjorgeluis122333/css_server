@@ -3,6 +3,7 @@
 namespace App\Service\activity\payment;
 
 use App\Models\activities\payment\InglesPago;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +14,8 @@ class InglesPagoService
         return InglesPago::query()
             ->orderBy('ano_tabla', 'desc')
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (InglesPago $pago) => $this->formatFecha($pago));
     }
 
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
@@ -22,11 +24,22 @@ class InglesPagoService
             ->where('mes', $mes)
             ->orderBy('ano_tabla', 'desc')
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (InglesPago $pago) => $this->formatFecha($pago));
     }
 
     public function create(array $data): InglesPago
     {
         return DB::transaction(fn () => InglesPago::create($data));
     }
+
+    private function formatFecha(InglesPago $pago): InglesPago
+    {
+        if ($pago->fecha) {
+            $pago->fecha = Carbon::createFromTimestamp($pago->fecha)->format('d-m-Y');
+        }
+
+        return $pago;
+    }
 }
+

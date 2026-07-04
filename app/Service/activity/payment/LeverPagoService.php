@@ -3,6 +3,7 @@
 namespace App\Service\activity\payment;
 
 use App\Models\activities\payment\LeverPago;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -12,7 +13,8 @@ class LeverPagoService
     {
         return LeverPago::query()
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (LeverPago $pago) => $this->formatFecha($pago));
     }
 
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
@@ -20,11 +22,22 @@ class LeverPagoService
         return LeverPago::query()
             ->where('mes', $mes)
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (LeverPago $pago) => $this->formatFecha($pago));
     }
 
     public function create(array $data): LeverPago
     {
         return DB::transaction(fn () => LeverPago::create($data));
     }
+
+    private function formatFecha(LeverPago $pago): LeverPago
+    {
+        if ($pago->fecha) {
+            $pago->fecha = Carbon::createFromTimestamp($pago->fecha)->format('d-m-Y');
+        }
+
+        return $pago;
+    }
 }
+

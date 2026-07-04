@@ -3,6 +3,7 @@
 namespace App\Service\activity\payment;
 
 use App\Models\activities\payment\KaratePago;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -12,7 +13,8 @@ class KaratePagoService
     {
         return KaratePago::query()
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (KaratePago $pago) => $this->formatFecha($pago));
     }
 
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
@@ -20,11 +22,22 @@ class KaratePagoService
         return KaratePago::query()
             ->where('mes', $mes)
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (KaratePago $pago) => $this->formatFecha($pago));
     }
 
     public function create(array $data): KaratePago
     {
         return DB::transaction(fn () => KaratePago::create($data));
     }
+
+    private function formatFecha(KaratePago $pago): KaratePago
+    {
+        if ($pago->fecha) {
+            $pago->fecha = Carbon::createFromTimestamp($pago->fecha)->format('d-m-Y');
+        }
+
+        return $pago;
+    }
 }
+

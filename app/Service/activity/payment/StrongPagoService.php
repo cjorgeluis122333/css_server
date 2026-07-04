@@ -3,6 +3,7 @@
 namespace App\Service\activity\payment;
 
 use App\Models\activities\payment\StrongPago;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +14,8 @@ class StrongPagoService
         return StrongPago::query()
             ->orderBy('ano', 'desc')
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (StrongPago $pago) => $this->formatFecha($pago));
     }
 
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
@@ -22,11 +24,22 @@ class StrongPagoService
             ->where('mes', $mes)
             ->orderBy('ano', 'desc')
             ->orderBy('mes', 'desc')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->through(fn (StrongPago $pago) => $this->formatFecha($pago));
     }
 
     public function create(array $data): StrongPago
     {
         return DB::transaction(fn () => StrongPago::create($data));
     }
+
+    private function formatFecha(StrongPago $pago): StrongPago
+    {
+        if ($pago->fecha) {
+            $pago->fecha = Carbon::createFromTimestamp($pago->fecha)->format('d-m-Y');
+        }
+
+        return $pago;
+    }
 }
+
