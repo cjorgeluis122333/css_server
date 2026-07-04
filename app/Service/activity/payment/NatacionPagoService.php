@@ -36,7 +36,9 @@ class NatacionPagoService
     private function formatFecha(NatacionPago $pago): NatacionPago
     {
         if ($pago->fecha) {
-            $pago->fecha = Carbon::createFromTimestamp($pago->fecha)->format('d-m-Y');
+            $originalFecha = $pago->fecha;
+            $pago->mergeCasts(['fecha' => 'string']);
+            $pago->fecha = Carbon::createFromTimestamp($originalFecha)->format('d-m-Y');
         }
 
         return $pago;

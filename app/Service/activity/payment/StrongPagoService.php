@@ -36,7 +36,9 @@ class StrongPagoService
     private function formatFecha(StrongPago $pago): StrongPago
     {
         if ($pago->fecha) {
-            $pago->fecha = Carbon::createFromTimestamp($pago->fecha)->format('d-m-Y');
+            $originalFecha = $pago->fecha;
+            $pago->mergeCasts(['fecha' => 'string']);
+            $pago->fecha = Carbon::createFromTimestamp($originalFecha)->format('d-m-Y');
         }
 
         return $pago;
