@@ -29,6 +29,8 @@ class StrongPago extends Model
         'operador',
     ];
 
+    protected $hidden = ['ano'];
+
     protected $casts = [
         'id_global'    => 'integer',
         'ind_original' => 'integer',

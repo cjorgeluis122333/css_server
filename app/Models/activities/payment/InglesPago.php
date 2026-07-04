@@ -30,6 +30,8 @@ class InglesPago extends Model
         'operador',
     ];
 
+    protected $hidden = ['ano_tabla'];
+
     protected $casts = [
         'ano_tabla' => 'integer',
         'ind'       => 'integer',

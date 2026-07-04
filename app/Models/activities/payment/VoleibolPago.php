@@ -28,6 +28,8 @@ class VoleibolPago extends Model
         'ano_origen',
     ];
 
+    protected $hidden = ['ano_origen'];
+
     protected $casts = [
         'ind'        => 'integer',
         'cedula'     => 'integer',

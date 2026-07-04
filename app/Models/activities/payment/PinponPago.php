@@ -31,6 +31,8 @@ class PinponPago extends Model
         'operador',
     ];
 
+    protected $hidden = ['anio_origen'];
+
     protected $casts = [
         'ind_original' => 'integer',
         'anio_origen'  => 'integer',

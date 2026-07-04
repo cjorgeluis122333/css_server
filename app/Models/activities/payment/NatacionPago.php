@@ -28,6 +28,8 @@ class NatacionPago extends Model
         'operador',
     ];
 
+    protected $hidden = ['anio'];
+
     protected $casts = [
         'ind'     => 'integer',
         'cedula'  => 'integer',
