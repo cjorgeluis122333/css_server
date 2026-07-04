@@ -33,10 +33,7 @@ class NatacionCliente extends Model
     ];
 
     protected $casts = [
-        'ind'           => 'integer',
-        'cedula'        => 'integer',
-        'repre_cedula1' => 'integer',
-        'repre_cedula2' => 'integer',
-        'repre_cedula3' => 'integer',
+        'ind'    => 'integer',
+        'cedula' => 'integer',
     ];
 }

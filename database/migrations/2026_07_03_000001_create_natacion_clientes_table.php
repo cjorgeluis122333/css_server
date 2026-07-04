@@ -19,11 +19,11 @@ return new class extends Migration
             $table->string('sexo', 10)->nullable();
             $table->string('socio', 50)->nullable()->default('No Socio');
             $table->text('padres')->nullable();
-            $table->integer('repre_cedula1')->nullable();
+            $table->string('repre_cedula1', 50)->nullable();
             $table->string('repre_nombre1')->nullable();
-            $table->integer('repre_cedula2')->nullable();
+            $table->string('repre_cedula2', 50)->nullable();
             $table->string('repre_nombre2')->nullable();
-            $table->integer('repre_cedula3')->nullable();
+            $table->string('repre_cedula3', 50)->nullable();
             $table->string('repre_nombre3')->nullable();
             $table->string('last_pay', 50)->nullable();
             $table->string('last_pay_mont', 50)->nullable();
