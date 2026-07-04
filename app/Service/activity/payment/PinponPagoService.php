@@ -28,6 +28,8 @@ class PinponPagoService
 
     public function create(array $data): PinponPago
     {
+        $data['anio_origen'] = (int) substr($data['mes'], 0, 4);
+
         if (empty($data['fecha'])) {
             $data['fecha'] = time();
         }
@@ -48,4 +50,3 @@ class PinponPagoService
         return $pago;
     }
 }
-

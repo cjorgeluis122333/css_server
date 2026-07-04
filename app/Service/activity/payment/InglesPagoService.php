@@ -30,6 +30,8 @@ class InglesPagoService
 
     public function create(array $data): InglesPago
     {
+        $data['ano_tabla'] = (int) substr($data['mes'], 0, 4);
+
         if (empty($data['fecha'])) {
             $data['fecha'] = time();
         }
@@ -50,4 +52,3 @@ class InglesPagoService
         return $pago;
     }
 }
-

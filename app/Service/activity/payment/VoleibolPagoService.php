@@ -30,6 +30,8 @@ class VoleibolPagoService
 
     public function create(array $data): VoleibolPago
     {
+        $data['ano_origen'] = (int) substr($data['mes'], 0, 4);
+
         if (empty($data['fecha'])) {
             $data['fecha'] = time();
         }
@@ -50,4 +52,3 @@ class VoleibolPagoService
         return $pago;
     }
 }
-

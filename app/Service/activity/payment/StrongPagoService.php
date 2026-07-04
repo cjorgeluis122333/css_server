@@ -30,6 +30,8 @@ class StrongPagoService
 
     public function create(array $data): StrongPago
     {
+        $data['ano'] = (int) substr($data['mes'], 0, 4);
+
         if (empty($data['fecha'])) {
             $data['fecha'] = time();
         }
@@ -50,4 +52,3 @@ class StrongPagoService
         return $pago;
     }
 }
-

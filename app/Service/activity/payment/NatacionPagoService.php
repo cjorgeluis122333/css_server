@@ -30,6 +30,8 @@ class NatacionPagoService
 
     public function create(array $data): NatacionPago
     {
+        $data['anio'] = (int) substr($data['mes'], 0, 4);
+
         if (empty($data['fecha'])) {
             $data['fecha'] = time();
         }
