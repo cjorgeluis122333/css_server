@@ -1,6 +1,6 @@
 # 🤖 Project Context & Agent Rules
 
-> **Última actualización:** 2 de julio de 2026
+> **Última actualización:** 3 de julio de 2026
 > Este archivo es la guía definitiva para cualquier agente IA que trabaje en este repositorio. Léelo **completo** antes de escribir una sola línea de código.
 
 ---
@@ -74,7 +74,7 @@ Models (Eloquent directo — sin Repository)
 
 | Patrón                        | Implementación                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------ |
-| **Service Layer**             | `app/Service/` — 12 services (partner) + 11 services (activity) con lógica de negocio |
+| **Service Layer**             | `app/Service/` — 12 services (partner) + 22 services (activity: 11 pagos + 11 clientes) con lógica de negocio |
 | **Mailables**                 | `app/Mail/` — `PasswordResetMail` para OTP de recuperación de contraseña       |
 | **FormRequest Validation**    | `app/Http/Requests/` — validación desacoplada de controllers                   |
 | **API Response Trait**        | `app/Traits/ApiResponse.php` — formato estándar JSON                           |
@@ -251,7 +251,7 @@ return DB::transaction(function () use ($data) {
 
 ### Modelos del Módulo de Actividades
 
-> Todos en `app/Models/activities/`. Todos tienen `$timestamps = false`.
+> Los pagos viven en `app/Models/activities/payment/` y los clientes en `app/Models/activities/client/`. Todos tienen `$timestamps = false`.
 
 | Modelo               | Tabla                              | PK                            | Notas                              |
 | -------------------- | ---------------------------------- | ----------------------------- | ---------------------------------- |
@@ -266,6 +266,19 @@ return DB::transaction(function () use ($data) {
 | `VoleibolPago`       | `0cc_voleibol_pagos_unificado`     | `ind` (auto)                  | `ano_origen`, sin col `d`          |
 | `BattingPago`        | `0cc_batting_pagos_unificada`      | `ind` (auto)                  | `mes`, `d`, montos INT             |
 | `AlmaflamencoaPago`  | `0cc_almaflamenca_pagos_unificada` | `id_pago` (auto)              | `ind_original` nullable, sin `d`   |
+| `NatacionCliente`    | `0cc_natacion_clientes`            | `ind` (auto)                  | Incluye representantes `repre_*`   |
+| `OnboxCliente`       | `0cc_onbox_clientes`               | `ind` (auto)                  | `cedula` BIGINT, `d` tinytext      |
+| `LeverCliente`       | `0cc_lever_clientes`               | `ind` (auto)                  | `cedula` BIGINT, `padres` NOT NULL |
+| `PinponCliente`      | `0cc_pinpon_clientes`              | `ind` (auto)                  | `cedula` única                     |
+| `BasquetCliente`     | `0cc_basquet_clientes`             | `ind` (auto)                  | `ind` INT UNSIGNED                 |
+| `StrongCliente`      | `0cc_strong_clientes`              | `cedula`                      | Sin `ind`; PK por `cedula`         |
+| `KarateCliente`      | `0cc_karate_clientes`              | `ind` (auto)                  | `cedula` única                     |
+| `InglesCliente`      | `0cc_ingles_clientes`              | `ind` (auto)                  | `ind` INT UNSIGNED                 |
+| `VoleibolCliente`    | `0cc_voleibol_clientes`            | `ind` (auto)                  | `ind` INT UNSIGNED                 |
+| `BattingCliente`     | `0cc_batting_clientes`             | `ind` (auto)                  | `ind` INT UNSIGNED                 |
+| `AlmaflamencaCliente` | `0cc_almaflamenca_clientes`        | `ind` (auto)                  | `ind` INT UNSIGNED                 |
+
+> Nota de compatibilidad MySQL: en las tablas de clientes, la columna `socio` se define como `VARCHAR` con default `'No Socio'` aunque algunos SQL legacy la documenten como `TINYTEXT DEFAULT 'No Socio'`; MySQL no permite valores por defecto en columnas `TEXT/TINYTEXT`.
 
 ### Relaciones Principales
 
@@ -346,6 +359,7 @@ PartnerCategory::FAMILIAR  // 'familiar'
 | *(todos autenticados)*    | `GET /partners/photo/{cedula}`            | `PartnerPhotoController`   | Retorna URL pública de la foto del socio|
 | *(todos autenticados)*    | `GET /activity/{actividad}`               | `*PagoController`@index    | 11 endpoints de pagos por actividad, orden desc por mes     |
 | *(todos autenticados)*    | `GET /activity/{actividad}/{mes}`         | `*PagoController`@showByMes | Filtro por mes YYYY-MM; natacion/strong/ingles/voleibol usan sort compuesto |
+| *(todos autenticados)*    | `GET /activity/client/{actividad}`        | `*ClienteController`@index | 11 endpoints de clientes por actividad, sin paginación       |
 | `access-finanzas`         | `POST /activity/{actividad}`              | `*PagoController`@store    | SUPER_ADMIN + ADMIN; validación con `Store*PagoRequest`     |
 
 **Rutas adicionales destacadas:**
@@ -390,6 +404,17 @@ PartnerCategory::FAMILIAR  // 'familiar'
 - `GET /activity/almaflamenca` — Pagos de Alma Flamenca, orden descendente por mes
 - `GET /activity/almaflamenca/{mes}` — Pagos de Alma Flamenca filtrados por mes
 - `POST /activity/almaflamenca` — Registrar pago de Alma Flamenca (`access-finanzas`)
+- `GET /activity/client/natacion` — Clientes de natación, sin paginación
+- `GET /activity/client/onbox` — Clientes de Onbox, sin paginación
+- `GET /activity/client/lever` — Clientes de Lever, sin paginación
+- `GET /activity/client/pinpon` — Clientes de Pin Pon, sin paginación
+- `GET /activity/client/basquet` — Clientes de Básquet, sin paginación
+- `GET /activity/client/strong` — Clientes de Strong, sin paginación
+- `GET /activity/client/karate` — Clientes de Karate, sin paginación
+- `GET /activity/client/ingles` — Clientes de Inglés, sin paginación
+- `GET /activity/client/voleibol` — Clientes de Voleibol, sin paginación
+- `GET /activity/client/batting` — Clientes de Batting, sin paginación
+- `GET /activity/client/almaflamenca` — Clientes de Alma Flamenca, sin paginación
 
 ---
 

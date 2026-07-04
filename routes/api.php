@@ -1,16 +1,27 @@
 <?php
 
-use App\Http\Controllers\activity\AlmaflamencoaPagoController;
-use App\Http\Controllers\activity\BasquetPagoController;
-use App\Http\Controllers\activity\BattingPagoController;
-use App\Http\Controllers\activity\InglesPagoController;
-use App\Http\Controllers\activity\KaratePagoController;
-use App\Http\Controllers\activity\LeverPagoController;
-use App\Http\Controllers\activity\NatacionPagoController;
-use App\Http\Controllers\activity\OnboxPagoController;
-use App\Http\Controllers\activity\PinponPagoController;
-use App\Http\Controllers\activity\StrongPagoController;
-use App\Http\Controllers\activity\VoleibolPagoController;
+use App\Http\Controllers\activity\payment\AlmaflamencoaPagoController;
+use App\Http\Controllers\activity\payment\BasquetPagoController;
+use App\Http\Controllers\activity\payment\BattingPagoController;
+use App\Http\Controllers\activity\payment\InglesPagoController;
+use App\Http\Controllers\activity\payment\KaratePagoController;
+use App\Http\Controllers\activity\payment\LeverPagoController;
+use App\Http\Controllers\activity\payment\NatacionPagoController;
+use App\Http\Controllers\activity\payment\OnboxPagoController;
+use App\Http\Controllers\activity\payment\PinponPagoController;
+use App\Http\Controllers\activity\payment\StrongPagoController;
+use App\Http\Controllers\activity\payment\VoleibolPagoController;
+use App\Http\Controllers\activity\client\AlmaflamencaClienteController;
+use App\Http\Controllers\activity\client\BasquetClienteController;
+use App\Http\Controllers\activity\client\BattingClienteController;
+use App\Http\Controllers\activity\client\InglesClienteController;
+use App\Http\Controllers\activity\client\KarateClienteController;
+use App\Http\Controllers\activity\client\LeverClienteController;
+use App\Http\Controllers\activity\client\NatacionClienteController;
+use App\Http\Controllers\activity\client\OnboxClienteController;
+use App\Http\Controllers\activity\client\PinponClienteController;
+use App\Http\Controllers\activity\client\StrongClienteController;
+use App\Http\Controllers\activity\client\VoleibolClienteController;
 use App\Http\Controllers\auth\AuthController;
 use App\Http\Controllers\auth\PasswordResetController;
 use App\Http\Controllers\auth\UserAdminController;
@@ -246,6 +257,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/batting/{mes}', [BattingPagoController::class, 'showByMes'])->name('activity.batting.showByMes');
         Route::get('/almaflamenca', [AlmaflamencoaPagoController::class, 'index'])->name('activity.almaflamenca.index');
         Route::get('/almaflamenca/{mes}', [AlmaflamencoaPagoController::class, 'showByMes'])->name('activity.almaflamenca.showByMes');
+    });
+
+    // === Actividades: clientes (todos los usuarios autenticados) ===
+    Route::prefix('activity/client')->group(function () {
+        Route::get('/natacion', [NatacionClienteController::class, 'index'])->name('activity.client.natacion.index');
+        Route::get('/onbox', [OnboxClienteController::class, 'index'])->name('activity.client.onbox.index');
+        Route::get('/lever', [LeverClienteController::class, 'index'])->name('activity.client.lever.index');
+        Route::get('/pinpon', [PinponClienteController::class, 'index'])->name('activity.client.pinpon.index');
+        Route::get('/basquet', [BasquetClienteController::class, 'index'])->name('activity.client.basquet.index');
+        Route::get('/strong', [StrongClienteController::class, 'index'])->name('activity.client.strong.index');
+        Route::get('/karate', [KarateClienteController::class, 'index'])->name('activity.client.karate.index');
+        Route::get('/ingles', [InglesClienteController::class, 'index'])->name('activity.client.ingles.index');
+        Route::get('/voleibol', [VoleibolClienteController::class, 'index'])->name('activity.client.voleibol.index');
+        Route::get('/batting', [BattingClienteController::class, 'index'])->name('activity.client.batting.index');
+        Route::get('/almaflamenca', [AlmaflamencaClienteController::class, 'index'])->name('activity.client.almaflamenca.index');
     });
 
     // === Actividades: registro de pagos (access-finanzas) ===
