@@ -12,7 +12,9 @@ class AlmaflamencoaPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return AlmaflamencoaPago::query()
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_almaflamenca_clientes', '0cc_almaflamenca_pagos_unificada.cedula', '=', '0cc_almaflamenca_clientes.cedula')
+            ->select('0cc_almaflamenca_pagos_unificada.*', '0cc_almaflamenca_clientes.nombre')
+            ->orderBy('0cc_almaflamenca_pagos_unificada.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (AlmaflamencoaPago $pago) => $this->formatFecha($pago));
     }
@@ -20,8 +22,10 @@ class AlmaflamencoaPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return AlmaflamencoaPago::query()
-            ->where('mes', $mes)
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_almaflamenca_clientes', '0cc_almaflamenca_pagos_unificada.cedula', '=', '0cc_almaflamenca_clientes.cedula')
+            ->select('0cc_almaflamenca_pagos_unificada.*', '0cc_almaflamenca_clientes.nombre')
+            ->where('0cc_almaflamenca_pagos_unificada.mes', $mes)
+            ->orderBy('0cc_almaflamenca_pagos_unificada.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (AlmaflamencoaPago $pago) => $this->formatFecha($pago));
     }
@@ -48,4 +52,3 @@ class AlmaflamencoaPagoService
         return $pago;
     }
 }
-

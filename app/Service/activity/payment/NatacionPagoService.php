@@ -12,8 +12,10 @@ class NatacionPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return NatacionPago::query()
-            ->orderBy('anio', 'desc')
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_natacion_clientes', '0cc_natacion_pagos.cedula', '=', '0cc_natacion_clientes.cedula')
+            ->select('0cc_natacion_pagos.*', '0cc_natacion_clientes.nombre')
+            ->orderBy('0cc_natacion_pagos.anio', 'desc')
+            ->orderBy('0cc_natacion_pagos.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (NatacionPago $pago) => $this->formatFecha($pago));
     }
@@ -21,9 +23,11 @@ class NatacionPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return NatacionPago::query()
-            ->where('mes', $mes)
-            ->orderBy('anio', 'desc')
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_natacion_clientes', '0cc_natacion_pagos.cedula', '=', '0cc_natacion_clientes.cedula')
+            ->select('0cc_natacion_pagos.*', '0cc_natacion_clientes.nombre')
+            ->where('0cc_natacion_pagos.mes', $mes)
+            ->orderBy('0cc_natacion_pagos.anio', 'desc')
+            ->orderBy('0cc_natacion_pagos.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (NatacionPago $pago) => $this->formatFecha($pago));
     }

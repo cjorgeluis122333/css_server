@@ -12,8 +12,10 @@ class StrongPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return StrongPago::query()
-            ->orderBy('ano', 'desc')
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_strong_clientes', '0cc_strong_pagos_unificada.cedula', '=', '0cc_strong_clientes.cedula')
+            ->select('0cc_strong_pagos_unificada.*', '0cc_strong_clientes.nombre')
+            ->orderBy('0cc_strong_pagos_unificada.ano', 'desc')
+            ->orderBy('0cc_strong_pagos_unificada.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (StrongPago $pago) => $this->formatFecha($pago));
     }
@@ -21,9 +23,11 @@ class StrongPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return StrongPago::query()
-            ->where('mes', $mes)
-            ->orderBy('ano', 'desc')
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_strong_clientes', '0cc_strong_pagos_unificada.cedula', '=', '0cc_strong_clientes.cedula')
+            ->select('0cc_strong_pagos_unificada.*', '0cc_strong_clientes.nombre')
+            ->where('0cc_strong_pagos_unificada.mes', $mes)
+            ->orderBy('0cc_strong_pagos_unificada.ano', 'desc')
+            ->orderBy('0cc_strong_pagos_unificada.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (StrongPago $pago) => $this->formatFecha($pago));
     }

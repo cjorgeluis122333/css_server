@@ -1,6 +1,6 @@
 # 🤖 Project Context & Agent Rules
 
-> **Última actualización:** 3 de julio de 2026
+> **Última actualización:** 5 de julio de 2026
 > Este archivo es la guía definitiva para cualquier agente IA que trabaje en este repositorio. Léelo **completo** antes de escribir una sola línea de código.
 
 ---
@@ -79,6 +79,7 @@ Models (Eloquent directo — sin Repository)
 | **FormRequest Validation**    | `app/Http/Requests/` — validación desacoplada de controllers                   |
 | **API Response Trait**        | `app/Traits/ApiResponse.php` — formato estándar JSON                           |
 | **API Resources**             | `app/Http/Resources/` — transformación de modelos + display condicional RBAC; `activity/client/` para los 11 resources de clientes de actividades |
+| **LEFT JOIN Enrichment**      | `*PagoService::paginated()` y `*PagoService::filterByMes()` incluyen LEFT JOIN con tabla de clientes para retornar campo `nombre` (11 servicios de actividades) |
 | **Backed Enums (PHP 8.1)**    | `app/Enum/` — `PartnerCategory`, `UserRole`, `DebtMetricType`                 |
 | **Eloquent Scopes**           | Filtros reutilizables en modelos (`scopeHolders()`, `scopeCurrentMonth()`)     |
 | **Constructor DI**            | Controllers inyectan Services; Services pueden inyectar otros Services         |
@@ -106,7 +107,7 @@ app/
 ├── Models/                # 9 modelos Eloquent
 ├── Policies/              # 4 Policies: Partner, HallControl, Guest, HistoryPay
 ├── Providers/             # Service Providers (AppServiceProvider)
-├── Service/               # ⚠️ SINGULAR — 12 services de lógica de negocio
+├── Service/               # ⚠️ SINGULAR — 12 services partner + 22 services activity (11 pagos + 11 clientes)
 └── Traits/                # Traits compartidos (ApiResponse)
 
 bootstrap/
@@ -126,6 +127,10 @@ tests/                     # Tests con Pest (Feature/ y Unit/)
 ```
 
 > **Nota crítica:** El directorio de services es `app/Service/` (singular), NO `app/Services/`. Respetar esta convención al crear nuevos services.
+> 
+> **Estructura de servicios de actividades:** 
+> - `app/Service/activity/payment/` — 11 servicios `*PagoService.php` con métodos `paginated()`, `filterByMes()`, y `create()`. Cada uno implementa LEFT JOIN con tabla de clientes equivalente para enriquecimiento de datos.
+> - `app/Service/activity/client/` — 11 servicios `*ClienteService.php` para gestión de clientes por actividad.
 
 ---
 

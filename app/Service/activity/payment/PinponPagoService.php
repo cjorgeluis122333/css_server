@@ -12,7 +12,9 @@ class PinponPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return PinponPago::query()
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_pinpon_clientes', '0cc_pinpon_pagos_unificada.cedula', '=', '0cc_pinpon_clientes.cedula')
+            ->select('0cc_pinpon_pagos_unificada.*', '0cc_pinpon_clientes.nombre')
+            ->orderBy('0cc_pinpon_pagos_unificada.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (PinponPago $pago) => $this->formatFecha($pago));
     }
@@ -20,8 +22,10 @@ class PinponPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return PinponPago::query()
-            ->where('mes', $mes)
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_pinpon_clientes', '0cc_pinpon_pagos_unificada.cedula', '=', '0cc_pinpon_clientes.cedula')
+            ->select('0cc_pinpon_pagos_unificada.*', '0cc_pinpon_clientes.nombre')
+            ->where('0cc_pinpon_pagos_unificada.mes', $mes)
+            ->orderBy('0cc_pinpon_pagos_unificada.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (PinponPago $pago) => $this->formatFecha($pago));
     }

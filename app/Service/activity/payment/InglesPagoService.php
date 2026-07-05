@@ -12,8 +12,10 @@ class InglesPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return InglesPago::query()
-            ->orderBy('ano_tabla', 'desc')
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_ingles_clientes', '0cc_ingles_pagos_unificado.cedula', '=', '0cc_ingles_clientes.cedula')
+            ->select('0cc_ingles_pagos_unificado.*', '0cc_ingles_clientes.nombre')
+            ->orderBy('0cc_ingles_pagos_unificado.ano_tabla', 'desc')
+            ->orderBy('0cc_ingles_pagos_unificado.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (InglesPago $pago) => $this->formatFecha($pago));
     }
@@ -21,9 +23,11 @@ class InglesPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return InglesPago::query()
-            ->where('mes', $mes)
-            ->orderBy('ano_tabla', 'desc')
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_ingles_clientes', '0cc_ingles_pagos_unificado.cedula', '=', '0cc_ingles_clientes.cedula')
+            ->select('0cc_ingles_pagos_unificado.*', '0cc_ingles_clientes.nombre')
+            ->where('0cc_ingles_pagos_unificado.mes', $mes)
+            ->orderBy('0cc_ingles_pagos_unificado.ano_tabla', 'desc')
+            ->orderBy('0cc_ingles_pagos_unificado.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (InglesPago $pago) => $this->formatFecha($pago));
     }

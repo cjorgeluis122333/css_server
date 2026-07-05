@@ -12,7 +12,9 @@ class BattingPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return BattingPago::query()
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_batting_clientes', '0cc_batting_pagos_unificada.cedula', '=', '0cc_batting_clientes.cedula')
+            ->select('0cc_batting_pagos_unificada.*', '0cc_batting_clientes.nombre')
+            ->orderBy('0cc_batting_pagos_unificada.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (BattingPago $pago) => $this->formatFecha($pago));
     }
@@ -20,8 +22,10 @@ class BattingPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return BattingPago::query()
-            ->where('mes', $mes)
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_batting_clientes', '0cc_batting_pagos_unificada.cedula', '=', '0cc_batting_clientes.cedula')
+            ->select('0cc_batting_pagos_unificada.*', '0cc_batting_clientes.nombre')
+            ->where('0cc_batting_pagos_unificada.mes', $mes)
+            ->orderBy('0cc_batting_pagos_unificada.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (BattingPago $pago) => $this->formatFecha($pago));
     }
@@ -48,4 +52,3 @@ class BattingPagoService
         return $pago;
     }
 }
-

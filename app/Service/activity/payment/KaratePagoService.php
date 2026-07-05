@@ -12,7 +12,9 @@ class KaratePagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return KaratePago::query()
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_karate_clientes', '0cc_karate_pagos.cedula', '=', '0cc_karate_clientes.cedula')
+            ->select('0cc_karate_pagos.*', '0cc_karate_clientes.nombre')
+            ->orderBy('0cc_karate_pagos.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (KaratePago $pago) => $this->formatFecha($pago));
     }
@@ -20,8 +22,10 @@ class KaratePagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return KaratePago::query()
-            ->where('mes', $mes)
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_karate_clientes', '0cc_karate_pagos.cedula', '=', '0cc_karate_clientes.cedula')
+            ->select('0cc_karate_pagos.*', '0cc_karate_clientes.nombre')
+            ->where('0cc_karate_pagos.mes', $mes)
+            ->orderBy('0cc_karate_pagos.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (KaratePago $pago) => $this->formatFecha($pago));
     }
@@ -48,4 +52,3 @@ class KaratePagoService
         return $pago;
     }
 }
-

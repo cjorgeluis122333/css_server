@@ -12,8 +12,10 @@ class VoleibolPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return VoleibolPago::query()
-            ->orderBy('ano_origen', 'desc')
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_voleibol_clientes', '0cc_voleibol_pagos_unificado.cedula', '=', '0cc_voleibol_clientes.cedula')
+            ->select('0cc_voleibol_pagos_unificado.*', '0cc_voleibol_clientes.nombre')
+            ->orderBy('0cc_voleibol_pagos_unificado.ano_origen', 'desc')
+            ->orderBy('0cc_voleibol_pagos_unificado.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (VoleibolPago $pago) => $this->formatFecha($pago));
     }
@@ -21,9 +23,11 @@ class VoleibolPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return VoleibolPago::query()
-            ->where('mes', $mes)
-            ->orderBy('ano_origen', 'desc')
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_voleibol_clientes', '0cc_voleibol_pagos_unificado.cedula', '=', '0cc_voleibol_clientes.cedula')
+            ->select('0cc_voleibol_pagos_unificado.*', '0cc_voleibol_clientes.nombre')
+            ->where('0cc_voleibol_pagos_unificado.mes', $mes)
+            ->orderBy('0cc_voleibol_pagos_unificado.ano_origen', 'desc')
+            ->orderBy('0cc_voleibol_pagos_unificado.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (VoleibolPago $pago) => $this->formatFecha($pago));
     }

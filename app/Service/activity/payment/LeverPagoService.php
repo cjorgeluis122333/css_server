@@ -12,7 +12,9 @@ class LeverPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return LeverPago::query()
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_lever_clientes', '0cc_lever_pagos_unificado.cedula', '=', '0cc_lever_clientes.cedula')
+            ->select('0cc_lever_pagos_unificado.*', '0cc_lever_clientes.nombre')
+            ->orderBy('0cc_lever_pagos_unificado.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (LeverPago $pago) => $this->formatFecha($pago));
     }
@@ -20,8 +22,10 @@ class LeverPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return LeverPago::query()
-            ->where('mes', $mes)
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_lever_clientes', '0cc_lever_pagos_unificado.cedula', '=', '0cc_lever_clientes.cedula')
+            ->select('0cc_lever_pagos_unificado.*', '0cc_lever_clientes.nombre')
+            ->where('0cc_lever_pagos_unificado.mes', $mes)
+            ->orderBy('0cc_lever_pagos_unificado.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (LeverPago $pago) => $this->formatFecha($pago));
     }
@@ -48,4 +52,3 @@ class LeverPagoService
         return $pago;
     }
 }
-

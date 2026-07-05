@@ -12,7 +12,9 @@ class OnboxPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return OnboxPago::query()
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_onbox_clientes', '0cc_onbox_pagos_all.cedula', '=', '0cc_onbox_clientes.cedula')
+            ->select('0cc_onbox_pagos_all.*', '0cc_onbox_clientes.nombre')
+            ->orderBy('0cc_onbox_pagos_all.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (OnboxPago $pago) => $this->formatFecha($pago));
     }
@@ -20,8 +22,10 @@ class OnboxPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return OnboxPago::query()
-            ->where('mes', $mes)
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_onbox_clientes', '0cc_onbox_pagos_all.cedula', '=', '0cc_onbox_clientes.cedula')
+            ->select('0cc_onbox_pagos_all.*', '0cc_onbox_clientes.nombre')
+            ->where('0cc_onbox_pagos_all.mes', $mes)
+            ->orderBy('0cc_onbox_pagos_all.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (OnboxPago $pago) => $this->formatFecha($pago));
     }
@@ -48,4 +52,3 @@ class OnboxPagoService
         return $pago;
     }
 }
-

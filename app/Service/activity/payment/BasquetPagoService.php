@@ -12,7 +12,9 @@ class BasquetPagoService
     public function paginated(int $perPage): LengthAwarePaginator
     {
         return BasquetPago::query()
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_basquet_clientes', '0cc_basquet_pagos.cedula', '=', '0cc_basquet_clientes.cedula')
+            ->select('0cc_basquet_pagos.*', '0cc_basquet_clientes.nombre')
+            ->orderBy('0cc_basquet_pagos.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (BasquetPago $pago) => $this->formatFecha($pago));
     }
@@ -20,8 +22,10 @@ class BasquetPagoService
     public function filterByMes(string $mes, int $perPage): LengthAwarePaginator
     {
         return BasquetPago::query()
-            ->where('mes', $mes)
-            ->orderBy('mes', 'desc')
+            ->leftJoin('0cc_basquet_clientes', '0cc_basquet_pagos.cedula', '=', '0cc_basquet_clientes.cedula')
+            ->select('0cc_basquet_pagos.*', '0cc_basquet_clientes.nombre')
+            ->where('0cc_basquet_pagos.mes', $mes)
+            ->orderBy('0cc_basquet_pagos.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (BasquetPago $pago) => $this->formatFecha($pago));
     }
@@ -48,4 +52,3 @@ class BasquetPagoService
         return $pago;
     }
 }
-
