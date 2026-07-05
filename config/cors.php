@@ -21,11 +21,14 @@ return [
 
     'allowed_origins' => [
         'https://ccv-frontend-react.vercel.app',
+        'https://ccv-frontend-react-eg3pjdnmi-jorge-luis-projects-39ec2794.vercel.app',
         'http://localhost:5173',
         'http://localhost:5174',
     ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '^https:\/\/ccv-frontend-react(?:-[a-z0-9-]+)?-jorge-luis-projects-39ec2794\.vercel\.app$',
+    ],
 
     'allowed_headers' => ['*'],
 
@@ -33,6 +36,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];

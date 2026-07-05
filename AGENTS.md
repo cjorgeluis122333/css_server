@@ -587,7 +587,7 @@ class NuevoService
 4. **No crear endpoints en `routes/web.php`.** Este es un proyecto API-only; todas las rutas van en `routes/api.php`.
 5. **Nunca retornar vistas Blade ni HTML como respuesta HTTP.** Todos los controllers retornan exclusivamente `JsonResponse`. Las vistas Blade (`resources/views/`) están reservadas **únicamente** para el cuerpo HTML de correos electrónicos (Mailables). El frontend React es responsable de toda la presentación.
 5. **Usar `DB::transaction()`** para cualquier operación que modifique múltiples tablas/registros.
-6. **CORS permisivo** — La configuración actual permite `*` en origins. En producción, restringir a dominios específicos en `config/cors.php`.
+6. **CORS restringido por allowlist** — La configuración acepta orígenes explícitos (localhost y dominios Vercel del frontend) y patrón para previews de Vercel en `config/cors.php`. Si el frontend cambia de dominio/proyecto en Vercel, actualizar allowlist/patrón y limpiar caché de config.
 7. **Tokens Sanctum sin expiración** — `sanctum.expiration` está en `null`. Evaluar configurar expiración para producción.
 8. **Directorio `app/Service/` es SINGULAR** — No crear `app/Services/` (con S).
 
