@@ -1,12 +1,22 @@
 #!/bin/bash
 set -e
 
+# Refrescar caches de Laravel en runtime para evitar depender de comandos manuales en el servidor.
+echo "Limpiando caches de Laravel..."
+if ! php artisan optimize:clear; then
+	echo "Advertencia: No se pudo limpiar la cache de Laravel. Continuando arranque."
+fi
+
+echo "Generando cache de configuracion..."
+if ! php artisan config:cache; then
+	echo "Advertencia: No se pudo generar config:cache. Continuando arranque."
+fi
+
 # Ejecutar migraciones con reintentos usando la configuración SSL de Laravel
 echo "Ejecutando migraciones (${DB_HOST}:${DB_PORT})..."
 
 max_retries=10
 retry=0
-migrated=false
 
 until php artisan migrate --force; do
 	retry=$((retry + 1))

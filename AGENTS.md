@@ -50,6 +50,10 @@ composer run test        # Ejecutar tests con Pest
 
 # Docker
 docker-compose up -d     # Levantar app (puerto 8080) + MySQL (puerto 3307)
+
+# Nota deploy Docker
+# El contenedor ejecuta en arranque: optimize:clear, config:cache y migrate --force (con reintentos)
+# para evitar pasos manuales por consola en producción.
 ```
 
 ---
