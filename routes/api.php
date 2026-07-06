@@ -236,26 +236,48 @@ Route::middleware('auth:sanctum')->group(function () {
     // === Actividades: pagos (todos los usuarios autenticados) ===
     Route::prefix('activity')->group(function () {
         Route::get('/natacion', [NatacionPagoController::class, 'index'])->name('activity.natacion.index');
+        Route::get('/natacion/mes', [NatacionPagoController::class, 'showByMonthYear'])->name('activity.natacion.showByMonthYear');
+        Route::get('/natacion/semana', [NatacionPagoController::class, 'showBySemana'])->name('activity.natacion.showBySemana');
         Route::get('/natacion/{mes}', [NatacionPagoController::class, 'showByMes'])->name('activity.natacion.showByMes');
         Route::get('/onbox', [OnboxPagoController::class, 'index'])->name('activity.onbox.index');
+        Route::get('/onbox/mes', [OnboxPagoController::class, 'showByMonthYear'])->name('activity.onbox.showByMonthYear');
+        Route::get('/onbox/semana', [OnboxPagoController::class, 'showBySemana'])->name('activity.onbox.showBySemana');
         Route::get('/onbox/{mes}', [OnboxPagoController::class, 'showByMes'])->name('activity.onbox.showByMes');
         Route::get('/lever', [LeverPagoController::class, 'index'])->name('activity.lever.index');
+        Route::get('/lever/mes', [LeverPagoController::class, 'showByMonthYear'])->name('activity.lever.showByMonthYear');
+        Route::get('/lever/semana', [LeverPagoController::class, 'showBySemana'])->name('activity.lever.showBySemana');
         Route::get('/lever/{mes}', [LeverPagoController::class, 'showByMes'])->name('activity.lever.showByMes');
         Route::get('/pinpon', [PinponPagoController::class, 'index'])->name('activity.pinpon.index');
+        Route::get('/pinpon/mes', [PinponPagoController::class, 'showByMonthYear'])->name('activity.pinpon.showByMonthYear');
+        Route::get('/pinpon/semana', [PinponPagoController::class, 'showBySemana'])->name('activity.pinpon.showBySemana');
         Route::get('/pinpon/{mes}', [PinponPagoController::class, 'showByMes'])->name('activity.pinpon.showByMes');
         Route::get('/basquet', [BasquetPagoController::class, 'index'])->name('activity.basquet.index');
+        Route::get('/basquet/mes', [BasquetPagoController::class, 'showByMonthYear'])->name('activity.basquet.showByMonthYear');
+        Route::get('/basquet/semana', [BasquetPagoController::class, 'showBySemana'])->name('activity.basquet.showBySemana');
         Route::get('/basquet/{mes}', [BasquetPagoController::class, 'showByMes'])->name('activity.basquet.showByMes');
         Route::get('/strong', [StrongPagoController::class, 'index'])->name('activity.strong.index');
+        Route::get('/strong/mes', [StrongPagoController::class, 'showByMonthYear'])->name('activity.strong.showByMonthYear');
+        Route::get('/strong/semana', [StrongPagoController::class, 'showBySemana'])->name('activity.strong.showBySemana');
         Route::get('/strong/{mes}', [StrongPagoController::class, 'showByMes'])->name('activity.strong.showByMes');
         Route::get('/karate', [KaratePagoController::class, 'index'])->name('activity.karate.index');
+        Route::get('/karate/mes', [KaratePagoController::class, 'showByMonthYear'])->name('activity.karate.showByMonthYear');
+        Route::get('/karate/semana', [KaratePagoController::class, 'showBySemana'])->name('activity.karate.showBySemana');
         Route::get('/karate/{mes}', [KaratePagoController::class, 'showByMes'])->name('activity.karate.showByMes');
         Route::get('/ingles', [InglesPagoController::class, 'index'])->name('activity.ingles.index');
+        Route::get('/ingles/mes', [InglesPagoController::class, 'showByMonthYear'])->name('activity.ingles.showByMonthYear');
+        Route::get('/ingles/semana', [InglesPagoController::class, 'showBySemana'])->name('activity.ingles.showBySemana');
         Route::get('/ingles/{mes}', [InglesPagoController::class, 'showByMes'])->name('activity.ingles.showByMes');
         Route::get('/voleibol', [VoleibolPagoController::class, 'index'])->name('activity.voleibol.index');
+        Route::get('/voleibol/mes', [VoleibolPagoController::class, 'showByMonthYear'])->name('activity.voleibol.showByMonthYear');
+        Route::get('/voleibol/semana', [VoleibolPagoController::class, 'showBySemana'])->name('activity.voleibol.showBySemana');
         Route::get('/voleibol/{mes}', [VoleibolPagoController::class, 'showByMes'])->name('activity.voleibol.showByMes');
         Route::get('/batting', [BattingPagoController::class, 'index'])->name('activity.batting.index');
+        Route::get('/batting/mes', [BattingPagoController::class, 'showByMonthYear'])->name('activity.batting.showByMonthYear');
+        Route::get('/batting/semana', [BattingPagoController::class, 'showBySemana'])->name('activity.batting.showBySemana');
         Route::get('/batting/{mes}', [BattingPagoController::class, 'showByMes'])->name('activity.batting.showByMes');
         Route::get('/almaflamenca', [AlmaflamencoaPagoController::class, 'index'])->name('activity.almaflamenca.index');
+        Route::get('/almaflamenca/mes', [AlmaflamencoaPagoController::class, 'showByMonthYear'])->name('activity.almaflamenca.showByMonthYear');
+        Route::get('/almaflamenca/semana', [AlmaflamencoaPagoController::class, 'showBySemana'])->name('activity.almaflamenca.showBySemana');
         Route::get('/almaflamenca/{mes}', [AlmaflamencoaPagoController::class, 'showByMes'])->name('activity.almaflamenca.showByMes');
     });
 

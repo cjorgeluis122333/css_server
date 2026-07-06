@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\activity\payment;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\activity\ActivityMesRequest;
+use App\Http\Requests\activity\ActivitySemanaRequest;
 use App\Http\Requests\activity\NatacionPagoRequest;
 use App\Http\Requests\activity\StoreNatacionPagoRequest;
 use App\Service\activity\payment\NatacionPagoService;
@@ -38,6 +40,42 @@ class NatacionPagoController extends Controller
             return $this->successResponse($pagos, "Pagos de natación para el mes {$mes}.");
         } catch (\Exception $e) {
             return $this->errorResponse('Error al filtrar los pagos de natación.', 500);
+        }
+    }
+
+    public function showByMonthYear(ActivityMesRequest $request): JsonResponse
+    {
+        try {
+            $year = (int) $request->input('year', now()->year);
+            $month = (int) $request->input('mes', now()->month);
+            $result = $this->natacionPagoService->filterByMonthYear($year, $month);
+
+            return $this->successResponse([
+                'registros' => $result['registros'],
+                'mes' => $month,
+                'año' => $year,
+                'total_meses' => $result['total_meses'],
+            ], "Pagos de natación para {$year}-{$month}.");
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al obtener los pagos de natación por mes.', 500);
+        }
+    }
+
+    public function showBySemana(ActivitySemanaRequest $request): JsonResponse
+    {
+        try {
+            $year = (int) $request->input('year', now()->isoWeekYear());
+            $week = (int) $request->input('semana', now()->isoWeek());
+            $registros = $this->natacionPagoService->filterByWeek($year, $week);
+
+            return $this->successResponse([
+                'registros' => $registros,
+                'semana' => $week,
+                'año' => $year,
+                'semana_actual' => now()->isoWeek(),
+            ], "Pagos de natación para la semana {$week} del año {$year}.");
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al obtener los pagos de natación por semana.', 500);
         }
     }
 

@@ -5,6 +5,7 @@ namespace App\Service\activity\payment;
 use App\Models\activities\payment\BattingPago;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class BattingPagoService
@@ -28,6 +29,44 @@ class BattingPagoService
             ->orderBy('0cc_batting_pagos_unificada.mes', 'desc')
             ->paginate($perPage)
             ->through(fn (BattingPago $pago) => $this->formatFecha($pago));
+    }
+
+    public function filterByMonthYear(int $year, int $month): array
+    {
+        $mesBase = "{$year}-{$month}";
+        $mesPadded = "{$year}-".str_pad((string) $month, 2, '0', STR_PAD_LEFT);
+        $mesValues = array_unique([$mesBase, $mesPadded]);
+
+        $registros = BattingPago::query()
+            ->leftJoin('0cc_batting_clientes', '0cc_batting_pagos_unificada.cedula', '=', '0cc_batting_clientes.cedula')
+            ->select('0cc_batting_pagos_unificada.*', '0cc_batting_clientes.nombre')
+            ->whereIn('0cc_batting_pagos_unificada.mes', $mesValues)
+            ->orderBy('0cc_batting_pagos_unificada.mes', 'desc')
+            ->get()
+            ->map(fn (BattingPago $pago) => $this->formatFecha($pago));
+
+        $totalMeses = BattingPago::query()
+            ->selectRaw('COUNT(DISTINCT mes) as total')
+            ->value('total');
+
+        return [
+            'registros' => $registros,
+            'total_meses' => (int) $totalMeses,
+        ];
+    }
+
+    public function filterByWeek(int $year, int $week): Collection
+    {
+        $startTimestamp = Carbon::now()->setISODate($year, $week)->startOfWeek(Carbon::MONDAY)->startOfDay()->timestamp;
+        $endTimestamp = Carbon::now()->setISODate($year, $week)->endOfWeek(Carbon::SUNDAY)->endOfDay()->timestamp;
+
+        return BattingPago::query()
+            ->leftJoin('0cc_batting_clientes', '0cc_batting_pagos_unificada.cedula', '=', '0cc_batting_clientes.cedula')
+            ->select('0cc_batting_pagos_unificada.*', '0cc_batting_clientes.nombre')
+            ->whereBetween('0cc_batting_pagos_unificada.fecha', [$startTimestamp, $endTimestamp])
+            ->orderBy('0cc_batting_pagos_unificada.fecha', 'desc')
+            ->get()
+            ->map(fn (BattingPago $pago) => $this->formatFecha($pago));
     }
 
     public function create(array $data): BattingPago
