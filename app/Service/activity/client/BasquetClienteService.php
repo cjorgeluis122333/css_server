@@ -19,4 +19,9 @@ class BasquetClienteService
     {
         return DB::transaction(fn () => BasquetCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?BasquetCliente
+    {
+        return BasquetCliente::query()->where('cedula', $cedula)->first();
+    }
 }

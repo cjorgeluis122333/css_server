@@ -19,4 +19,9 @@ class OnboxClienteService
     {
         return DB::transaction(fn () => OnboxCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?OnboxCliente
+    {
+        return OnboxCliente::query()->where('cedula', $cedula)->first();
+    }
 }

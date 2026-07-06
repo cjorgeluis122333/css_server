@@ -19,4 +19,9 @@ class AlmaflamencaClienteService
     {
         return DB::transaction(fn () => AlmaflamencaCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?AlmaflamencaCliente
+    {
+        return AlmaflamencaCliente::query()->where('cedula', $cedula)->first();
+    }
 }

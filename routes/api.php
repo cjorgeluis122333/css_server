@@ -1,16 +1,5 @@
 <?php
 
-use App\Http\Controllers\activity\payment\AlmaflamencoaPagoController;
-use App\Http\Controllers\activity\payment\BasquetPagoController;
-use App\Http\Controllers\activity\payment\BattingPagoController;
-use App\Http\Controllers\activity\payment\InglesPagoController;
-use App\Http\Controllers\activity\payment\KaratePagoController;
-use App\Http\Controllers\activity\payment\LeverPagoController;
-use App\Http\Controllers\activity\payment\NatacionPagoController;
-use App\Http\Controllers\activity\payment\OnboxPagoController;
-use App\Http\Controllers\activity\payment\PinponPagoController;
-use App\Http\Controllers\activity\payment\StrongPagoController;
-use App\Http\Controllers\activity\payment\VoleibolPagoController;
 use App\Http\Controllers\activity\client\AlmaflamencaClienteController;
 use App\Http\Controllers\activity\client\BasquetClienteController;
 use App\Http\Controllers\activity\client\BattingClienteController;
@@ -22,6 +11,17 @@ use App\Http\Controllers\activity\client\OnboxClienteController;
 use App\Http\Controllers\activity\client\PinponClienteController;
 use App\Http\Controllers\activity\client\StrongClienteController;
 use App\Http\Controllers\activity\client\VoleibolClienteController;
+use App\Http\Controllers\activity\payment\AlmaflamencoaPagoController;
+use App\Http\Controllers\activity\payment\BasquetPagoController;
+use App\Http\Controllers\activity\payment\BattingPagoController;
+use App\Http\Controllers\activity\payment\InglesPagoController;
+use App\Http\Controllers\activity\payment\KaratePagoController;
+use App\Http\Controllers\activity\payment\LeverPagoController;
+use App\Http\Controllers\activity\payment\NatacionPagoController;
+use App\Http\Controllers\activity\payment\OnboxPagoController;
+use App\Http\Controllers\activity\payment\PinponPagoController;
+use App\Http\Controllers\activity\payment\StrongPagoController;
+use App\Http\Controllers\activity\payment\VoleibolPagoController;
 use App\Http\Controllers\auth\AuthController;
 use App\Http\Controllers\auth\PasswordResetController;
 use App\Http\Controllers\auth\UserAdminController;
@@ -55,9 +55,9 @@ Route::get('/deploy-check/{secret}', function (string $secret) {
     $results = [];
 
     // 1. Verificar entorno
-    $results['app_env']   = config('app.env');
+    $results['app_env'] = config('app.env');
     $results['app_debug'] = config('app.debug');
-    $results['app_url']   = config('app.url');
+    $results['app_url'] = config('app.url');
     $results['php_version'] = PHP_VERSION;
 
     // 2. Verificar conexión a base de datos
@@ -65,12 +65,12 @@ Route::get('/deploy-check/{secret}', function (string $secret) {
         DB::connection()->getPdo();
         $dbVersion = DB::selectOne('SELECT VERSION() as version');
         $results['database'] = [
-            'status'  => 'connected',
-            'driver'  => config('database.default'),
-            'host'    => config('database.connections.mysql.host'),
+            'status' => 'connected',
+            'driver' => config('database.default'),
+            'host' => config('database.connections.mysql.host'),
             'version' => $dbVersion->version ?? 'unknown',
         ];
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         $results['database'] = [
             'status' => 'ERROR',
             'message' => $e->getMessage(),
@@ -96,9 +96,9 @@ Route::get('/deploy-check/{secret}', function (string $secret) {
     }
 
     return response()->json([
-        'status'  => 'ok',
+        'status' => 'ok',
         'message' => '⚠️ Elimina esta ruta después de verificar el deploy.',
-        'data'    => $results,
+        'data' => $results,
     ]);
 })->name('deploy-check');
 // ---------------------------------------------------------------------------
@@ -262,16 +262,27 @@ Route::middleware('auth:sanctum')->group(function () {
     // === Actividades: clientes (todos los usuarios autenticados) ===
     Route::prefix('activity/client')->group(function () {
         Route::get('/natacion', [NatacionClienteController::class, 'index'])->name('activity.client.natacion.index');
+        Route::get('/natacion/{cedula}', [NatacionClienteController::class, 'showByCedula'])->name('activity.client.natacion.showByCedula');
         Route::get('/onbox', [OnboxClienteController::class, 'index'])->name('activity.client.onbox.index');
+        Route::get('/onbox/{cedula}', [OnboxClienteController::class, 'showByCedula'])->name('activity.client.onbox.showByCedula');
         Route::get('/lever', [LeverClienteController::class, 'index'])->name('activity.client.lever.index');
+        Route::get('/lever/{cedula}', [LeverClienteController::class, 'showByCedula'])->name('activity.client.lever.showByCedula');
         Route::get('/pinpon', [PinponClienteController::class, 'index'])->name('activity.client.pinpon.index');
+        Route::get('/pinpon/{cedula}', [PinponClienteController::class, 'showByCedula'])->name('activity.client.pinpon.showByCedula');
         Route::get('/basquet', [BasquetClienteController::class, 'index'])->name('activity.client.basquet.index');
+        Route::get('/basquet/{cedula}', [BasquetClienteController::class, 'showByCedula'])->name('activity.client.basquet.showByCedula');
         Route::get('/strong', [StrongClienteController::class, 'index'])->name('activity.client.strong.index');
+        Route::get('/strong/{cedula}', [StrongClienteController::class, 'showByCedula'])->name('activity.client.strong.showByCedula');
         Route::get('/karate', [KarateClienteController::class, 'index'])->name('activity.client.karate.index');
+        Route::get('/karate/{cedula}', [KarateClienteController::class, 'showByCedula'])->name('activity.client.karate.showByCedula');
         Route::get('/ingles', [InglesClienteController::class, 'index'])->name('activity.client.ingles.index');
+        Route::get('/ingles/{cedula}', [InglesClienteController::class, 'showByCedula'])->name('activity.client.ingles.showByCedula');
         Route::get('/voleibol', [VoleibolClienteController::class, 'index'])->name('activity.client.voleibol.index');
+        Route::get('/voleibol/{cedula}', [VoleibolClienteController::class, 'showByCedula'])->name('activity.client.voleibol.showByCedula');
         Route::get('/batting', [BattingClienteController::class, 'index'])->name('activity.client.batting.index');
+        Route::get('/batting/{cedula}', [BattingClienteController::class, 'showByCedula'])->name('activity.client.batting.showByCedula');
         Route::get('/almaflamenca', [AlmaflamencaClienteController::class, 'index'])->name('activity.client.almaflamenca.index');
+        Route::get('/almaflamenca/{cedula}', [AlmaflamencaClienteController::class, 'showByCedula'])->name('activity.client.almaflamenca.showByCedula');
     });
 
     // === Actividades: registro de clientes (access-finanzas) ===

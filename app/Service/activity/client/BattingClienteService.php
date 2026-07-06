@@ -19,4 +19,9 @@ class BattingClienteService
     {
         return DB::transaction(fn () => BattingCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?BattingCliente
+    {
+        return BattingCliente::query()->where('cedula', $cedula)->first();
+    }
 }

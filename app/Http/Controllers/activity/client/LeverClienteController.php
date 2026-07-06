@@ -38,4 +38,19 @@ class LeverClienteController extends Controller
             return $this->errorResponse($e->getMessage(), 500);
         }
     }
+
+    public function showByCedula(string $cedula): JsonResponse
+    {
+        try {
+            $cliente = $this->leverClienteService->findByCedula($cedula);
+
+            if (! $cliente) {
+                return $this->errorResponse('No se encontró una coincidencia.', 404);
+            }
+
+            return $this->successResponse(new LeverClienteResource($cliente), 'Cliente encontrado.');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Error al buscar el cliente.', 500);
+        }
+    }
 }

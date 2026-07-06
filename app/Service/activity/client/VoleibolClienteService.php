@@ -19,4 +19,9 @@ class VoleibolClienteService
     {
         return DB::transaction(fn () => VoleibolCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?VoleibolCliente
+    {
+        return VoleibolCliente::query()->where('cedula', $cedula)->first();
+    }
 }

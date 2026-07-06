@@ -19,4 +19,9 @@ class KarateClienteService
     {
         return DB::transaction(fn () => KarateCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?KarateCliente
+    {
+        return KarateCliente::query()->where('cedula', $cedula)->first();
+    }
 }

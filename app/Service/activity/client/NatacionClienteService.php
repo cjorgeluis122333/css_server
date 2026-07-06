@@ -19,4 +19,9 @@ class NatacionClienteService
     {
         return DB::transaction(fn () => NatacionCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?NatacionCliente
+    {
+        return NatacionCliente::query()->where('cedula', $cedula)->first();
+    }
 }

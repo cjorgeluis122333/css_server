@@ -415,16 +415,27 @@ PartnerCategory::FAMILIAR  // 'familiar'
 - `GET /activity/almaflamenca/{mes}` — Pagos de Alma Flamenca filtrados por mes
 - `POST /activity/almaflamenca` — Registrar pago de Alma Flamenca (`access-finanzas`)
 - `GET /activity/client/natacion` — Clientes de natación, sin paginación
+- `GET /activity/client/natacion/{cedula}` — Buscar cliente de natación por cédula (404 si no existe)
 - `GET /activity/client/onbox` — Clientes de Onbox, sin paginación
+- `GET /activity/client/onbox/{cedula}` — Buscar cliente de Onbox por cédula (404 si no existe)
 - `GET /activity/client/lever` — Clientes de Lever, sin paginación
+- `GET /activity/client/lever/{cedula}` — Buscar cliente de Lever por cédula (404 si no existe)
 - `GET /activity/client/pinpon` — Clientes de Pin Pon, sin paginación
+- `GET /activity/client/pinpon/{cedula}` — Buscar cliente de Pin Pon por cédula (404 si no existe)
 - `GET /activity/client/basquet` — Clientes de Básquet, sin paginación
+- `GET /activity/client/basquet/{cedula}` — Buscar cliente de Básquet por cédula (404 si no existe)
 - `GET /activity/client/strong` — Clientes de Strong, sin paginación
+- `GET /activity/client/strong/{cedula}` — Buscar cliente de Strong por cédula (404 si no existe)
 - `GET /activity/client/karate` — Clientes de Karate, sin paginación
+- `GET /activity/client/karate/{cedula}` — Buscar cliente de Karate por cédula (404 si no existe)
 - `GET /activity/client/ingles` — Clientes de Inglés, sin paginación
+- `GET /activity/client/ingles/{cedula}` — Buscar cliente de Inglés por cédula (404 si no existe)
 - `GET /activity/client/voleibol` — Clientes de Voleibol, sin paginación
+- `GET /activity/client/voleibol/{cedula}` — Buscar cliente de Voleibol por cédula (404 si no existe)
 - `GET /activity/client/batting` — Clientes de Batting, sin paginación
+- `GET /activity/client/batting/{cedula}` — Buscar cliente de Batting por cédula (404 si no existe)
 - `GET /activity/client/almaflamenca` — Clientes de Alma Flamenca, sin paginación
+- `GET /activity/client/almaflamenca/{cedula}` — Buscar cliente de Alma Flamenca por cédula (404 si no existe)
 - `POST /activity/client/natacion` — Registrar cliente de natación (`access-finanzas`); campos: cedula, nombre, socio, nacimiento, sexo; valida unicidad de cédula
 - `POST /activity/client/onbox` — Registrar cliente de Onbox (`access-finanzas`)
 - `POST /activity/client/lever` — Registrar cliente de Lever (`access-finanzas`); padres nullable (default '')

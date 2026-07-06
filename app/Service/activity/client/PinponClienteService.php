@@ -19,4 +19,9 @@ class PinponClienteService
     {
         return DB::transaction(fn () => PinponCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?PinponCliente
+    {
+        return PinponCliente::query()->where('cedula', $cedula)->first();
+    }
 }

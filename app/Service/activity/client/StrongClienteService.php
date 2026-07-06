@@ -19,4 +19,9 @@ class StrongClienteService
     {
         return DB::transaction(fn () => StrongCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?StrongCliente
+    {
+        return StrongCliente::query()->where('cedula', $cedula)->first();
+    }
 }

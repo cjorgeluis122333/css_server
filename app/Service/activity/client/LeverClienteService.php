@@ -21,4 +21,9 @@ class LeverClienteService
 
         return DB::transaction(fn () => LeverCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?LeverCliente
+    {
+        return LeverCliente::query()->where('cedula', $cedula)->first();
+    }
 }

@@ -19,4 +19,9 @@ class InglesClienteService
     {
         return DB::transaction(fn () => InglesCliente::create($data));
     }
+
+    public function findByCedula(string $cedula): ?InglesCliente
+    {
+        return InglesCliente::query()->where('cedula', $cedula)->first();
+    }
 }
