@@ -17,6 +17,8 @@ class VoleibolClienteService
 
     public function create(array $data): VoleibolCliente
     {
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
+
         return DB::transaction(fn () => VoleibolCliente::create($data));
     }
 

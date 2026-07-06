@@ -17,6 +17,8 @@ class NatacionClienteService
 
     public function create(array $data): NatacionCliente
     {
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
+
         return DB::transaction(fn () => NatacionCliente::create($data));
     }
 

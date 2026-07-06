@@ -17,6 +17,8 @@ class BattingClienteService
 
     public function create(array $data): BattingCliente
     {
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
+
         return DB::transaction(fn () => BattingCliente::create($data));
     }
 

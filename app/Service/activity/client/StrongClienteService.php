@@ -17,6 +17,8 @@ class StrongClienteService
 
     public function create(array $data): StrongCliente
     {
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
+
         return DB::transaction(fn () => StrongCliente::create($data));
     }
 

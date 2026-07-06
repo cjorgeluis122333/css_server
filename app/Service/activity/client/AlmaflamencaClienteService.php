@@ -17,6 +17,8 @@ class AlmaflamencaClienteService
 
     public function create(array $data): AlmaflamencaCliente
     {
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
+
         return DB::transaction(fn () => AlmaflamencaCliente::create($data));
     }
 

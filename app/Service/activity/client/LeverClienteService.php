@@ -17,7 +17,7 @@ class LeverClienteService
 
     public function create(array $data): LeverCliente
     {
-        $data['padres'] = $data['padres'] ?? '';
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
 
         return DB::transaction(fn () => LeverCliente::create($data));
     }

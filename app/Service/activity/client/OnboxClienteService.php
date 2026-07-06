@@ -17,6 +17,8 @@ class OnboxClienteService
 
     public function create(array $data): OnboxCliente
     {
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
+
         return DB::transaction(fn () => OnboxCliente::create($data));
     }
 

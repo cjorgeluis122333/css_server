@@ -17,6 +17,8 @@ class BasquetClienteService
 
     public function create(array $data): BasquetCliente
     {
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
+
         return DB::transaction(fn () => BasquetCliente::create($data));
     }
 

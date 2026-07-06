@@ -17,6 +17,8 @@ class InglesClienteService
 
     public function create(array $data): InglesCliente
     {
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
+
         return DB::transaction(fn () => InglesCliente::create($data));
     }
 

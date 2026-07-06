@@ -17,6 +17,8 @@ class PinponClienteService
 
     public function create(array $data): PinponCliente
     {
+        $data['padres'] = $data['padres'] ?? '[{"cedula":"","nombre":""},{"cedula":"","nombre":""},{"cedula":"","nombre":""}]';
+
         return DB::transaction(fn () => PinponCliente::create($data));
     }
 
