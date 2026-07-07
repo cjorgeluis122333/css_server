@@ -11,7 +11,7 @@ class NatacionClienteService
     public function getAll(): Collection
     {
         return NatacionCliente::query()
-            ->orderBy('ind')
+            ->orderBy('last_pay_mont', 'desc')
             ->get();
     }
 

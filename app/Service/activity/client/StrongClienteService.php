@@ -11,7 +11,7 @@ class StrongClienteService
     public function getAll(): Collection
     {
         return StrongCliente::query()
-            ->orderBy('cedula')
+            ->orderBy('last_pay_mont', 'desc')
             ->get();
     }
 

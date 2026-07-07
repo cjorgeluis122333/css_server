@@ -11,7 +11,7 @@ class AlmaflamencaClienteService
     public function getAll(): Collection
     {
         return AlmaflamencaCliente::query()
-            ->orderBy('ind')
+            ->orderBy('last_pay_mont', 'desc')
             ->get();
     }
 

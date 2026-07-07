@@ -11,7 +11,7 @@ class KarateClienteService
     public function getAll(): Collection
     {
         return KarateCliente::query()
-            ->orderBy('ind')
+            ->orderBy('last_pay_mont', 'desc')
             ->get();
     }
 

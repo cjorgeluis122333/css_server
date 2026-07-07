@@ -11,7 +11,7 @@ class InglesClienteService
     public function getAll(): Collection
     {
         return InglesCliente::query()
-            ->orderBy('ind')
+            ->orderBy('last_pay_mont', 'desc')
             ->get();
     }
 

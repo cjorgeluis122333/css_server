@@ -11,7 +11,7 @@ class VoleibolClienteService
     public function getAll(): Collection
     {
         return VoleibolCliente::query()
-            ->orderBy('ind')
+            ->orderBy('last_pay_mont', 'desc')
             ->get();
     }
 
