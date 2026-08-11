@@ -1,3 +1,6 @@
+
+## Table
+
 ```mysql
 CREATE TABLE `0cc_strong_pagos_unificada` (
   `id_global` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -20,7 +23,7 @@ CREATE TABLE `0cc_strong_pagos_unificada` (
   KEY `idx_recibo` (`recibo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 ```
-
+## Insterts
 
 ```mysql
 INSERT INTO `1090024db3`.`0cc_strong_pagos_unificada` 

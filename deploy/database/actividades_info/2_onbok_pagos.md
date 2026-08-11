@@ -1,4 +1,4 @@
-### Create new table
+### Table
 ```mysql
 CREATE TABLE IF NOT EXISTS `1090024db3`.`0cc_onbox_pagos_all` (
   `ind` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS `1090024db3`.`0cc_onbox_pagos_all` (
 
 
 
-### Insert info
+### Insert
 
 ```mysql
 -- TABLA 2022

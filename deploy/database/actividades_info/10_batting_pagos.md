@@ -1,3 +1,5 @@
+## Table
+
 ```mysql
 CREATE TABLE `1090024db3`.`0cc_batting_pagos_unificada` (
   `ind` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -19,7 +21,7 @@ CREATE TABLE `1090024db3`.`0cc_batting_pagos_unificada` (
   KEY `idx_fecha` (`fecha`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 ```
-
+## Insert
 
 ```mysql
 INSERT INTO `1090024db3`.`0cc_batting_pagos_unificada` 
