@@ -480,8 +480,10 @@ class PartnerDebtService
     {
         // 1. Obtenemos la información de los hijos (Multiplicador y Nombres)
         $childrenData = $this->getAdultChildrenData($partner);
-        $surchargeMultiplier = $childrenData['multiplier'];
+        $adultChildrenMultiplier = $childrenData['multiplier'];
         $nombresHijosMayores = $childrenData['names'];
+        // Fecha para delimitar cuando se comenzara a calcular el multiplicador por socio numero
+        $childrenSurchargeStartMonth = '2026-09';
 
         $allFeesLookup = Fee::all()->keyBy('mes')->sortKeys();
         $currentMonthKey = now()->format('Y-m');
@@ -541,10 +543,15 @@ class PartnerDebtService
             $applicableFeeTotal = $applicableFee->total;
             $applicableFeeImpuesto = $applicableFee->impuesto ?? 0.00;
 
-            // El recargo ahora puede ser 0.25, 0.50, 0.75, etc., dependiendo de la cantidad de hijos
-            $nominalTotal = $applicableFeeTotal * (1 + $surchargeMultiplier);
-            $deudaNominalPendiente = $nominalTotal - $totalPaid;
+             // El recargo por hijos mayores de 30 años solo se aplica
+            // a partir de septiembre de 2026.
+            $surchargeMultiplier = $month >= $childrenSurchargeStartMonth
+                ? $adultChildrenMultiplier
+                : 0.0;
 
+            $nominalTotal = $applicableFeeTotal * (1 + $surchargeMultiplier);
+
+            $deudaNominalPendiente = $nominalTotal - $totalPaid;
             if (round($deudaNominalPendiente, 2) <= 0.009) {
                 continue;
             }
