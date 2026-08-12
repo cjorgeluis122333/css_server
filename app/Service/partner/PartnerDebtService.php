@@ -382,30 +382,92 @@ class PartnerDebtService
      *
      * @throws Exception
      */
+
+
     public function getAdvancePaymentsQuotes(Partner $partner, int $monthsToAdvance): array
     {
         if ($monthsToAdvance <= 0) {
-            return ['quotes' => collect(), 'hijos_mayores' => []];
+            return [
+                'quotes' => collect(),
+                'hijos_mayores' => [],
+            ];
         }
 
-        $currentMonthKey = now()->format('Y-m');
-        $endFutureMonth = now()->addMonths($monthsToAdvance)->format('Y-m');
+        $today = now();
 
-        // 1. Obtenemos el estado de cuenta (que ya trae los hijos y las deudas)
-        $statementData = $this->getAccountStatement($partner, $endFutureMonth);
+        /*
+         * Regla de negocio:
+         *
+         * Día 1-9:
+         *   Se puede adelantar también el mes actual.
+         *
+         * Día 10 en adelante:
+         *   El mes actual ya no cuenta como pago adelantado.
+         */
+        $startMonth = $today->day < 11
+            ? $today->copy()->startOfMonth()
+            : $today->copy()->startOfMonth()->addMonth();
 
-        // 2. Filtramos solo los meses que son estrictamente futuros
-        $filteredQuotes = $statementData['debts']->filter(function ($debt) use ($currentMonthKey) {
-            return $debt['mes'] > $currentMonthKey && $debt['deuda_pendiente'] > 0;
-        })->values();
+        /*
+         * Si queremos N meses, el último mes es:
+         *
+         * startMonth + (N - 1)
+         *
+         * Ejemplo:
+         * agosto 2026 + 11 meses = julio 2027
+         */
+        $endMonth = $startMonth
+            ->copy()
+            ->addMonths($monthsToAdvance - 1)
+            ->startOfMonth();
 
-        // 3. Retornamos la estructura completa
+        $endFutureMonth = $endMonth->format('Y-m');
+
+        /*
+         * Obtenemos el estado de cuenta hasta el último mes
+         * que realmente necesitamos.
+         */
+        $statementData = $this->getAccountStatement(
+            $partner,
+            $endFutureMonth
+        );
+
+        /*
+         * Filtramos únicamente los meses pertenecientes
+         * al período de adelanto.
+         */
+        $startMonthKey = $startMonth->format('Y-m');
+        $endMonthKey = $endMonth->format('Y-m');
+
+        $filteredQuotes = $statementData['debts']
+            ->filter(function ($debt) use ($startMonthKey, $endMonthKey) {
+                return $debt['mes'] >= $startMonthKey
+                    && $debt['mes'] <= $endMonthKey
+                    && $debt['deuda_pendiente'] > 0;
+            })
+            ->values();
+
+        /*
+         * Aplicamos el descuento del 20 % por pago adelantado.
+         */
+        $filteredQuotes = $filteredQuotes->map(function ($debt) {
+            $deudaNormal = (float) $debt['deuda_pendiente'];
+
+            $descuento = round($deudaNormal * 0.20, 2);
+            $precioAdelantado = round($deudaNormal * 0.80, 2);
+
+            $debt['deuda_original'] = round($deudaNormal, 2);
+            $debt['descuento'] = $descuento;
+            $debt['deuda_pendiente'] = $precioAdelantado;
+
+            return $debt;
+        });
+
         return [
             'quotes' => $filteredQuotes,
             'hijos_mayores' => $statementData['hijos_mayores'],
         ];
     }
-
     /**
      * Extrae todas las deudas pendientes de un socio y los hijos mayores de 30 años.
      *

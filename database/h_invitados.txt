@@ -1,55 +1,3 @@
-# Invitados unificados
-
-## Create the table
-```mysql
-CREATE TABLE `0cc_invitados_unificados` (
-  `ind` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-   `cedula` VARCHAR(50) DEFAULT NULL,
-   `nombre` VARCHAR(255) DEFAULT NULL,
-   `fecha` DATE DEFAULT NULL,
-  `acc` INT DEFAULT NULL,                      
-  `fuente` VARCHAR(100) DEFAULT NULL,
-  `operador` VARCHAR(100) DEFAULT NULL,
-  PRIMARY KEY (`ind`),
-    -- Índices optimizados
-  INDEX `idx_fecha` (`fecha`),
-  INDEX `idx_acc_fecha` (`acc`, `fecha`),
-  INDEX `idx_cedula_fecha` (`cedula`, `fecha`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-```
-
-## Sql for get a list of all insert has to make
-### V1
-```mysql
-SELECT CONCAT(
-    'INSERT INTO `0cc_invitados_unificados` (cedula, nombre, fecha, acc, fuente, operador) ',
-    'SELECT cedula, nombre, STR_TO_DATE(fecha, ''%Y-%m-%d''), acc, fuente, operador ',
-    'FROM `', TABLE_NAME, '`;'
-) AS script_generado
-FROM information_schema.tables
-WHERE table_schema = 'nombre_de_tu_base_de_datos' 
-  AND table_name REGEXP '^0cc_invitados_[0-9]{6}$';
-```
-### V2(Recomendado)
-```mysql
-SELECT CONCAT(
-    'INSERT IGNORE INTO `0cc_invitados_unificados` (cedula, nombre, fecha, acc, fuente, operador) ',
-    'SELECT ',
-    'CAST(cedula AS CHAR), ', -- Aseguramos que la cédula entre como texto
-    'LEFT(nombre, 255), ',    -- Cortamos el nombre si es muy largo para evitar error
-    'IF(fecha = "" OR fecha IS NULL, NULL, fecha), ', -- Validación simple de fecha
-    'acc, fuente, operador ',
-    'FROM `', TABLE_NAME, '`;'
-) AS script_generado
-FROM information_schema.tables
-WHERE table_schema = '1090024db3' 
-  AND table_name REGEXP '^0cc_invitados_[0-9]{6}$';
-```
-
-
-### Response of this sql:
-
-```mysql
 INSERT IGNORE INTO `0cc_invitados_unificados` (cedula, nombre, fecha, acc, fuente, operador) SELECT CAST(cedula AS CHAR), LEFT(nombre, 255), IF(fecha = "" OR fecha IS NULL, NULL, fecha), acc, fuente, operador FROM `0cc_invitados_202209`;
 INSERT IGNORE INTO `0cc_invitados_unificados` (cedula, nombre, fecha, acc, fuente, operador) SELECT CAST(cedula AS CHAR), LEFT(nombre, 255), IF(fecha = "" OR fecha IS NULL, NULL, fecha), acc, fuente, operador FROM `0cc_invitados_202402`;
 INSERT IGNORE INTO `0cc_invitados_unificados` (cedula, nombre, fecha, acc, fuente, operador) SELECT CAST(cedula AS CHAR), LEFT(nombre, 255), IF(fecha = "" OR fecha IS NULL, NULL, fecha), acc, fuente, operador FROM `0cc_invitados_202507`;
@@ -105,6 +53,3 @@ INSERT IGNORE INTO `0cc_invitados_unificados` (cedula, nombre, fecha, acc, fuent
 INSERT IGNORE INTO `0cc_invitados_unificados` (cedula, nombre, fecha, acc, fuente, operador) SELECT CAST(cedula AS CHAR), LEFT(nombre, 255), IF(fecha = "" OR fecha IS NULL, NULL, fecha), acc, fuente, operador FROM `0cc_invitados_202607`;
 INSERT IGNORE INTO `0cc_invitados_unificados` (cedula, nombre, fecha, acc, fuente, operador) SELECT CAST(cedula AS CHAR), LEFT(nombre, 255), IF(fecha = "" OR fecha IS NULL, NULL, fecha), acc, fuente, operador FROM `0cc_invitados_202608`;
 
-
-
-```
