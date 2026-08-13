@@ -14,7 +14,6 @@ class StoreStrongPagoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ind_original' => ['required', 'integer', 'min:1'],
             'cedula' => ['required', 'integer'],
             'mes' => ['required', 'string', 'date_format:Y-m'],
             'plan' => ['nullable', 'string', 'max:50'],
@@ -31,9 +30,6 @@ class StoreStrongPagoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'ind_original.required' => 'El índice original es obligatorio.',
-            'ind_original.integer' => 'El índice original debe ser un número entero.',
-            'ind_original.min' => 'El índice original debe ser al menos 1.',
             'cedula.required' => 'La cédula es obligatoria.',
             'cedula.integer' => 'La cédula debe ser un número entero.',
             'mes.required' => 'El mes es obligatorio.',

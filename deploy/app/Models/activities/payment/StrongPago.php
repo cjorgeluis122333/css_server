@@ -15,7 +15,6 @@ class StrongPago extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'ind_original',
         'ano',
         'cedula',
         'mes',
@@ -33,7 +32,6 @@ class StrongPago extends Model
 
     protected $casts = [
         'id_global'    => 'integer',
-        'ind_original' => 'integer',
         'ano'          => 'integer',
         'cedula'       => 'integer',
         'monto'        => 'integer',
