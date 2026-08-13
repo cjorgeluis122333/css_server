@@ -14,7 +14,6 @@ class StoreAlmaflamencoaPagoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ind_original' => ['nullable', 'integer', 'min:0'],
             'cedula'       => ['required', 'integer'],
             'mes'          => ['required', 'string', 'max:7'],
             'plan'         => ['nullable', 'string', 'max:50'],
@@ -31,8 +30,6 @@ class StoreAlmaflamencoaPagoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'ind_original.integer'  => 'El índice original debe ser un número entero.',
-            'ind_original.min'      => 'El índice original no puede ser negativo.',
             'cedula.required'       => 'La cédula es obligatoria.',
             'cedula.integer'        => 'La cédula debe ser un número entero.',
             'mes.required'          => 'El mes es obligatorio.',

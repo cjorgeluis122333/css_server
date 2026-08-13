@@ -12,7 +12,6 @@ return new class extends Migration {
     {
         Schema::create('0cc_almaflamenca_pagos_unificada', function (Blueprint $table) {
             $table->increments('id_pago');
-
             $table->unsignedInteger('ind_original')->nullable()->comment('Guarda el ind de la tabla vieja por seguridad');
             $table->integer('cedula')->nullable();
             $table->string('mes', 7)->nullable();

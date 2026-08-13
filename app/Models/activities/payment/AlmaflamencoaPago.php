@@ -15,7 +15,6 @@ class AlmaflamencoaPago extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'ind_original',
         'cedula',
         'mes',
         'plan',
@@ -30,7 +29,6 @@ class AlmaflamencoaPago extends Model
 
     protected $casts = [
         'id_pago'      => 'integer',
-        'ind_original' => 'integer',
         'cedula'       => 'integer',
         'monto'        => 'integer',
         'dolares'      => 'integer',
