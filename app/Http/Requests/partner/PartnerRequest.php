@@ -50,9 +50,9 @@ class PartnerRequest extends FormRequest
             'carnet' => [
                 'nullable',
                 'string',
-                $accValue
-                    ? Rule::unique('0cc_socios', 'carnet')->where(fn ($q) => $q->where('acc', '<>', (int) $accValue))
-                    : Rule::unique('0cc_socios', 'carnet'),
+//                $accValue
+//                    ? Rule::unique('0cc_socios', 'carnet')->where(fn ($q) => $q->where('acc', '<>', (int) $accValue))
+//                    : Rule::unique('0cc_socios', 'carnet'),
             ],
             'celular'   => ['nullable', 'string', 'max:30'],
             'telefono'  => ['nullable', 'string', 'max:20'],
@@ -72,9 +72,28 @@ class PartnerRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'cedula.unique' => 'Esta cédula ya se encuentra registrada.',
-            'nombre.required' => 'El nombre del directivo es obligatorio.',
-            'acc.unique' => 'El número de cuenta/acción (acc) ya está en uso.',
+            'acc.required'       => 'El número de acción (acc) es obligatorio.',
+            'acc.integer'        => 'El número de acción debe ser un valor numérico.',
+            'acc.unique'         => 'El número de cuenta/acción (acc) ya está en uso.',
+
+            'nombre.required'    => 'El nombre del directivo es obligatorio.',
+            'nombre.max'         => 'El nombre no puede superar los 255 caracteres.',
+
+            'cedula.unique'      => 'Esta cédula ya se encuentra registrada.',
+            'cedula.max'         => 'La cédula no puede superar los 30 caracteres.',
+
+            'carnet.unique'      => 'Este número de carnet ya está registrado en otro socio.',
+
+            'correo.email'       => 'El correo electrónico no tiene un formato válido.',
+
+            'nacimiento.required'=> 'La fecha de nacimiento es obligatoria.',
+            'nacimiento.date'    => 'La fecha de nacimiento no es válida.',
+            'nacimiento.before'  => 'La fecha de nacimiento debe ser anterior a hoy.',
+
+            'ingreso.date'       => 'La fecha de ingreso no es válida.',
+            'ingreso.before_or_equal' => 'La fecha de ingreso no puede ser posterior a hoy.',
+
+            'cobrador.int'       => 'El cobrador debe ser un valor numérico.',
         ];
     }
 }
