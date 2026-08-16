@@ -17,6 +17,12 @@
     RewriteRule ^ public/index.php [L]
 </IfModule>
 
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, OPTIONS"
+    Header always set Access-Control-Allow-Headers "*"
+</IfModule>
+
 # Block direct access to the .env file (and variants)
 <FilesMatch "^\.env">
     Order allow,deny
@@ -28,3 +34,4 @@
     Order allow,deny
     Deny from all
 </FilesMatch>
+

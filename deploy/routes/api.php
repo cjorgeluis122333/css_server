@@ -117,6 +117,8 @@ Route::post('/forgot-password/reset', [PasswordResetController::class, 'reset'])
 // --- Password recovery without external service (acc + cedula + correo) ---
 Route::post('/forgot-password/direct/validate', [PasswordResetController::class, 'directValidate'])->name('forgot-password.direct.validate');
 Route::post('/forgot-password/direct/reset', [PasswordResetController::class, 'directReset'])->name('forgot-password.direct.reset');
+//GetPhoto
+Route::get('/partner-photo/{cedula}/image', [PartnerPhotoController::class, 'image']);
 
 // --- Authenticated routes ---
 Route::middleware('auth:sanctum')->group(function () {

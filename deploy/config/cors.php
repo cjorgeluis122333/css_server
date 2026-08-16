@@ -15,13 +15,14 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie' , 'assets/*',],
 
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
         'https://www.cubano.com.ve',
         'http://localhost:5173', // Entorno de desarrollo local (Vite)
+        'http://localhost:5174', // Entorno de desarrollo local (Vite)
         'https://cubano.com.ve',
         'https://ccv-frontend-react.vercel.app',
     ],

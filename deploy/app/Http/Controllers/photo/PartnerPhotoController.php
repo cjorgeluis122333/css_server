@@ -7,6 +7,8 @@ use App\Http\Requests\photo\PartnerPhotoRequest;
 use App\Service\photo\PhotoService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PartnerPhotoController extends Controller
 {
@@ -52,4 +54,29 @@ class PartnerPhotoController extends Controller
             return $this->errorResponse($e->getMessage(), $e->getCode() ?: 500);
         }
     }
+
+    /**
+     * Return the image
+     */
+
+    public function image(string $cedula): BinaryFileResponse
+    {
+        if (! is_numeric($cedula)) {
+            abort(404);
+        }
+
+        $path = $this->photoService->getPath($cedula);
+
+        if (! $path) {
+            abort(404);
+        }
+
+        return response()->file($path, [
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Headers' => '*',
+        ]);
+    }
+
+
 }

@@ -63,4 +63,19 @@ class PhotoService
 
         return ['url' => asset(self::IMAGE_PATH."/{$cedula}.{$ext}")];
     }
+
+
+
+    public function getPath(string|int $cedula): ?string
+    {
+        foreach (self::EXTENSIONS as $ext) {
+            $path = public_path(self::IMAGE_PATH."/{$cedula}.{$ext}");
+
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
 }
