@@ -129,4 +129,25 @@ class PartnerPhotoController extends Controller
             );
         }
     }
+
+
+    /**
+     * Retorna las URLs del frente y reverso del DNI.
+     */
+    public function dni(string $cedula): JsonResponse
+    {
+        try {
+            $result = $this->photoService->getDniUrls($cedula);
+
+            return $this->successResponse(
+                $result,
+                'Imágenes del DNI encontradas correctamente.'
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                $e->getMessage(),
+                $e->getCode() ?: 500
+            );
+        }
+    }
 }

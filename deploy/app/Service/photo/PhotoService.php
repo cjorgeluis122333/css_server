@@ -173,4 +173,64 @@ class PhotoService
             ),
         ];
     }
+
+    /**
+     * Retorna las URLs públicas del frente y reverso del DNI.
+     *
+     * @return array{
+     *     front_url: string,
+     *     back_url: string
+     * }
+     *
+     * @throws \Exception
+     */
+    public function getDniUrls(string|int $cedula): array
+    {
+        $cedula = (string) $cedula;
+
+        if (! is_numeric($cedula)) {
+            throw new \Exception('Cédula inválida.', 422);
+        }
+
+        $frontUrl = $this->findDniImageUrl(
+            self::DNI_FRONT_PATH,
+            $cedula
+        );
+
+        $backUrl = $this->findDniImageUrl(
+            self::DNI_BACK_PATH,
+            $cedula
+        );
+
+        if (! $frontUrl || ! $backUrl) {
+            throw new \Exception(
+                'No se encontraron las imágenes completas del DNI.',
+                404
+            );
+        }
+
+        return [
+            'front_url' => $frontUrl,
+            'back_url' => $backUrl,
+        ];
+    }
+
+    /**
+     * Busca una imagen del DNI en un directorio y retorna su URL.
+     */
+    private function findDniImageUrl(
+        string $directory,
+        string $cedula
+    ): ?string {
+        foreach (self::EXTENSIONS as $ext) {
+            $path = public_path("{$directory}/{$cedula}.{$ext}");
+
+            if (file_exists($path)) {
+                return asset("{$directory}/{$cedula}.{$ext}");
+            }
+        }
+
+        return null;
+    }
+
 }
