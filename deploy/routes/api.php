@@ -119,6 +119,7 @@ Route::post('/forgot-password/direct/validate', [PasswordResetController::class,
 Route::post('/forgot-password/direct/reset', [PasswordResetController::class, 'directReset'])->name('forgot-password.direct.reset');
 //GetPhoto
 Route::get('/partner-photo/{cedula}/image', [PartnerPhotoController::class, 'image']);
+Route::get('/dni/{cedula}', [PartnerPhotoController::class, 'dni']);  //Dni front and back image url
 
 // --- Authenticated routes ---
 Route::middleware('auth:sanctum')->group(function () {
@@ -152,6 +153,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/partners/solvencia/metrics', [PartnerController::class, 'globalDebtMetrics'])->name('partners.globalDebtMetrics');
         Route::get('/partners/solvencia/metrics/{metric}', [PartnerController::class, 'partnersByDebtMetric'])->name('partners.partnersByDebtMetric');
         Route::get('/generate/exel/solvencia/{year}', [ExcelController::class, 'exportTitularDebtSummaryByYearInExel'])->name('exel.solvencia');
+        //Insert image
+        Route::delete('/dni/{cedula}', [PartnerPhotoController::class, 'deleteDni']);
+        Route::post('/dni/{cedula}', [PartnerPhotoController::class, 'storeDni']);
+
     });
 
     // === Solvencia: vista global por año (SUPER_ADMIN + ADMIN + OPERATOR + SUPERVISOR) ===

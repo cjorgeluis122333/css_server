@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\photo;
 
+
 use App\Http\Controllers\Controller;
+use App\Http\Requests\photo\DniPhotoRequest;
 use App\Http\Requests\photo\PartnerPhotoRequest;
 use App\Service\photo\PhotoService;
 use App\Traits\ApiResponse;
+use Exception;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PartnerPhotoController extends Controller
@@ -50,7 +52,7 @@ class PartnerPhotoController extends Controller
             $result = $this->photoService->uploadPhoto($acc, $request->file('image'));
 
             return $this->successResponse($result, 'Foto actualizada correctamente.');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->errorResponse($e->getMessage(), $e->getCode() ?: 500);
         }
     }
@@ -78,5 +80,53 @@ class PartnerPhotoController extends Controller
         ]);
     }
 
+    //-------------------------------DNI
 
+    /**
+     * Guarda las imágenes del frente y reverso del DNI.
+     */
+    public function storeDni(
+        DniPhotoRequest $request,
+        string $cedula
+    ): JsonResponse {
+        try {
+            $result = $this->photoService->uploadDniImages(
+                $cedula,
+                $request->file('front'),
+                $request->file('back')
+            );
+
+            return $this->successResponse(
+                $result,
+                'Imágenes del DNI guardadas correctamente.'
+            );
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                $e->getMessage(),
+                $e->getCode() ?: 500
+            );
+        }
+    }
+
+
+
+    /**
+     * Elimina las imágenes del frente y reverso del DNI.
+     */
+    public function deleteDni(string $cedula): JsonResponse
+    {
+        try {
+            $this->photoService->deleteDniImages($cedula);
+
+            return $this->successResponse(
+                null,
+                'Imágenes del DNI eliminadas correctamente.'
+            );
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                $e->getMessage(),
+                $e->getCode() ?: 500
+            );
+        }
+    }
 }
