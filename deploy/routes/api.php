@@ -119,7 +119,7 @@ Route::post('/forgot-password/direct/validate', [PasswordResetController::class,
 Route::post('/forgot-password/direct/reset', [PasswordResetController::class, 'directReset'])->name('forgot-password.direct.reset');
 //GetPhoto
 Route::get('/partner-photo/{cedula}/image', [PartnerPhotoController::class, 'image']);
-Route::get('/dni/{cedula}', [PartnerPhotoController::class, 'dni']);  //Dni front and back image url
+Route::get('p', [PartnerPhotoController::class, 'dni']);  //Dni front and back image url
 
 // --- Authenticated routes ---
 Route::middleware('auth:sanctum')->group(function () {

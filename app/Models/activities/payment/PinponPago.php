@@ -9,14 +9,15 @@ class PinponPago extends Model
     protected $table = '0cc_pinpon_pagos_unificada';
 
     // PK compuesta — Laravel no soporta PK compuesta nativamente
-    protected $primaryKey = null;
+    protected $primaryKey = 'id';
 
-    public $incrementing = false;
+    public $incrementing = true;
+
+    protected $keyType = 'int';
 
     public $timestamps = false;
 
     protected $fillable = [
-        'ind_original',
         'anio_origen',
         'cedula',
         'mes',
@@ -34,7 +35,7 @@ class PinponPago extends Model
     protected $hidden = ['anio_origen'];
 
     protected $casts = [
-        'ind_original' => 'integer',
+        'id' => 'integer',
         'anio_origen'  => 'integer',
         'cedula'       => 'integer',
         'monto'        => 'integer',
