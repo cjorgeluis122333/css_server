@@ -9,15 +9,16 @@ class InglesPago extends Model
     protected $table = '0cc_ingles_pagos_unificado';
 
     // PK compuesta — Laravel no soporta PK compuesta nativamente
-    protected $primaryKey = null;
+    protected $primaryKey = 'id';
 
-    public $incrementing = false;
+    public $incrementing = true;
+
+    protected $keyType = 'int';
 
     public $timestamps = false;
 
     protected $fillable = [
         'ano_tabla',
-        'ind',
         'cedula',
         'mes',
         'plan',
@@ -33,8 +34,8 @@ class InglesPago extends Model
     protected $hidden = ['ano_tabla'];
 
     protected $casts = [
+        'id'       => 'integer',
         'ano_tabla' => 'integer',
-        'ind'       => 'integer',
         'cedula'    => 'integer',
         'monto'     => 'integer',
         'dolares'   => 'integer',
