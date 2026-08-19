@@ -9,6 +9,7 @@ use App\Http\Requests\partner\PartnerRequest;
 use App\Models\partners\Partner;
 use App\Service\partner\PartnerDebtService;
 use App\Service\partner\PartnerService;
+use App\Service\photo\PhotoService;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -23,6 +24,7 @@ class PartnerController extends Controller
     protected PartnerService $partnerService;
 
     protected PartnerDebtService $debtService;
+    protected PhotoService $photoService;
 
     /**
      * Campos ligeros para el listado masivo (Index).
@@ -32,10 +34,11 @@ class PartnerController extends Controller
     ];
 
     // Inyectamos el servicio en el constructor
-    public function __construct(PartnerService $partnerService, PartnerDebtService $debtService)
+    public function __construct(PartnerService $partnerService, PartnerDebtService $debtService,PhotoService $photoService)
     {
         $this->partnerService = $partnerService;
         $this->debtService = $debtService;
+        $this->photoService = $photoService;
     }
 
     /**
@@ -331,12 +334,18 @@ class PartnerController extends Controller
         // Si no existe, firstOrFail lanza 404 automáticamente (o puedes usar if tradicional).
         try {
             $partner = Partner::holders()->where('acc', $acc)->firstOrFail();
-
+            // Guardamos la cédula original ANTES de que el service la modifique
+            $originalCedula = $partner->cedula;
             // 2. Delegamos la actualización al servicio
             $updatedPartner = $this->partnerService->updateTitular(
                 $partner,
                 $request->validated()
             );
+
+            if ($originalCedula != $updatedPartner->cedula) {
+                $this->photoService->deleteDniImages($originalCedula);
+            }
+
 
             return $this->successResponse($updatedPartner, 'Socio titular actualizado con éxito');
 
@@ -351,24 +360,31 @@ class PartnerController extends Controller
 
     /**
      * DELETE /api/partners/{id}
-     * Elimina un socio (Hard Delete).
+     * Elimina o resetea un socio según su categoría.
      */
-    public function destroy($acc)
+    public function destroy($id)
     {
         try {
-            // Buscamos por ACC antes de intentar borrar
-            $partner = Partner::holders()->where('acc', $acc)->firstOrFail();
+            // Buscamos el registro por su clave primaria (o la columna requerida)
+            $partner = Partner::findOrFail($id);
 
-            $this->partnerService->deleteTitular($partner);
+            // Ejecutamos la lógica en el servicio
+            $this->partnerService->deletePartner($partner);
 
-            return $this->successResponse(null, 'Socio eliminado permanentemente');
+            $message = $partner->isHolder()
+                ? 'Socio titular reseteado y familiares eliminados correctamente'
+                : 'Socio familiar eliminado permanentemente';
+
+            return $this->successResponse(null, $message);
 
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse('Socio no encontrado', 404);
         } catch (Exception $e) {
-            // Capturamos la excepción de negocio (ej: tiene familiares)
-            // Asumimos que el código 409 es para conflicto de lógica
-            return $this->errorResponse($e->getMessage(), 409);
+            Log::error("Error deleting partner {$id}: " . $e->getMessage());
+            return $this->errorResponse('Error al procesar la eliminación del socio', 500);
         }
     }
+
+
+
 }

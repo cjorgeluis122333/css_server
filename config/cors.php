@@ -20,10 +20,11 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'https://ccv-frontend-react.vercel.app',
-        'https://ccv-frontend-react-eg3pjdnmi-jorge-luis-projects-39ec2794.vercel.app',
+        'https://www.cubano.com.ve',
         'http://localhost:5173',
         'http://localhost:5174',
+        'https://ccv-frontend-react.vercel.app',
+        'https://ccv-frontend-react-eg3pjdnmi-jorge-luis-projects-39ec2794.vercel.app',
     ],
 
     'allowed_origins_patterns' => [

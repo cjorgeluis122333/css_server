@@ -3,31 +3,33 @@
 return [
 
     /*
-    |--------------------------------------------------------------------------
-    | Cross-Origin Resource Sharing (CORS) Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Here you may configure your settings for cross-origin resource sharing
-    | or "CORS". This determines what cross-origin operations may execute
-    | in web browsers. You are free to adjust these settings as needed.
-    |
-    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Cross-Origin Resource Sharing (CORS) Configuration
+     |--------------------------------------------------------------------------
+     |
+     | Here you may configure your settings for cross-origin resource sharing
+     | or "CORS". This determines what cross-origin operations may execute
+     | in web browsers. You are free to adjust these settings as needed.
+     |
+     | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+     |
+     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie' , 'assets/*',],
+    'paths' => ['api/*', 'sanctum/csrf-cookie',],
 
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
         'https://www.cubano.com.ve',
-        'http://localhost:5173', // Entorno de desarrollo local (Vite)
-        'http://localhost:5174', // Entorno de desarrollo local (Vite)
-        'https://cubano.com.ve',
+        'http://localhost:5173',
+        'http://localhost:5174',
         'https://ccv-frontend-react.vercel.app',
+        'https://ccv-frontend-react-eg3pjdnmi-jorge-luis-projects-39ec2794.vercel.app',
     ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '^https:\/\/ccv-frontend-react(?:-[a-z0-9-]+)?-jorge-luis-projects-39ec2794\.vercel\.app$',
+    ],
 
     'allowed_headers' => ['*'],
 
@@ -35,6 +37,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];

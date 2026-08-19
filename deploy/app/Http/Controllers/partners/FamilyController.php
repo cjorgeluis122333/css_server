@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\partner\FamilyRequest;
 use App\Models\partners\Partner;
 use App\Service\partner\PartnerService;
+use App\Service\photo\PhotoService;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -17,14 +18,17 @@ class FamilyController extends Controller
     use ApiResponse;
 
     protected PartnerService $partnerService;
+    protected PhotoService $photoService;
     private array $familyColumns = [
         'ind', 'acc', 'nombre', 'cedula',
         'carnet', 'celular', 'nacimiento',
-        'direccion', 'categoria','telefono'
+        'direccion', 'categoria', 'telefono'
     ];
-    public function __construct(PartnerService $partnerService)
+
+    public function __construct(PartnerService $partnerService,PhotoService $photoService)
     {
         $this->partnerService = $partnerService;
+        $this->photoService = $photoService;
     }
 
     /**
@@ -38,8 +42,9 @@ class FamilyController extends Controller
             ->orderBy('acc', 'asc')
             ->get();
 
-        return  $this->successResponse($families,"Lista de todos los familiares");
+        return $this->successResponse($families, "Lista de todos los familiares");
     }
+
     /**
      * GET /api/family/{acc}
      */
@@ -81,11 +86,16 @@ class FamilyController extends Controller
     {
         try {
             $familiar = Partner::onlyDependents()->findOrFail($id);
-
+            // Guardamos la cédula original ANTES de que el service la modifique
+            $originalCedula = $familiar->cedula;
             $updatedFamiliar = $this->partnerService->updateFamiliar(
                 $familiar,
                 $request->validated()
             );
+
+            if ($originalCedula != $updatedFamiliar->cedula){
+                $this->photoService->deleteDniImages($familiar->cedula);
+            }
 
             return $this->successResponse($updatedFamiliar, 'Familiar actualizado con éxito');
         } catch (ModelNotFoundException $e) {
@@ -103,8 +113,9 @@ class FamilyController extends Controller
     {
         try {
             $familiar = Partner::onlyDependents()->findOrFail($id);
+            $cedula = $familiar->cedula;
             $this->partnerService->deleteFamiliar($familiar);
-
+            $this->photoService->deleteDniImages($cedula);
             return $this->successResponse(null, 'Familiar eliminado correctamente');
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse('Familiar no encontrado', 404);

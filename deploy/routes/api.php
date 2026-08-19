@@ -117,10 +117,10 @@ Route::post('/forgot-password/reset', [PasswordResetController::class, 'reset'])
 // --- Password recovery without external service (acc + cedula + correo) ---
 Route::post('/forgot-password/direct/validate', [PasswordResetController::class, 'directValidate'])->name('forgot-password.direct.validate');
 Route::post('/forgot-password/direct/reset', [PasswordResetController::class, 'directReset'])->name('forgot-password.direct.reset');
-//GetPhoto
-Route::get('/partner-photo/{cedula}/image', [PartnerPhotoController::class, 'image']);
-Route::get('p', [PartnerPhotoController::class, 'dni']);  //Dni front and back image url
 
+//----- GetPhoto
+Route::get('/partner-photo/{cedula}/image', [PartnerPhotoController::class, 'image']);
+Route::get('/dni/{cedula}', [PartnerPhotoController::class, 'dni']);  //Dni front and back image url
 // --- Authenticated routes ---
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -156,7 +156,6 @@ Route::middleware('auth:sanctum')->group(function () {
         //Insert image
         Route::delete('/dni/{cedula}', [PartnerPhotoController::class, 'deleteDni']);
         Route::post('/dni/{cedula}', [PartnerPhotoController::class, 'storeDni']);
-
     });
 
     // === Solvencia: vista global por año (SUPER_ADMIN + ADMIN + OPERATOR + SUPERVISOR) ===

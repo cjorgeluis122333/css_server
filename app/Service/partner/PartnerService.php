@@ -3,13 +3,19 @@
 namespace App\Service\partner;
 use App\Enum\PartnerCategory;
 use App\Models\partners\Partner;
+use App\Service\photo\PhotoService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class PartnerService
 {
 
+    protected PhotoService $photoService;
 
+    public function __construct(PhotoService $photoService)
+    {
+        $this->photoService = $photoService;
+    }
     /**
      * Obtiene la lista de socios y familiares habilitados para el control de acceso.
      * Excluye cuentas en Tesorería, Desocupados y sus familiares asociados.
@@ -83,6 +89,9 @@ class PartnerService
      */
     public function updateTitular(Partner $partner, array $data): Partner
     {
+
+
+
         return DB::transaction(function () use ($partner, $data) {
             $partner->fill($data);
 
@@ -96,17 +105,56 @@ class PartnerService
         });
     }
     /**
-     * Elimina un socio validando reglas de negocio.
-     * @throws \Exception
+     * Elimina o limpia los datos de un socio según su categoría y limpia sus imágenes de DNI.
+     *
+     * @param Partner $partner
+     * @return void
+     * @throws Exception
      */
-    public function deleteTitular(Partner $partner): void
+    public function deletePartner(Partner $partner): void
     {
-        // Regla de Negocio: No borrar si tiene familiares
-        if ($partner->dependents()->exists()) {
-            throw new \Exception('No se puede eliminar: El socio tiene familiares asociados.');
-        }
+        DB::transaction(function () use ($partner) {
+            if ($partner->isHolder()) {
+                // 1. SI ES TITULAR:
 
-        $partner->delete();
+                // a) Borramos las imágenes DNI de todos los familiares asociados
+                $dependents = $partner->dependents()->get();
+                foreach ($dependents as $dependent) {
+                    if (!empty($dependent->cedula)) {
+                        $this->photoService->deleteDniImages($dependent->cedula);
+                    }
+                }
+
+                // b) Borramos las imágenes DNI del propio titular (si tiene cédula)
+                if (!empty($partner->cedula)) {
+                    $this->photoService->deleteDniImages($partner->cedula);
+                }
+
+                // c) Eliminamos de la base de datos a los socios familiares
+                $partner->dependents()->delete();
+
+                // d) Reseteamos los campos fillable del titular excepto 'acc' y 'categoria'
+                $fieldsToReset = array_diff($partner->getFillable(), ['acc', 'categoria']);
+
+                $updateData = [];
+                foreach ($fieldsToReset as $field) {
+                    $updateData[$field] = null;
+                }
+
+                $partner->update($updateData);
+
+            } else {
+                // 2. SI ES FAMILIAR:
+
+                // a) Borramos sus imágenes DNI (si tiene cédula)
+                if (!empty($partner->cedula)) {
+                    $this->photoService->deleteDniImages($partner->cedula);
+                }
+
+                // b) Eliminamos físicamente el registro del familiar
+                $partner->delete();
+            }
+        });
     }
 
 //    =========================================== Familiar
