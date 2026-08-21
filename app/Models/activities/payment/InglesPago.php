@@ -34,13 +34,13 @@ class InglesPago extends Model
     protected $hidden = ['ano_tabla'];
 
     protected $casts = [
-        'id'       => 'integer',
+        'id' => 'integer',
         'ano_tabla' => 'integer',
-        'cedula'    => 'integer',
-        'monto'     => 'integer',
-        'dolares'   => 'integer',
-        'zelle'     => 'integer',
-        'recibo'    => 'integer',
-        'fecha'     => 'integer',
+        'cedula' => 'string',
+        'monto' => 'integer',
+        'dolares' => 'integer',
+        'zelle' => 'integer',
+        'recibo' => 'string',
+        'fecha' => 'integer',
     ];
 }

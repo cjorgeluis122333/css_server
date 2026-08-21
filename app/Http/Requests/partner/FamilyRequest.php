@@ -13,6 +13,7 @@ class FamilyRequest extends FormRequest
         // Obtenemos el ID del familiar desde la ruta (ej: PUT /api/families/{id})
         // Asegúrate de usar el nombre correcto del parámetro que definiste en api.php
         $familyId = $this->route('family') ?? $this->route('id');
+
         return [
             'acc' => [
                 // Es obligatorio al crear. Al actualizar (PUT), 'sometimes' permite omitirlo
@@ -22,19 +23,21 @@ class FamilyRequest extends FormRequest
                 // Regla clave: La ACC debe existir en la base de datos Y pertenecer a un TITULAR
                 Rule::exists('0cc_socios', 'acc')->where(function ($query) {
                     $query->where('categoria', PartnerCategory::TITULAR->value);
-                })
+                }),
             ],
             'nombre' => ['required', 'string', 'max:100'],
             'cedula' => [
                 'nullable',
-                'max:30',
+                'string',
+                'max:20',
+                'regex:/^\d+$/',
                 // Debe ser única, pero ignoramos la del familiar que estamos editando
-                Rule::unique('0cc_socios', 'cedula')->ignore($familyId, 'ind')
+                Rule::unique('0cc_socios', 'cedula')->ignore($familyId, 'ind'),
             ],
             'carnet' => [
                 'nullable',
                 'string',
-                Rule::unique('0cc_socios', 'carnet')->ignore($familyId, 'ind')
+                Rule::unique('0cc_socios', 'carnet')->ignore($familyId, 'ind'),
             ],
             'celular' => ['nullable', 'string', 'max:30'],
             'telefono' => ['nullable', 'in:SI,NO'],

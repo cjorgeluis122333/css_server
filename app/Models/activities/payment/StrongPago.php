@@ -31,13 +31,13 @@ class StrongPago extends Model
     protected $hidden = ['ano'];
 
     protected $casts = [
-        'id_global'    => 'integer',
-        'ano'          => 'integer',
-        'cedula'       => 'integer',
-        'monto'        => 'integer',
-        'dolares'      => 'integer',
-        'zelle'        => 'integer',
-        'recibo'       => 'integer',
-        'fecha'        => 'integer',
+        'id_global' => 'integer',
+        'ano' => 'integer',
+        'cedula' => 'string',
+        'monto' => 'integer',
+        'dolares' => 'integer',
+        'zelle' => 'integer',
+        'recibo' => 'string',
+        'fecha' => 'integer',
     ];
 }

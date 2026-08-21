@@ -31,13 +31,13 @@ class VoleibolPago extends Model
     protected $hidden = ['ano_origen'];
 
     protected $casts = [
-        'ind'        => 'integer',
-        'cedula'     => 'integer',
-        'monto'      => 'integer',
-        'dolares'    => 'integer',
-        'zelle'      => 'integer',
-        'recibo'     => 'integer',
-        'fecha'      => 'integer',
+        'ind' => 'integer',
+        'cedula' => 'string',
+        'monto' => 'integer',
+        'dolares' => 'integer',
+        'zelle' => 'integer',
+        'recibo' => 'string',
+        'fecha' => 'integer',
         'ano_origen' => 'integer',
     ];
 }

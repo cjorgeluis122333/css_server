@@ -31,13 +31,13 @@ class NatacionPago extends Model
     protected $hidden = ['anio'];
 
     protected $casts = [
-        'ind'     => 'integer',
-        'cedula'  => 'integer',
-        'anio'    => 'integer',
-        'monto'   => 'integer',
+        'ind' => 'integer',
+        'cedula' => 'string',
+        'anio' => 'integer',
+        'monto' => 'integer',
         'dolares' => 'integer',
-        'zelle'   => 'integer',
-        'recibo'  => 'integer',
-        'fecha'   => 'integer',
+        'zelle' => 'integer',
+        'recibo' => 'string',
+        'fecha' => 'integer',
     ];
 }

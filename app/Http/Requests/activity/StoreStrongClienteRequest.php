@@ -15,13 +15,13 @@ class StoreStrongClienteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cedula'     => ['required', 'integer', Rule::unique('0cc_strong_clientes', 'cedula')],
-            'nombre'     => ['required', 'string', 'max:255'],
-            'socio'      => ['required', 'string', Rule::in(['Socio', 'No Socio'])],
+            'cedula' => ['required', 'string', 'max:20', 'regex:/^\d+$/', Rule::unique('0cc_strong_clientes', 'cedula')],
+            'nombre' => ['required', 'string', 'max:255'],
+            'socio' => ['required', 'string', Rule::in(['Socio', 'No Socio'])],
             'nacimiento' => ['required', 'date'],
-            'sexo'       => ['required', 'string', 'max:50'],
-            'padres'     => ['nullable', 'string', 'max:255'],
-            'operador'   => ['nullable', 'string', 'max:255'],
+            'sexo' => ['required', 'string', 'max:50'],
+            'padres' => ['nullable', 'string', 'max:255'],
+            'operador' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -29,14 +29,14 @@ class StoreStrongClienteRequest extends FormRequest
     {
         return [
             'cedula.required' => 'La cédula es obligatoria.',
-            'cedula.integer'  => 'La cédula debe ser un número entero.',
-            'cedula.unique'   => 'Esta cédula ya está registrada en Strong.',
+            'cedula.regex' => 'La cédula debe contener solo números.',
+            'cedula.unique' => 'Esta cédula ya está registrada en Strong.',
             'nombre.required' => 'El nombre es obligatorio.',
-            'socio.required'  => 'El campo socio es obligatorio.',
-            'socio.in'        => 'El valor de socio debe ser "Socio" o "No Socio".',
+            'socio.required' => 'El campo socio es obligatorio.',
+            'socio.in' => 'El valor de socio debe ser "Socio" o "No Socio".',
             'nacimiento.required' => 'La fecha de nacimiento es obligatoria.',
-            'nacimiento.date'     => 'La fecha de nacimiento no tiene un formato válido.',
-            'sexo.required'   => 'El sexo es obligatorio.',
+            'nacimiento.date' => 'La fecha de nacimiento no tiene un formato válido.',
+            'sexo.required' => 'El sexo es obligatorio.',
         ];
     }
 }

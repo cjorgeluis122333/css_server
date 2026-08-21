@@ -10,12 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
-//use Illuminate\Database\Eloquent\SoftDeletes;
+// use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Partner extends Model
 {
-
     protected $table = '0cc_socios';
+
     protected $primaryKey = 'ind';
 
     public $timestamps = false;
@@ -23,19 +23,19 @@ class Partner extends Model
     protected $fillable = [
         'sincro', 'acc', 'cedula', 'carnet', 'nombre', 'celular',
         'telefono', 'correo', 'direccion', 'nacimiento',
-        'ingreso', 'ocupacion', 'categoria', 'cobrador'
+        'ingreso', 'ocupacion', 'categoria', 'cobrador',
     ];
 
     // Casting automático a objetos Carbon (Fecha)
     protected $casts = [
-//        'nacimiento' => 'date',
-//        'ingreso' => 'date',
+        //        'nacimiento' => 'date',
+        //        'ingreso' => 'date',
         'sincro' => 'integer',
         'acc' => 'integer',
         'cobrador' => 'integer',
-        'categoria'  => PartnerCategory::class,
+        'cedula' => 'string',
+        'categoria' => PartnerCategory::class,
     ];
-
 
     // --- SCOPES ---
 
@@ -122,7 +122,6 @@ class Partner extends Model
         }
     }
 
-
     public function getFechaIngresoValidadaAttribute()
     {
         $value = trim($this->ingreso);
@@ -136,7 +135,7 @@ class Partner extends Model
 
         try {
             return Carbon::parse($value)->format('Y-m');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return null; // Si el formato es extraño y falla el parseo
         }
     }

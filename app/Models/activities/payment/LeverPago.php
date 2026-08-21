@@ -30,11 +30,11 @@ class LeverPago extends Model
 
     protected $casts = [
         'id_pago' => 'integer',
-        'cedula'  => 'integer',
-        'monto'   => 'decimal:2',
+        'cedula' => 'string',
+        'monto' => 'decimal:2',
         'dolares' => 'decimal:2',
-        'zelle'   => 'decimal:2',
-        'recibo'  => 'integer',
-        'fecha'   => 'integer',
+        'zelle' => 'decimal:2',
+        'recibo' => 'string',
+        'fecha' => 'integer',
     ];
 }

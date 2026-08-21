@@ -28,12 +28,12 @@ class KaratePago extends Model
     ];
 
     protected $casts = [
-        'ind'     => 'integer',
-        'cedula'  => 'integer',
-        'monto'   => 'integer',
+        'ind' => 'integer',
+        'cedula' => 'string',
+        'monto' => 'integer',
         'dolares' => 'integer',
-        'zelle'   => 'integer',
-        'recibo'  => 'integer',
-        'fecha'   => 'integer',
+        'zelle' => 'integer',
+        'recibo' => 'string',
+        'fecha' => 'integer',
     ];
 }

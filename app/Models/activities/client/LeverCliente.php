@@ -28,7 +28,7 @@ class LeverCliente extends Model
     ];
 
     protected $casts = [
-        'ind'    => 'integer',
-        'cedula' => 'integer',
+        'ind' => 'integer',
+        'cedula' => 'string',
     ];
 }

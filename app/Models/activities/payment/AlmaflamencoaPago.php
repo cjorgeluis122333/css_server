@@ -28,12 +28,12 @@ class AlmaflamencoaPago extends Model
     ];
 
     protected $casts = [
-        'id_pago'      => 'integer',
-        'cedula'       => 'integer',
-        'monto'        => 'integer',
-        'dolares'      => 'integer',
-        'zelle'        => 'integer',
-        'recibo'       => 'integer',
-        'fecha'        => 'integer',
+        'id_pago' => 'integer',
+        'cedula' => 'string',
+        'monto' => 'integer',
+        'dolares' => 'integer',
+        'zelle' => 'integer',
+        'recibo' => 'string',
+        'fecha' => 'integer',
     ];
 }

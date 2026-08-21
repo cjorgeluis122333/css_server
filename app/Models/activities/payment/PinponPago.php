@@ -36,12 +36,12 @@ class PinponPago extends Model
 
     protected $casts = [
         'id' => 'integer',
-        'anio_origen'  => 'integer',
-        'cedula'       => 'integer',
-        'monto'        => 'integer',
-        'dolares'      => 'integer',
-        'zelle'        => 'integer',
-        'recibo'       => 'integer',
-        'fecha'        => 'integer',
+        'anio_origen' => 'integer',
+        'cedula' => 'string',
+        'monto' => 'integer',
+        'dolares' => 'integer',
+        'zelle' => 'integer',
+        'recibo' => 'string',
+        'fecha' => 'integer',
     ];
 }

@@ -14,13 +14,13 @@ class StoreVoleibolPagoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cedula' => ['required', 'integer'],
+            'cedula' => ['required', 'string', 'max:20', 'regex:/^\d+$/'],
             'mes' => ['required', 'string', 'date_format:Y-m'],
             'plan' => ['nullable', 'string', 'max:50'],
             'monto' => ['required', 'integer', 'min:0'],
             'dolares' => ['required', 'integer', 'min:0'],
             'zelle' => ['required', 'integer', 'min:0'],
-            'recibo' => ['required', 'integer', 'min:0'],
+            'recibo' => ['required', 'string', 'max:20', 'regex:/^\d+$/'],
             'fecha' => ['nullable', 'integer'],
             'observacion' => ['nullable', 'string', 'max:255'],
             'operador' => ['nullable', 'string', 'max:50'],
@@ -31,7 +31,7 @@ class StoreVoleibolPagoRequest extends FormRequest
     {
         return [
             'cedula.required' => 'La cédula es obligatoria.',
-            'cedula.integer' => 'La cédula debe ser un número entero.',
+            'cedula.regex' => 'La cédula debe contener solo números.',
             'mes.required' => 'El mes es obligatorio.',
             'mes.date_format' => 'El mes debe tener el formato YYYY-MM (ej: 2024-01).',
             'monto.required' => 'El monto es obligatorio.',
@@ -44,8 +44,7 @@ class StoreVoleibolPagoRequest extends FormRequest
             'zelle.integer' => 'El monto de Zelle debe ser un número entero.',
             'zelle.min' => 'El monto de Zelle no puede ser negativo.',
             'recibo.required' => 'El número de recibo es obligatorio.',
-            'recibo.integer' => 'El número de recibo debe ser un número entero.',
-            'recibo.min' => 'El número de recibo no puede ser negativo.',
+            'recibo.regex' => 'El número de recibo debe contener solo números.',
             'fecha.integer' => 'La fecha debe ser un timestamp Unix válido.',
         ];
     }

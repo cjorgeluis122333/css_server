@@ -28,6 +28,6 @@ class StrongCliente extends Model
     ];
 
     protected $casts = [
-        'cedula' => 'integer',
+        'cedula' => 'string',
     ];
 }
